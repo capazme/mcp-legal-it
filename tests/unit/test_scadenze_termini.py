@@ -551,7 +551,7 @@ class TestTerminiEsecuzioni:
 
     def test_pignoramento_mobiliare_efficacia_90gg(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01")
-        assert r["scadenza_efficacia_precetto"]["data"] == "2025-09-01"
+        assert r["scadenza_efficacia_precetto"]["data"] == "2025-08-30"  # sabato, non prorogato (G-414)
 
     def test_finestra_utile_presente(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01")
@@ -561,7 +561,7 @@ class TestTerminiEsecuzioni:
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
                   tipo="pignoramento_immobiliare")
         assert r["termine_minimo_10gg"]["primo_giorno_utile"] == "2025-06-12"
-        assert r["scadenza_efficacia_precetto"]["data"] == "2025-09-01"
+        assert r["scadenza_efficacia_precetto"]["data"] == "2025-08-30"  # sabato, non prorogato (G-414)
 
     def test_pignoramento_presso_terzi(self):
         r = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01",
@@ -986,11 +986,10 @@ class TestAvvisoSospensioneFeriale:
         assert r["sospensione_feriale_incidente"] is True
         avviso = r["avviso_sospensione_feriale"]
         assert "sospensione_feriale=False" in avviso["testo"]
-        materie = {m["materia"]: m["fonte"] for m in avviso["materie_escluse"]}
-        assert "controversie di lavoro e di previdenza e assistenza obbligatorie" in materie
-        for materia in ("cause relative ad alimenti", "procedimenti cautelari", "sfratto",
-                        "opposizione all'esecuzione"):
-            assert "art. 92, co. 1, R.D. 12/1941" in materie[materia]
+        materie = {m["codice"]: m["fonte"] for m in avviso["materie_escluse"]}
+        assert "lavoro_previdenza" in materie
+        for codice in ("alimenti", "cautelare", "sfratto", "opposizione_esecuzione"):
+            assert "art. 92, co. 1, R.D. 12/1941" in materie[codice]
         assert all("art. 3 L. 742/1969" in fonte for fonte in materie.values())
 
     @pytest.mark.parametrize("tool,kwargs", CASI_NON_INCISI, ids=[c[0] for c in CASI_NON_INCISI])
@@ -1108,10 +1107,9 @@ class TestMateriaFeriale:
         assert r["scadenza"] == "2026-09-09"
         assert r["sospensione_feriale_applicata"] is False
         assert r["materia"] == "cautelare"
-        assert r["sospensione_feriale_esclusa"] == {
-            "materia": "procedimenti cautelari",
-            "fonte": "art. 3 L. 742/1969; art. 92, co. 1, R.D. 12/1941",
-        }
+        assert r["sospensione_feriale_esclusa"]["materia"].startswith(
+            "procedimenti cautelari, solo per la fase cautelare")
+        assert r["sospensione_feriale_esclusa"]["fonte"] == "art. 3 L. 742/1969; art. 92, co. 1, R.D. 12/1941"
         assert "avviso_sospensione_feriale" not in r
 
     def test_lavoro_appello_breve_senza_sospensione(self):
@@ -1165,7 +1163,7 @@ class TestMateriaFeriale:
     def test_avviso_espone_i_codici(self):
         r = _call("scadenza_processuale", data_evento="2026-08-10", giorni=30, sospensione_feriale=True)
         codici = [m["codice"] for m in r["avviso_sospensione_feriale"]["materie_escluse"]]
-        assert codici == r_valori_ammessi()[1:]
+        assert codici == r_valori_ammessi()[2:]
 
     def test_argomenti_posizionali_invariati(self):
         mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
@@ -1276,7 +1274,7 @@ class TestG329Art482:
 
 # ---------------------------------------------------------------------------
 # G-407: art. 482 senza sospensione feriale, termine del precetto, esecuzione immediata
-# G-408: art. 481, 90 giorni con proroga (anche del sabato), opposizione al precetto
+# G-408: art. 481, 90 giorni, opposizione al precetto (dal G-414 il sabato non si proroga)
 # ---------------------------------------------------------------------------
 
 class TestG407Art482:
@@ -1331,11 +1329,17 @@ class TestG408Art481:
         assert e["sospensione_feriale"].startswith("Non applicata")
         assert "Cass. 11578/2005" in e["nota"]
 
-    def test_sabato_prorogato_al_lunedi(self):
-        # notifica 01/06/2025 + 90 = sabato 30/08/2025 -> lunedi 01/09/2025
+    def test_sabato_non_prorogato(self):
+        # G-414: notifica 01/06/2025 + 90 = sabato 30/08/2025, resta sabato (art. 155 co. 5 riguarda
+        # gli atti processuali)
         e = _call("termini_esecuzioni", data_notifica_titolo="2025-06-01")["scadenza_efficacia_precetto"]
-        assert (e["data"], e["giorno_settimana"], e["prorogata_art_155"]) == ("2025-09-01", "lunedì", True)
-        assert "lettura interpretativa" in e["nota"]
+        assert (e["data"], e["giorno_settimana"], e["prorogata_art_155"]) == ("2025-08-30", "sabato", False)
+        assert "Lettura interpretativa" in e["nota"] and "il sabato no" in e["nota"]
+
+    def test_precedente_di_merito_contrario_sulla_sospensione(self):
+        e = _call("termini_esecuzioni", data_notifica_titolo="2026-07-25")["scadenza_efficacia_precetto"]
+        assert "Trib. Vicenza 22/3/2012" in e["sospensione_feriale"]
+        assert "più prudente" in e["sospensione_feriale"]
 
     def test_festivo_prorogato(self):
         # notifica 26/09/2026 + 90 = venerdi 25/12/2026 -> 26 festivo, 27 domenica -> 28/12
@@ -1361,3 +1365,94 @@ class TestFinestraVuota:
         r = _call("termini_esecuzioni", data_notifica_titolo="2026-03-02", termine_precetto_giorni=30)
         assert r["finestra_utile"] == "dal 2026-04-02 al 2026-06-01"
         assert "avviso_finestra" not in r
+
+
+# ---------------------------------------------------------------------------
+# G-414: fonti verificate, ultimo giorno del divieto festivo, materie precisate
+# ---------------------------------------------------------------------------
+
+class TestG414:
+
+    def test_due_marzo_resta_tredici_marzo(self):
+        t = _call("termini_esecuzioni", data_notifica_titolo="2026-03-02")["termine_minimo_10gg"]
+        assert t["primo_giorno_utile"] == "2026-03-13"
+        assert "data_prudente" not in t and "avviso_ultimo_giorno_festivo" not in t
+
+    def test_decimo_giorno_festivo_data_prudente(self):
+        # notifica 05/03/2026: decimo giorno domenica 15/03 -> prorogato al 16, prudente il 17
+        t = _call("termini_esecuzioni", data_notifica_titolo="2026-03-05")["termine_minimo_10gg"]
+        assert (t["divieto_fino_al"], t["primo_giorno_utile"]) == ("2026-03-15", "2026-03-16")
+        assert t["data_prudente"] == "2026-03-17"
+        assert "art. 617" in t["avviso_ultimo_giorno_festivo"]
+
+    def test_decimo_giorno_santo_stefano_sabato_non_prorogato(self):
+        # notifica 16/12/2025: decimo giorno venerdi 26/12 (festivo) -> prorogato a sabato 27 (il
+        # sabato non e' festivo), prudente domenica 28; per il mobiliare dal 29 (art. 519)
+        t = _call("termini_esecuzioni", data_notifica_titolo="2025-12-16")["termine_minimo_10gg"]
+        assert (t["primo_giorno_utile"], t["data_prudente"]) == ("2025-12-27", "2025-12-28")
+        assert "29 dicembre 2025" in t["avviso_ultimo_giorno_festivo"]
+        t = _call("termini_esecuzioni", data_notifica_titolo="2025-12-16",
+                  tipo="pignoramento_presso_terzi")["termine_minimo_10gg"]
+        assert t["data_prudente"] == "2025-12-28"
+        assert "art. 519" not in t["avviso_ultimo_giorno_festivo"]
+
+    def test_decimo_giorno_sabato_nessuna_data_prudente(self):
+        # notifica 04/03/2026: decimo giorno sabato 14/03, non festivo
+        t = _call("termini_esecuzioni", data_notifica_titolo="2026-03-04")["termine_minimo_10gg"]
+        assert "data_prudente" not in t
+
+    def test_sospensione_482_tesi_diffusa_con_rischio_di_nullita(self):
+        t = _call("termini_esecuzioni", data_notifica_titolo="2026-07-25")["termine_minimo_10gg"]
+        assert t["primo_giorno_utile"] == "2026-08-05"
+        testo = t["sospensione_feriale"]
+        assert "tesi diffusa" in testo and "Cass. 18652/2013" in testo
+        assert "nullo" in testo and "art. 617" in testo
+        assert "consolidat" not in testo and "2742" not in testo
+
+    def test_nessuna_citazione_non_verificata(self):
+        mod = importlib.import_module("mcp_legal_it.tools.scadenze_termini")
+        testo = open(mod.__file__, encoding="utf-8").read()
+        for numero in ("2742/2015", "1125/1971", "1840/1976", "3457/1980", "9966/2006"):
+            assert numero not in testo, numero
+
+    def test_mantenimento_non_e_escluso(self):
+        r = _call("scadenza_processuale", data_evento="2026-08-10", giorni=30,
+                  sospensione_feriale=True, materia="mantenimento")
+        assert r["scadenza"] == "2026-09-30"
+        assert r["sospensione_feriale_applicata"] is True
+        assert "sospensione_feriale_esclusa" not in r
+        assert "SS.UU. 12946/2024" in r["nota_materia"]
+        assert "scadenza_se_materia_esclusa" not in r
+
+    def test_alimenti_dice_che_il_mantenimento_non_rientra(self):
+        r = _call("scadenza_processuale", data_evento="2026-08-10", giorni=30,
+                  sospensione_feriale=True, materia="alimenti")
+        assert r["scadenza"] == "2026-09-09"
+        assert "non il mantenimento" in r["sospensione_feriale_esclusa"]["materia"]
+
+    def test_cautelare_solo_fase_cautelare(self):
+        r = _call("termini_deposito_atti_appello", data_notifica_sentenza="2026-08-10",
+                  materia="cautelare")
+        assert "solo per la fase cautelare" in r["sospensione_feriale_esclusa"]["materia"]
+        assert "giudizio di merito" in r["sospensione_feriale_esclusa"]["materia"]
+
+    def test_mantenimento_senza_sospensione_lo_dice(self):
+        r = _call("scadenza_processuale", data_evento="2026-08-10", giorni=30, materia="mantenimento")
+        assert r["scadenza"] == "2026-09-09"
+        assert "sospensione_feriale=True" in r["nota_materia"]
+
+    def test_avviso_519_rimanda_alla_data_prudente(self):
+        # notifica 15/12/2026: divieto fino a venerdi 25/12 (Natale), primo giorno sabato 26 (Santo
+        # Stefano, art. 519: dal 28). Proroga del festivo: 26 festivo, 27 domenica -> 28; prudente 29
+        t = _call("termini_esecuzioni", data_notifica_titolo="2026-12-15")["termine_minimo_10gg"]
+        assert (t["primo_giorno_utile"], t["data_prudente"]) == ("2026-12-26", "2026-12-29")
+        assert "Vedi anche data_prudente" in t["avviso_art_519"]
+
+    def test_data_prudente_oltre_l_efficacia(self):
+        # notifica 06/01/2026, termine del precetto 89 gg: divieto fino a domenica 05/04 (Pasqua),
+        # 06/04 Pasquetta -> prudente 08/04, efficacia 07/04
+        r = _call("termini_esecuzioni", data_notifica_titolo="2026-01-06", termine_precetto_giorni=89)
+        t = r["termine_minimo_10gg"]
+        assert t["data_prudente"] == "2026-04-08"
+        assert r["scadenza_efficacia_precetto"]["data"] == "2026-04-07"
+        assert "dopo la perdita di efficacia" in t["avviso_ultimo_giorno_festivo"]
