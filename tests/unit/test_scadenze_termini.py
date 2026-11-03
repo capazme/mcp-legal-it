@@ -1274,7 +1274,7 @@ class TestG329Art482:
 
 # ---------------------------------------------------------------------------
 # G-407: art. 482 senza sospensione feriale, termine del precetto, esecuzione immediata
-# G-408: art. 481, 90 giorni con proroga (anche del sabato), opposizione al precetto
+# G-408: art. 481, 90 giorni, opposizione al precetto (dal G-414 il sabato non si proroga)
 # ---------------------------------------------------------------------------
 
 class TestG407Art482:
@@ -1435,3 +1435,24 @@ class TestG414:
                   materia="cautelare")
         assert "solo per la fase cautelare" in r["sospensione_feriale_esclusa"]["materia"]
         assert "giudizio di merito" in r["sospensione_feriale_esclusa"]["materia"]
+
+    def test_mantenimento_senza_sospensione_lo_dice(self):
+        r = _call("scadenza_processuale", data_evento="2026-08-10", giorni=30, materia="mantenimento")
+        assert r["scadenza"] == "2026-09-09"
+        assert "sospensione_feriale=True" in r["nota_materia"]
+
+    def test_avviso_519_rimanda_alla_data_prudente(self):
+        # notifica 15/12/2026: divieto fino a venerdi 25/12 (Natale), primo giorno sabato 26 (Santo
+        # Stefano, art. 519: dal 28). Proroga del festivo: 26 festivo, 27 domenica -> 28; prudente 29
+        t = _call("termini_esecuzioni", data_notifica_titolo="2026-12-15")["termine_minimo_10gg"]
+        assert (t["primo_giorno_utile"], t["data_prudente"]) == ("2026-12-26", "2026-12-29")
+        assert "Vedi anche data_prudente" in t["avviso_art_519"]
+
+    def test_data_prudente_oltre_l_efficacia(self):
+        # notifica 06/01/2026, termine del precetto 89 gg: divieto fino a domenica 05/04 (Pasqua),
+        # 06/04 Pasquetta -> prudente 08/04, efficacia 07/04
+        r = _call("termini_esecuzioni", data_notifica_titolo="2026-01-06", termine_precetto_giorni=89)
+        t = r["termine_minimo_10gg"]
+        assert t["data_prudente"] == "2026-04-08"
+        assert r["scadenza_efficacia_precetto"]["data"] == "2026-04-07"
+        assert "dopo la perdita di efficacia" in t["avviso_ultimo_giorno_festivo"]

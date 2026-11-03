@@ -8,7 +8,7 @@ espone le voci "481 cpc: Cessazione efficacia del precetto (90 giorni)" e "617 c
 opposizione agli atti esecutivi (20 giorni)" oltre a un termine manuale in giorni.
 
 Convenzioni: il sito proroga i termini che cadono di sabato/domenica/festivo (art. 155 c.p.c.),
-come il tool; la sospensione feriale e' una spunta del sito ("SospensioneFeriale") e il tool non la
+come il tool per l'art. 617; per l'art. 481 il tool non proroga il sabato (G-414); la sospensione feriale e' una spunta del sito ("SospensioneFeriale") e il tool non la
 applica mai (art. 3 L. 742/1969: opposizioni esecutive escluse; termine ex art. 481 sostanziale).
 Per questo i confronti si fanno con la sospensione feriale DISATTIVATA.
 """
