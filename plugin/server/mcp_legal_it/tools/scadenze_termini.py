@@ -1218,10 +1218,10 @@ _NOTA_482 = (
     "proroga ex art. 155, co. 4-5: l'art. 482 non impone il compimento di un atto. È una lettura "
     "interpretativa: non risulta una pronuncia di legittimità sull'art. 482 e la proroga."
 )
-#: G-414: il decimo giorno festivo, con la data prudente se la proroga si ritenesse applicabile.
+#: G-414, LI-073: l'ultimo giorno del divieto festivo o sabato, con la data prudente (art. 155 co. 4-5).
 _AVVISO_482_FESTIVO = (
-    "L'ultimo giorno del divieto ({al}) è festivo. Se si ritenesse applicabile la proroga "
-    "dell'art. 155, co. 4, il divieto durerebbe fino al {prorogato} e la data prudente per iniziare "
+    "L'ultimo giorno del divieto ({al}) è {quale}. Se si ritenesse applicabile la proroga "
+    "dell'art. 155, co. 4-5, il divieto durerebbe fino al {prorogato} e la data prudente per iniziare "
     "l'esecuzione è il {prudente}: con quella lettura, un pignoramento eseguito prima sarebbe nullo "
     "e opponibile con l'opposizione agli atti esecutivi (art. 617 c.p.c.)."
 )
@@ -1286,7 +1286,7 @@ def termini_esecuzioni(
     """Calcola i termini nelle procedure esecutive civili (pignoramento, opposizione).
     Vigenza: artt. 480-482, 519, 543, 555, 617 c.p.c. (testo vigente).
     Precisione: ESATTO (termini di legge). Art. 482: primo giorno utile per iniziare l'esecuzione, senza
-    proroga, con una data prudente se l'ultimo giorno del divieto è festivo. Art. 481: 90 giorni,
+    proroga, con una data prudente se l'ultimo giorno del divieto è festivo o sabato. Art. 481: 90 giorni,
     prorogati se il 90° è festivo, non se è sabato. La sospensione feriale non viene applicata ai
     termini del precetto (letture dichiarate nella risposta) né all'opposizione agli atti esecutivi
     (art. 617), esclusa con le altre opposizioni esecutive (decisione LI-060; la risposta riporta i
@@ -1405,13 +1405,15 @@ def termini_esecuzioni(
     efficacia_raw = dt_notifica + timedelta(days=cfg["efficacia_precetto_giorni"])
     efficacia, efficacia_adj = _slide_forward_festivi(efficacia_raw)
 
-    # G-414: ultimo giorno del divieto festivo -> data prudente se la proroga si applicasse.
-    if _festivo_519(divieto_fino_al):
-        prorogato, _ = _slide_forward_festivi(divieto_fino_al)
+    # G-414: ultimo giorno del divieto festivo o sabato -> data prudente se la proroga si applicasse.
+    # LI-073: per la sola data prudente l'art. 155 vale per intero (co. 4 festivi e co. 5 sabato).
+    if _is_holiday(divieto_fino_al):
+        prorogato, _ = _slide_forward(divieto_fino_al)
         prudente = prorogato + timedelta(days=1)
         termine_min["data_prudente"] = prudente.isoformat()
         avviso = _AVVISO_482_FESTIVO.format(
             al=_data_it(divieto_fino_al),
+            quale="festivo" if _festivo_519(divieto_fino_al) else "un sabato",
             prorogato=_data_it(prorogato),
             prudente=_data_it(prudente),
         )
