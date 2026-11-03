@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0-beta.4] - 2026-11-03
+
+Fourth beta of 3.0, cut from develop. Published as a GitHub pre-release: the
+stable channel keeps serving 2.x. The entries below are the 3.0 work so far.
+
 The 3.0 line now carries everything shipped on the 2.x line from 2.13.0 to
 2.17.0 (the 2.x sections below): the benchmark corrections of 2.15.x, paged
 reading of long texts (`da_carattere`), the `cite_law` guard against an
