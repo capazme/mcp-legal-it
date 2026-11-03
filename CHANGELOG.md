@@ -390,6 +390,14 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **`analisi-sinistro`: patrimonial danno differenziale in workplace accidents (decision
+  LI-072).** Section 2-bis now says that, against the employer, only the patrimonial
+  differential is due, computed on homogeneous heads: the civil-law lucro cessante minus the
+  capital value of the INAIL rendita quota that indemnifies the patrimonial consequences
+  (art. 13, co. 2, lett. b, D.Lgs. 38/2000, impairments from 16%), the excess only; proved
+  danno emergente is not covered by the rendita and is not reduced (Cass. civ., sez. lav.,
+  n. 21196/2025). It closes a gap left by LI-070: section 1-bis deducted only the biological
+  quota, so the new patrimonial head could have counted the lett. b quota twice.
 - **`analisi-sinistro`: capacità lavorativa specifica split by nature (decision LI-070).**
   The skill (and the `analisi_sinistro` prompt generated from it) used to list the
   incidence on the capacità lavorativa specifica among the personalisation criteria of
