@@ -390,6 +390,16 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **`analisi-sinistro`: capacità lavorativa specifica split by nature (decision LI-070).**
+  The skill (and the `analisi_sinistro` prompt generated from it) used to list the
+  incidence on the capacità lavorativa specifica among the personalisation criteria of
+  the danno biologico without saying which part. It now keeps there only the non-income
+  incidence (greater wear, fatigue and difficulty at work, the so-called cenestesi
+  lavorativa, Cass. civ., sez. III, ord. n. 16844/2023), and states in a new section 2-bis
+  that the reduced earning capacity (lucro cessante) is a separate patrimonial head of
+  damage, to be proved and liquidated apart: the CTU percentage alone does not prove a loss
+  of income (Cass. civ., sez. III, ord. n. 25467/2025). The output table shows the
+  patrimonial head as its own row. No calculator changes.
 - **Imposta di registro calculators: D.P.R. 131/1986 until 31/12/2026 (decision
   LI-061).** The D.P.R. still governs the tax today; from 1 January 2027 the testo
   unico of D.Lgs. 123/2025 applies (art. 205, as amended by art. 4, comma 5, d.l.
