@@ -18,7 +18,7 @@ necessarie per rispondere alla domanda che hai posto.
 Verificabile in un comando:
 
 ```bash
-grep -rnE "https?://" --include="*.py" plugin/server/mcp_legal_it/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|corteconti|garanteprivacy|gpdp|consob|anticorruzione|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|w3\.org|oasis-open|esempio\.it|mozilla\.org"
+grep -rnE "https?://" --include="*.py" plugin/server/mcp_legal_it/ | grep -vE "normattiva|gazzettaufficiale|italgiure|giustizia-amministrativa|cortecostituzionale|def\.finanze|corteconti|garanteprivacy|gpdp|consob|anticorruzione|senato\.it|camera\.it|europa\.eu|brocardi|tmdn\.org|consiglionazionaleforense|w3\.org|oasis-open|esempio\.it|mozilla\.org"
 ```
 
 Se non stampa nulla, nel codice non esiste alcun host oltre a quelli dichiarati.
@@ -53,11 +53,13 @@ questo documento. Le due liste non possono divergere.
 | `publications.europa.eu` | CELLAR / SPARQL — Ufficio delle pubblicazioni UE |
 | `ec.europa.eu` | VIES — Commissione europea (validazione partite IVA) |
 | `www.tmdn.org` | TMview — EUIPO / EU Intellectual Property Network (banca dati marchi). Dal 29/10/2026 la scheda del marchio rifiuta le richieste automatiche (HTTP 403): il rifiuto non viene aggirato, `leggi_marchio` dà i soli dati della ricerca e il link pubblico |
+| `www.consiglionazionaleforense.it` | Consiglio nazionale forense — testo consolidato del codice deontologico forense (PDF pubblicato dal CNF; il codice non è su Normattiva). Il PDF è letto come dato non fidato: solo dall'host del CNF, al massimo 10 MB e 150 pagine, solo il testo, mai script, moduli o allegati. La lettura si ferma da sola oltre 50.000 frammenti di testo, 2 milioni di caratteri o 30 secondi (controllati a ogni frammento e a ogni pagina); dopo 35 secondi la chiamata rinuncia comunque, ma un blocco interno a pypdf tra due frammenti non può essere interrotto e il suo thread resta attivo fino alla fine |
 | `www.brocardi.it` | **Brocardi.it — fonte privata** (vedi sotto) |
 
 **Brocardi è l'unica fonte non istituzionale**, ed è una scelta deliberata da
 conoscere. Fornisce annotazioni dottrinali e massime; **non fornisce mai il
-testo di una norma**, che arriva sempre da Normattiva o da EUR-Lex. Se questa
+testo di una norma**, che arriva sempre da Normattiva o da EUR-Lex (per il codice
+deontologico forense, dal Consiglio nazionale forense). Se questa
 dipendenza non ti va bene, spegnila:
 
 ```bash

@@ -268,6 +268,8 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     # An EU text's own notices (a consolidation not applicable yet, a day before the act
     # was in force) come from the lookup, after the notice of what the text is.
     base["avvisi"] = q["avvisi"] + (list(result.get("avvisi_ue") or []) if base["testo"] else [])
+    if base["testo"]:
+        base["avvisi"] += list(result.get("avvisi_cnf") or [])
     if result.get("avviso_assenza"):
         # An article missing from the consolidation read: the outcome is «not found», and the
         # reader is told why and where the OJ text is.
@@ -283,6 +285,9 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     if result.get("errore_parte"):
         base["errore"], base["esito_parte"] = result["errore_parte"], result.get("esito_parte")
     note_aggiornamento(base)
+    if base["fonte"] == "cnf" and base["testo"]:
+        # The CNF's own notes to the article: which deliberation changed it, and when.
+        base["note_aggiornamento"] = list(result.get("note_aggiornamento") or [])
     note_redazionali(base, result)
     base.pop("chiave_pagina", None)
     return base, result.get("esito")
@@ -484,6 +489,10 @@ def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "")
     testo, fonte, url = base.get("testo") or "", base.get("fonte") or "", base.get("url") or ""
     if testo and fonte == "eurlex":
         return _qualita_ue(base, act_info, article)
+    if testo and fonte == "cnf":
+        # The CNF's consolidated text of its code: what is authentic is each deliberation as the
+        # Gazzetta published it, as an EU consolidation stands to the Official Journal.
+        return {"validita": None, "precisione": "INDICATIVO", "avvisi": [], "successione": None, "upcoming": None}
     if not testo or fonte not in ("normattiva", "normattiva-akn"):
         return {"validita": None, "precisione": None, "avvisi": [], "successione": None, "upcoming": None}
     data_rich = (act_info or {}).get("data_versione") or None

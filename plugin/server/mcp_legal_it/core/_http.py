@@ -95,6 +95,7 @@ HOST_PER_FONTE: dict[str, frozenset[str] | None] = {
     "parlamento_camera": frozenset({"dati.camera.it"}),
     "tmview": frozenset({"www.tmdn.org"}),
     "vies": frozenset({"ec.europa.eu"}),
+    "cnf": frozenset({"www.consiglionazionaleforense.it"}),
     "dpa_probe": None,
 }
 

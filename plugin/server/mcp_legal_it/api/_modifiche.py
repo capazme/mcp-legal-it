@@ -126,6 +126,11 @@ async def modifiche_articolo(
         return ModificheArticolo(esito="non_supportata",
                                  errore="modifiche_articolo legge le tabelle degli aggiornamenti di Normattiva: "
                                         "non serve gli atti UE")
+    if nv.norma._is_cnf():
+        return ModificheArticolo(esito="non_supportata",
+                                 errore="modifiche_articolo legge le tabelle degli aggiornamenti di Normattiva: il "
+                                        "codice deontologico forense non è su Normattiva (le note sulle modifiche "
+                                        "sono nel testo di cite_law)")
     if not article:
         return ModificheArticolo(esito="non_supportata",
                                  errore="serve un articolo: le modifiche si leggono per articolo, mai per l'atto "

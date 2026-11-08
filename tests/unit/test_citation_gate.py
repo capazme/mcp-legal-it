@@ -575,8 +575,32 @@ def test_the_explicit_escape_lets_an_uncovered_source_through(tmp_path):
 
 
 def test_an_unresolved_source_of_law_is_flagged_until_escaped(tmp_path):
-    t = session(tmp_path).prompt().say("L'art. 9 del codice deontologico forense impone la probita'.")
+    t = session(tmp_path).prompt().say("L'art. 9 del codice deontologico dei commercialisti impone la probita'.")
     assert gate(t) == NAGS
+
+
+def test_a_cite_law_of_the_codice_deontologico_forense_covers_it(tmp_path):
+    """The code is read from the CNF's PDF: a cite_law of its article covers the citation."""
+    servito = ("**Fonte**: Consiglio nazionale forense (PDF del codice deontologico) — https://example.org\n\n"
+               "### Art. 68 – Assunzione di incarichi contro una parte già assistita\n\n1. L'avvocato …")
+    t = session(tmp_path).prompt().cite_law("art. 68 codice deontologico forense", servito).say(
+        "Per l'art. 68 del codice deontologico forense serve un biennio dalla cessazione del rapporto.")
+    assert gate(t) == SILENT
+
+
+def test_the_codice_deontologico_forense_is_asked_for_with_cite_law(tmp_path):
+    """The resolver knows the code: without a cite_law the gate asks for one, not for «fuori copertura»."""
+    t = session(tmp_path).prompt().say("Per l'art. 68 del codice deontologico forense serve un biennio.")
+    done = run({"transcript_path": str(t.write()), "hook_event_name": "Stop"})
+    assert done.returncode == NAGS
+    assert "(cite_law)" in done.stderr and "fonte non coperta" not in done.stderr, done.stderr
+
+
+def test_cdf_stays_an_uncovered_source(tmp_path):
+    """«CDF» may be the Carta dei diritti fondamentali: the resolver does not take it."""
+    t = session(tmp_path).prompt().say("Per l'art. 68 CDF serve un biennio.")
+    done = run({"transcript_path": str(t.write()), "hook_event_name": "Stop"})
+    assert done.returncode == NAGS and "fonte non coperta" in done.stderr, done.stderr
 
 
 def test_the_escape_covers_only_its_own_line(tmp_path):

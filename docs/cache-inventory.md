@@ -15,6 +15,7 @@ when a declared cache stops honouring the `LEGAL_CACHE=off` switch.
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts` | `{codice}_{data_gu}_{data_vigenza}.json -- parsed act`<br>`akn_hits.json -- access counter per act`<br>`akn_url_params.json -- act URL -> export parameters` | in-memory LRU capped at AKN_CACHE_MAX_ACTS (50); the disk copy has no TTL | `mcp_legal_it/lib/visualex/akn_fetch.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine` | `<sha256 of the article URL>.json -- the article text a Normattiva page gave (HTML channel)`<br>`<sha256 of 'albero|' + the act URL>.json -- the act's article tree (albero_atto)` | 24 hours (TTL_SECONDI, VisuaLex's page TTL); at most MAX_SU_DISCO (2000) files, oldest first | `mcp_legal_it/lib/visualex/pagine_normattiva.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine` | `<sha256 of the CELLAR URL>.json.gz -- an EU act's page as CELLAR served it` | 24 hours (TTL_SECONDI, VisuaLex's page TTL); at most MAX_SU_DISCO (100) files, oldest first | `mcp_legal_it/lib/visualex/pagine_eurlex.py` | `cache_enabled()` |
+| `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/cnf_codice_deontologico` | `codice.json.gz -- the codice deontologico forense read from the CNF's PDF, as articles` | 24 hours (TTL_SECONDI); a failed fetch or a refused reading is never kept | `mcp_legal_it/lib/cnf/client.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` | `act_dates.json -- full date of an act cited by year only, read from its page's title` | a year per date (TTL_SECONDI); a miss is never kept | `mcp_legal_it/lib/visualex/act_dates.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_aggiornamenti` | `<sha256 of the article URN + '|' + version>.json -- a past version's window and update table (api.modifiche_articolo)` | 90 days (TTL_SECONDI); only versions whose window has ended; the current version, a failed read and a partial result are never kept | `mcp_legal_it/lib/visualex/aggiornamenti.py` | `cache_enabled()` |
 | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` | `brocardi_urls.json -- article URL map` | no TTL; an entry is dropped when the article 404s | `mcp_legal_it/lib/brocardi/client.py` | `cache_enabled()` |
@@ -33,17 +34,17 @@ writes a document is listed as a writer of the document, not of the cache.
 | --- | --- |
 | `cerca_brocardi` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 | `cerca_pronuncia_costituzionale` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
-| `cite_law` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
+| `cite_law` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/cnf_codice_deontologico`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 | `fetch_full_act` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 | `fetch_law_annotations` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
-| `fetch_law_article` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
+| `fetch_law_article` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/cnf_codice_deontologico`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 | `giurisprudenza_articolo` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 | `leggi_pronuncia_costituzionale` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `mappa_orientamento` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 | `pronunce_cost_su_norma` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `storia_norma` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_aggiornamenti` |
 | `ultime_pronunce_cost` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
-| `verifica_citazioni` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
+| `verifica_citazioni` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/cnf_codice_deontologico`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `verifica_dpa_fornitore` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 
 ## Turning the caches off
