@@ -183,6 +183,15 @@ CACHE_LOCATIONS = (
         "switch": "cache_enabled()",
     },
     {
+        "module": "mcp_legal_it/lib/cnf/client.py",
+        "label": "cnf_codice_deontologico",
+        "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/cnf_codice_deontologico",
+        "files": ["codice.json.gz -- the codice deontologico forense read from the CNF's PDF, as articles"],
+        "retention": "24 hours (TTL_SECONDI); a failed fetch or a refused reading is never kept",
+        "markers": ("cnf_codice_deontologico", "codice.json.gz"),
+        "switch": "cache_enabled()",
+    },
+    {
         "module": "mcp_legal_it/lib/visualex/act_dates.py",
         "label": "act_dates",
         "dir": "${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}",

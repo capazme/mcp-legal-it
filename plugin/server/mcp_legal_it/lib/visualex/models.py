@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 
 from .article_suffixes import ARTICLE_SUFFIX_ALTERNATION
-from .map import EURLEX, articolato_in_allegato, codice_urn, normalize_act_type
+from .map import CODICE_DEONTOLOGICO_FORENSE, EURLEX, articolato_in_allegato, codice_urn, normalize_act_type
 
 
 _NORMATTIVA_BASE = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
@@ -45,9 +45,18 @@ class Norma:
     def _is_eurlex(self) -> bool:
         return self.tipo_atto_normalized.lower() in EURLEX
 
+    def _is_cnf(self) -> bool:
+        """The codice deontologico forense, read from the CNF's site (``lib/cnf``)."""
+        return self.tipo_atto_normalized.lower() == CODICE_DEONTOLOGICO_FORENSE
+
     def url(self, article: str = "") -> str:
-        """Generate URL for this act (Normattiva or EUR-Lex)."""
+        """Generate URL for this act (Normattiva, EUR-Lex, or the CNF's page of its code)."""
         norm = self.tipo_atto_normalized.lower()
+
+        if self._is_cnf():
+            from ..cnf.client import PAGINA_CODICE
+
+            return PAGINA_CODICE
 
         # EUR-Lex routing
         if norm in EURLEX:
@@ -115,7 +124,7 @@ class NormaVisitata:
     def url(self) -> str:
         # An annex article has no ~artN of its own in the act URN: the act's URL is
         # the honest one (~artN would point at the body article with that number).
-        if self.norma._is_eurlex() or split_annex(self.numero_articolo):
+        if self.norma._is_eurlex() or self.norma._is_cnf() or split_annex(self.numero_articolo):
             return self.norma.url()
         return self.norma.url(article=self.numero_articolo) + self.suffisso_versione()
 

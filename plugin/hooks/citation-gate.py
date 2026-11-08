@@ -13,7 +13,7 @@ What it reads (the turn: everything since the user's last prompt)
   .html, ...; source code quotes things, it does not assert them) and the
   inputs of the document tools (esporta_atto_docx, genera_*).
 Fenced and inline code is skipped. A line that says "fuori copertura" is the
-explicit escape for a source no tool covers (CDF, CEDU, allegati UE...).
+explicit escape for a source no tool covers (CEDU, allegati UE...).
 
 How a citation is read
 With the server's own code (mcp_legal_it.core.citazioni): the act is resolved

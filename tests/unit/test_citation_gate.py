@@ -575,7 +575,21 @@ def test_the_explicit_escape_lets_an_uncovered_source_through(tmp_path):
 
 
 def test_an_unresolved_source_of_law_is_flagged_until_escaped(tmp_path):
-    t = session(tmp_path).prompt().say("L'art. 9 del codice deontologico forense impone la probita'.")
+    t = session(tmp_path).prompt().say("L'art. 9 del codice deontologico dei commercialisti impone la probita'.")
+    assert gate(t) == NAGS
+
+
+def test_a_cite_law_of_the_codice_deontologico_forense_covers_it(tmp_path):
+    """The code is read from the CNF's PDF: a cite_law of its article covers the citation."""
+    servito = ("**Fonte**: Consiglio nazionale forense (PDF del codice deontologico) — https://example.org\n\n"
+               "### Art. 68 – Assunzione di incarichi contro una parte già assistita\n\n1. L'avvocato …")
+    t = session(tmp_path).prompt().cite_law("art. 68 codice deontologico forense", servito).say(
+        "Per l'art. 68 del codice deontologico forense serve un biennio dalla cessazione del rapporto.")
+    assert gate(t) == SILENT
+
+
+def test_the_codice_deontologico_forense_is_not_an_uncovered_source(tmp_path):
+    t = session(tmp_path).prompt().say("Per l'art. 68 del codice deontologico forense serve un biennio.")
     assert gate(t) == NAGS
 
 

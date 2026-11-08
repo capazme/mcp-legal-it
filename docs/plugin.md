@@ -257,8 +257,8 @@ stessa sessione compresi, mai transcript di altre sessioni):
 («art. 5 del contratto», «l'atto di costituzione all'art. 3»), atti citati senza
 articolo, il contenuto dei risultati dei tool.
 
-**Via d'uscita**: per una fonte che nessun tool copre (CEDU, codice deontologico
-forense, allegati UE…) basta scrivere «fuori copertura» sulla stessa riga.
+**Via d'uscita**: per una fonte che nessun tool copre (CEDU, codici deontologici
+diversi da quello forense, allegati UE…) basta scrivere «fuori copertura» sulla stessa riga.
 
 **Output**: nessun messaggio se tutto è coperto, altrimenti un avviso con le citazioni
 non lette e il tool da usare. Consultivo e fail-open: al più un blocco per turno

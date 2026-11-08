@@ -800,8 +800,12 @@ def _atto(atto: str | NormaDati) -> Norma | tuple[str, str]:
         info = norme._resolve_act(act_name)
         if not info:
             return "atto_non_riconosciuto", _senza_tool(norme._unresolved_act_error(act_name))
-    return Norma(tipo_atto=info["tipo_atto"], data=info.get("data", ""), numero_atto=info.get("numero_atto", ""),
-                 celex_consolidated=info.get("celex_consolidated", ""))
+    norma = Norma(tipo_atto=info["tipo_atto"], data=info.get("data", ""), numero_atto=info.get("numero_atto", ""),
+                  celex_consolidated=info.get("celex_consolidated", ""))
+    if norma._is_cnf():
+        # Read from the CNF's PDF one article at a time (testo_articolo), never from Normattiva.
+        return "non_supportata", "per il codice deontologico forense è disponibile solo il testo dei singoli articoli"
+    return norma
 
 
 async def indice_atto(atto: str | NormaDati) -> IndiceAtto:

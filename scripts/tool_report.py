@@ -62,6 +62,7 @@ CLIENT_SOURCES = {
     "parlamento": "dati.senato.it / dati.camera.it (SPARQL)",
     "visualex": "Normattiva / EUR-Lex (Visualex)",
     "vies": "VIES (partite IVA UE)",
+    "cnf": "Consiglio nazionale forense (codice deontologico)",
 }
 
 GROUPS = (

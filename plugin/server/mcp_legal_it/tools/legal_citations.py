@@ -68,6 +68,16 @@ from mcp_legal_it.core.cassazione import (  # noqa: F401 - re-exported
 
 
 
+#: The tools other than cite_law/fetch_law_article answer this for the codice deontologico
+#: forense: its text comes from the CNF's PDF, which they do not read.
+_SOLO_CITE_LAW_CNF = ("per il codice deontologico forense è disponibile solo il testo dei singoli articoli "
+                      "con cite_law(); il PDF integrale è pubblicato dal CNF su "
+                      "https://www.consiglionazionaleforense.it/codice-deontologico-forense")
+
+#: How a source is named in the «Fonte» line when its own name would not read well.
+_ETICHETTE_FONTE = {"cnf": "Consiglio nazionale forense (PDF del codice deontologico)"}
+
+
 def _format_result(article_result: dict, annotations_result: dict | None = None) -> str:
     """Format scraping results as markdown output."""
     parts = []
@@ -93,7 +103,9 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
     else:
         consolidato, avvisi_ue = None, []
     if text:
-        parts.append(f"**Fonte**: {source.title()} — {url}\n")
+        parts.append(f"**Fonte**: {_ETICHETTE_FONTE.get(source, source.title())} — {url}\n")
+        for avviso in article_result.get("avvisi_cnf") or []:
+            parts.append(f"**Attenzione**: {avviso}.\n")
         if consolidato:
             modifiche = consolidato.get("modificato_da") or []
             elenco = "; ".join(f"{m['atto']} (CELEX {m['celex']})" for m in modifiche)
@@ -116,6 +128,8 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 
         note, note_non_lette, note_nel_testo = note_della_pagina(source, text, url,
                                                                  article_result.get("chiave_pagina"))
+        if source == "cnf":
+            note = article_result.get("note_aggiornamento") or []  # the CNF's notes on the amendments
         if note_non_lette:
             parts.append(f"**Attenzione**: {AVVISO_NOTE_NON_LETTE}.\n")
         # An article Normattiva splits into parts: which part this is, said before the text.
@@ -218,6 +232,8 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
     brocardi_md = ""
     if annotate and split_annex(article):
         brocardi_md = "\n\n**Annotazioni Brocardi**: non disponibili per gli allegati"
+    elif annotate and nv.norma._is_cnf():
+        brocardi_md = "\n\n**Annotazioni Brocardi**: non disponibili per il codice deontologico forense"
     elif annotate:
         try:
             brocardi = await fetch_brocardi(
@@ -265,7 +281,8 @@ async def cite_law(
 ) -> str:
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
-    Fonti: Normattiva (leggi italiane), EUR-Lex (regolamenti/direttive UE), Brocardi (annotazioni).
+    Fonti: Normattiva (leggi italiane), EUR-Lex (regolamenti/direttive UE), CNF (codice deontologico
+    forense), Brocardi (annotazioni).
 
     Dopo questo tool: cerca_brocardi() per approfondimenti dottrinali, cerca_giurisprudenza() per precedenti.
     Restituisce: testo ufficiale dell'articolo da Normattiva/EUR-Lex con URL fonte.
@@ -280,6 +297,8 @@ async def cite_law(
         (anche "allegato I.7 art. 30 D.Lgs. 36/2023")
       - "Allegato III AI Act" — allegato di un atto UE, restituito per intero
         (punti e lettere vengono ignorati, come i commi)
+      - "art. 68 codice deontologico forense" (anche "c.d.f.") — testo vigente dal PDF
+        consolidato del CNF, con le note sulle modifiche; solo testo vigente
 
     Un articolo che l'atto non ha produce un errore ("articolo N non trovato"), mai il
     testo di un altro articolo: Normattiva risponde a un numero inesistente con l'art. 1
@@ -409,6 +428,8 @@ async def _cerca_brocardi_impl(reference: str) -> str:
     act_info = _resolve_act(act_name)
     if not act_info:
         return _unresolved_act_error(act_name)
+    if Norma(tipo_atto=act_info["tipo_atto"])._is_cnf():
+        return f"**Errore Brocardi**: {_SOLO_CITE_LAW_CNF}"
 
     try:
         result = await fetch_brocardi(
@@ -488,6 +509,8 @@ async def _fetch_act_index_impl(reference: str) -> str:
         data=act_info.get("data", ""),
         numero_atto=act_info.get("numero_atto", ""),
     )
+    if norma._is_cnf():
+        return f"**Errore**: {_SOLO_CITE_LAW_CNF}"
     try:
         result = await _fetch_act_index_scraper(norma)
     except Exception as e:
@@ -666,6 +689,8 @@ async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
 
     if norma._is_eurlex():
         return "Per atti UE usare download_law_pdf() — il testo integrale è disponibile solo in PDF."
+    if norma._is_cnf():
+        return f"**Errore**: {_SOLO_CITE_LAW_CNF}"
 
     try:
         result = await _full_act_text(norma, da_carattere)
@@ -829,6 +854,9 @@ async def _download_law_pdf_impl(reference: str) -> str:
         data=act_info.get("data", ""),
         numero_atto=act_info.get("numero_atto", ""),
     )
+
+    if norma._is_cnf():
+        return f"**Errore**: {_SOLO_CITE_LAW_CNF}"
 
     ensure_private_dir(_PDF_OUTPUT_DIR)
     filename = _safe_filename(act_name) + ".pdf"

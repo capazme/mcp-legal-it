@@ -153,6 +153,9 @@ def articolato_in_allegato(act_urn: str, date: str, numero: str) -> "str | None"
 # ATTI NOTI — common names → scraper parameters
 # ---------------------------------------------------------------------------
 
+#: The one act read from the Consiglio nazionale forense's site (lib/cnf), not from Normattiva.
+CODICE_DEONTOLOGICO_FORENSE = "codice deontologico forense"
+
 ATTI_NOTI = {
     "gdpr": {"tipo_atto": "regolamento ue", "data": "2016", "numero_atto": "679"},
     "rgpd": {"tipo_atto": "regolamento ue", "data": "2016", "numero_atto": "679"},
@@ -220,6 +223,13 @@ ATTI_NOTI = {
     "european accessibility act": {"tipo_atto": "direttiva ue", "data": "2019", "numero_atto": "882"},
     "eprivacy": {"tipo_atto": "direttiva ue", "data": "2002", "numero_atto": "58"},
     "direttiva eprivacy": {"tipo_atto": "direttiva ue", "data": "2002", "numero_atto": "58"},
+    # The codice deontologico forense: a CNF act, not on Normattiva. Norma routes it to the
+    # PDF the CNF publishes (lib/cnf); "c.d.f." reaches "cdf" through _candidate_keys.
+    CODICE_DEONTOLOGICO_FORENSE: {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
+    "nuovo codice deontologico forense": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
+    "codice deontologico degli avvocati": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
+    "cdf": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
+    "ncdf": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
 }
 
 

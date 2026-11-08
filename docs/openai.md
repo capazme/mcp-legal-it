@@ -126,6 +126,7 @@ args = [
   "--with", "fpdf2>=2.7",
   "--with", "python-docx>=1.0",
   "--with", "openpyxl>=3.1",
+  "--with", "pypdf>=7.0",
   "--with", "cryptography<49; sys_platform == 'darwin' and platform_machine == 'x86_64'",
   "--with", "cryptography>=50; sys_platform != 'darwin' or platform_machine != 'x86_64'",
   "/path/to/mcp-legal-it/plugin/server/run_server.py",

@@ -15,6 +15,31 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **The codice deontologico forense in `cite_law`**, read live from the consolidated PDF
+  the Consiglio nazionale forense publishes (the code is a CNF act: Normattiva and Brocardi
+  do not carry it). `"art. 68 codice deontologico forense"`, `"art. 25-bis c.d.f."`,
+  `"art. 1 CDF"` resolve; `fetch_law_article` and `verifica_citazioni` read it too.
+  - **What is served.** The article in force, its commi and letters, and the CNF's own
+    notes on each amendment (deliberation, Gazzetta, date in force, often the previous
+    text) as `note_aggiornamento`; their marks stay in the text («riscossione⁽³⁾.»), so
+    the reader sees which comma each note is about. Grade `INDICATIVO`, with the notice
+    that the deliberations published in the Gazzetta Ufficiale are authentic (art. 3 c. 4
+    l. 247/2012). `versione="originale"`/`"futura"`, the index, the whole act, the PDF
+    download, `storia_norma` and Brocardi are refused with a pointer to `cite_law`.
+  - **Untrusted input.** The PDF is read only from the CNF's host, up to 10 MB and 150
+    pages, within 30 s, text only (`lib/cnf`). The reading checks itself: the document
+    must name itself as the code, headings must be in order, the index must list exactly
+    the body's articles with the same headings, every note mark must have its one note,
+    and no line may fall outside the shapes the code uses. Anything else is a refusal
+    (`verifica_non_disponibile`, said again for ten minutes without a new download),
+    never another article's text.
+  - **Provenance and cache.** New host `www.consiglionazionaleforense.it` (`_egress.py`,
+    `SECURITY.md`), dataset `cnf` in `fonti_consultate`; the code read is kept a day in
+    `cnf_codice_deontologico/` (`docs/cache-inventory.md`). New dependency:
+    `pypdf>=7.0` (BSD-3-Clause; locked at 7.0.0, no known advisory — the DoS fixes on
+    malformed PDFs end at 6.21.4).
+  - **Citation gate.** The codice deontologico forense is no longer an uncovered source:
+    a `cite_law` of its article covers the citation (other professions' codes still are).
 - **`storia_norma`: an article's history as an MCP tool** (#115; 235 tools). A thin
   wrapper (ADR-001) over `api.modifiche_articolo`: `storia_norma(riferimento, dal, al,
   max_versioni=20, formato="testo"|"json")`.

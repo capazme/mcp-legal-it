@@ -127,12 +127,14 @@ def _cache_isolata(tmp_path_factory, monkeypatch):
     real lookup would read them back (the Normattiva page cache keeps a reading for a
     day). A test that sets ``MCP_CACHE_DIR`` itself overrides this one.
     """
+    from mcp_legal_it.lib.cnf import client as cnf
     from mcp_legal_it.lib.visualex import act_dates, pagine_eurlex, pagine_normattiva
 
     def svuota():
         pagine_normattiva.svuota_memoria()
         pagine_eurlex.svuota_memoria()
         act_dates.svuota_memoria()
+        cnf.svuota_memoria()
         # fetch_full_act's readings, when the tools are loaded (importing them here
         # would import the server before a test that sets its environment).
         citazioni = sys.modules.get("mcp_legal_it.tools.legal_citations")

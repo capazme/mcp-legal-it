@@ -90,6 +90,7 @@ Client MCP (Claude Desktop / Claude Code)
   ├── consob.it                      bollettino delibere (Liferay)
   ├── dati.senato.it / dati.camera.it iter dei DDL (SPARQL)
   ├── www.tmdn.org                   marchi (TMview)
+  ├── consiglionazionaleforense.it   codice deontologico forense (PDF del CNF)
   ├── ec.europa.eu/taxation_customs  VIES (P.IVA UE)
   └── sito del fornitore indicato    verifica_dpa_fornitore (solo host pubblici, vedi SECURITY.md)
 ```
@@ -108,6 +109,7 @@ Fonte: `pyproject.toml` (`[project].dependencies`).
 | PDF generation | fpdf2 | >= 2.7 |
 | DOCX generation | python-docx | >= 1.0 |
 | XLSX generation | openpyxl | >= 3.1 |
+| PDF reading (codice deontologico forense) | pypdf | >= 7.0 |
 | Runtime | Python | >= 3.11 |
 | Test | pytest + pytest-asyncio | >= 7.0 / >= 0.21 |
 

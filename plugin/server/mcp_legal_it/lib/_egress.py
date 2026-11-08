@@ -43,10 +43,14 @@ ALLOWED_HOSTS: dict[str, str] = {
     "publications.europa.eu": "CELLAR/SPARQL — Ufficio delle pubblicazioni UE",
     "ec.europa.eu": "VIES — Commissione europea (validazione partite IVA)",
     "www.tmdn.org": "TMview — EUIPO / EU Intellectual Property Network (banca dati marchi)",
+    # --- Professional bodies ---
+    # The codice deontologico forense is a CNF act that Normattiva does not carry: its
+    # consolidated text is the PDF the CNF publishes (lib/cnf).
+    "www.consiglionazionaleforense.it": "Consiglio nazionale forense — codice deontologico forense",
     # --- Private ---
     # The only non-institutional source. Brocardi supplies doctrinal notes and
     # case-law abstracts, never the text of a norm: that always comes from
-    # Normattiva or EUR-Lex. Named explicitly because an auditor should see
+    # Normattiva or EUR-Lex (the codice deontologico forense: from the CNF). Named explicitly because an auditor should see
     # that this project's single private dependency was a deliberate choice.
     # LEGAL_BROCARDI=off (or crea_server(brocardi=False)) removes it at runtime:
     # `is_allowed` refuses it and the scrapers never build a request for it

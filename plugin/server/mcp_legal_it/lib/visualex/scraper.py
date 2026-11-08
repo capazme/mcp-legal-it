@@ -589,6 +589,8 @@ async def _fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
     """
     if canale not in ("html", "akn"):
         raise ValueError(f"canale sconosciuto: {canale!r}")
+    if nv.norma._is_cnf():
+        return await _fetch_cnf(nv)
     is_eurlex = nv.norma._is_eurlex()
     source = "eurlex" if is_eurlex else "normattiva"
     annex = split_annex(nv.numero_articolo)
@@ -1315,6 +1317,26 @@ def _esito_inserito(nv: NormaVisitata, url: str, result: dict) -> "dict | None":
             "not_in_force": True}
 
 
+async def _fetch_cnf(nv: NormaVisitata) -> dict:
+    """An article of the codice deontologico forense, from the PDF the CNF publishes (``lib/cnf``).
+
+    Only the text in force exists there: a text at a date, the original text or an annex is
+    refused before any request, never answered with today's text.
+    """
+    from mcp_legal_it.lib.cnf import fetch_articolo
+
+    url = nv.norma.url()
+    if nv.data_versione or (nv.versione or "").strip().lower() == "originale":
+        return {"text": "", "url": url, "source": "cnf",
+                "error": ("il CNF pubblica solo il testo vigente del codice deontologico forense: "
+                          "versioni a una data e testo originale non sono disponibili")}
+    if split_annex(nv.numero_articolo) or names_an_annex(nv.numero_articolo):
+        return {"text": "", "url": url, "source": "cnf", "error": "il codice deontologico forense non ha allegati"}
+    if not nv.numero_articolo:
+        return {"text": "", "url": url, "source": "cnf", "error": "indicare l'articolo del codice deontologico forense"}
+    return await fetch_articolo(nv.numero_articolo)
+
+
 async def fetch_article_futura(nv: NormaVisitata, entro: "str | None" = None) -> dict:
     """:func:`_fetch_article_futura`, refused when a page read is another act's."""
     try:
@@ -1338,6 +1360,9 @@ async def _fetch_article_futura(nv: NormaVisitata, entro: "str | None" = None) -
     source = "normattiva"
     if nv.norma._is_eurlex():
         return {"text": "", "url": nv.norma.url(), "source": "eurlex",
+                "error": "versione 'futura' disponibile per gli atti su Normattiva"}
+    if nv.norma._is_cnf():
+        return {"text": "", "url": nv.norma.url(), "source": "cnf",
                 "error": "versione 'futura' disponibile per gli atti su Normattiva"}
     if split_annex(nv.numero_articolo):
         # Refused before any request, as the api refuses it (the annex's page is not read so).
