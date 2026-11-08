@@ -29,8 +29,9 @@ entry, it is the same feature as ported to the 3.0 line.
   as `INDICATIVO` (the deliberations in the Gazzetta Ufficiale are authentic), and a text
   published before it comes into force is said to be so. A PDF the server does not
   recognise is refused, never read into another article. **Citation gate:** a `cite_law`
-  of the code now covers its citations, so they no longer need «fuori copertura»; «CDF»
-  (it may be the Carta dei diritti fondamentali) and other professions' codes still do.
+  of the code now covers its citations, so they no longer need «fuori copertura»; «CDF» or
+  «c.d.f.» (they may be the Carta dei diritti fondamentali) and other professions' codes
+  still do.
 - **`LEGAL_IT_GATE_SKIP_PATHS`: folders whose sessions the citation gate
   skips.** A list of absolute folders (separated by `:` on macOS/Linux, `;` on
   Windows, or by commas): a session whose `cwd` (from the hook input, else the

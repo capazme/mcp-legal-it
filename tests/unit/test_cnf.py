@@ -59,9 +59,11 @@ def _articoli_base() -> list[dict]:
 
 def _pdf(arts: list[dict], *, indice: "list[tuple[str, str]] | None" = None,
          titolo: str = "CODICE DEONTOLOGICO FORENSE", titoli: "dict[str, str] | None" = None,
-         coda: str = "") -> bytes:
+         coda: str = "", coda_a_pagina_nuova: bool = False, testatina: str = "") -> bytes:
     """A PDF of *arts*; *indice* overrides the index entries; *titoli*: a title before an article;
-    *coda*: a line of plain text set apart after the last article."""
+    *coda*: a line of plain text after the last article, set apart on its page or, with
+    *coda_a_pagina_nuova*, at the top of a new one; *testatina*: a small header at the top of
+    the page where a note goes on. A ``None`` among an article's lines is a page break."""
     pdf = FPDF(unit="pt", format="A4")
     pdf.set_auto_page_break(False)
     pdf.add_page()
@@ -135,6 +137,9 @@ def _pdf(arts: list[dict], *, indice: "list[tuple[str, str]] | None" = None,
             scrivi(y, seconda, "BI")
             y += _ALTEZZA_RIGA
         for riga in art["righe"]:
+            if riga is None:
+                y = nuova_pagina()
+                continue
             if isinstance(riga, tuple):
                 scrivi(y, riga[0], "", riga[1], riga[2])
             else:
@@ -151,7 +156,12 @@ def _pdf(arts: list[dict], *, indice: "list[tuple[str, str]] | None" = None,
         if art.get("pagina_dopo"):
             y = nuova_pagina()
             riporto.extend(riporto_dopo)
+            if testatina:
+                pdf.set_font("helvetica", "", 10)
+                pdf.text(_SINISTRA, 40, testatina)
     if coda:
+        if coda_a_pagina_nuova:
+            y = nuova_pagina()
         scrivi(y, coda, "")
     chiudi_pagina()
     return bytes(pdf.output())
@@ -230,6 +240,33 @@ def test_a_title_ends_the_article_before_it():
 def test_a_bold_line_that_is_not_an_upper_case_title_is_refused():
     with pytest.raises(FormatoNonRiconosciuto, match="grassetto"):
         analizza(_pdf(_articoli_base(), titoli={"11": "Una nota in grassetto"}))
+
+
+def test_text_on_a_new_page_after_the_last_article_is_refused():
+    """The last article ends a sentence on its page: a new page of plain text is not its own."""
+    with pytest.raises(FormatoNonRiconosciuto, match="dopo l'ultimo articolo"):
+        analizza(_pdf(_articoli_base(), coda="Roma, 23 gennaio 2026. Il Presidente", coda_a_pagina_nuova=True))
+
+
+def test_the_last_article_may_go_on_to_a_new_page_mid_sentence():
+    arts = _articoli_base()
+    arts[-1]["righe"] = ["Il presente codice entra in vigore decorsi", None, "sessanta giorni."]
+    assert analizza(_pdf(arts)).articolo("60").paragrafi == [
+        "Il presente codice entra in vigore decorsi sessanta giorni."]
+
+
+def test_the_last_article_may_go_on_to_a_new_page_with_its_next_comma():
+    arts = _articoli_base()
+    arts[-1]["righe"] = ["1. Il presente codice entra in vigore decorsi sessanta giorni.", None,
+                         "2. Si applica ai procedimenti pendenti."]
+    assert [p[:2] for p in analizza(_pdf(arts)).articolo("60").paragrafi] == ["1.", "2."]
+
+
+def test_a_small_page_header_is_not_taken_for_a_note_going_on():
+    """A note goes on at the foot of the next page, below its text: a small line above it is not
+    the note's (it would end the amendment's history with the page's running header)."""
+    with pytest.raises(FormatoNonRiconosciuto, match="testo in nota senza numero"):
+        analizza(_pdf(_articoli_base(), testatina="Codice deontologico forense"))
 
 
 def test_text_set_apart_after_the_last_article_is_refused():

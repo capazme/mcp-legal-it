@@ -309,7 +309,8 @@ def analizza(dati: bytes, tempo: float | None = None) -> Codice:
         raise FormatoNonRiconosciuto("nessuna intestazione di articolo riconosciuta")
 
     indice = _indice(righe[:prima], corpo_segni)
-    articoli, richiami, note = _corpo(righe[prima:], corpo_note, corpo_segni, intestazione, stesso_corpo)
+    articoli, richiami, note = _corpo(righe[prima:], corpo_note, corpo_segni, intestazione, stesso_corpo,
+                                      ultimo=next(reversed(indice), None))
 
     if len(articoli) < MIN_ARTICOLI:
         raise FormatoNonRiconosciuto(f"riconosciuti {len(articoli)} articoli, meno di {MIN_ARTICOLI}")
@@ -361,9 +362,13 @@ def _indice(righe: list[_Riga], corpo_segni: float) -> dict[str, str]:
     return voci
 
 
-def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
-           intestazione, stesso_corpo) -> tuple[dict[str, Articolo], dict[str, list[str]], dict[str, str]]:
-    """``(articles, the note marks each carries, notes by number)`` from the body's lines."""
+def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float, intestazione, stesso_corpo,
+           ultimo: str | None = None) -> tuple[dict[str, Articolo], dict[str, list[str]], dict[str, str]]:
+    """``(articles, the note marks each carries, notes by number)`` from the body's lines.
+
+    *ultimo*: the last article the index lists. Nothing closes it but the end of the PDF, so its
+    text may go on to a new page only where the page break visibly falls inside it.
+    """
     articoli: dict[str, Articolo] = {}
     richiami: dict[str, list[str]] = {}
     note: dict[str, str] = {}
@@ -371,6 +376,7 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
     nota: str | None = None
     pagina_nota = -1  # the page of the last line of the current note
     pagine_con_note: set[int] = set()
+    pagine_con_corpo: set[int] = set()
     precedente: _Riga | None = None  # the last line of the current article's text
     in_intestazione = False
     comma: int | None = None  # the number of the last comma read
@@ -390,8 +396,10 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
                     raise FormatoNonRiconosciuto(f"due note con il numero {nota}")
                 note[nota] = testo
             elif nota is not None and (riga.pagina == pagina_nota or (
-                    riga.pagina == pagina_nota + 1 and riga.pagina not in pagine_con_note)):
-                # A note goes on below, or at the head of the next page's notes; never further.
+                    riga.pagina == pagina_nota + 1 and riga.pagina in pagine_con_corpo
+                    and riga.pagina not in pagine_con_note)):
+                # A note goes on below, or at the head of the next page's notes (below that page's
+                # text: a small line above it is a page header, not a note); never further.
                 note[nota] = f"{note[nota]} {testo}"
             else:
                 raise FormatoNonRiconosciuto(f"testo in nota senza numero: «{testo[:60]}»")
@@ -400,6 +408,7 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
             continue
         if not stesso_corpo(riga):
             raise FormatoNonRiconosciuto(f"riga in un corpo che il codice non usa: «{testo[:60]}»")
+        pagine_con_corpo.add(riga.pagina)
         if intestazione(riga):
             if in_intestazione and art is not None and not testo.startswith("Art."):
                 art.rubrica = _pulisci(f"{art.rubrica} {testo}")  # a heading on two lines
@@ -430,15 +439,24 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
             # Text set apart from the article above it (after the last article, an annex or a
             # signature): it is not the article's, and nothing says whose it is.
             raise FormatoNonRiconosciuto(f"testo staccato dall'art. {art.numero}: «{testo[:60]}»")
-        precedente = riga
-        richiami[art.numero] += segni
         testo = _pulisci(grezzo, segni=True)
         m_comma, m_lettera = _COMMA.match(testo), _LETTERA.match(testo)
+        comma_atteso = bool(m_comma) and comma is not None and _comma_atteso(comma, m_comma)
+        lettera_attesa = bool(m_lettera) and m_lettera.group(1) == (chr(ord(lettera) + 1) if lettera else "a")
+        if art.numero == ultimo and precedente is not None and precedente.pagina != riga.pagina \
+                and not (comma_atteso or lettera_attesa or not art.paragrafi
+                         or not _fine_periodo(art.paragrafi[-1])):
+            # After the last article, a new page that neither carries on its sentence nor opens
+            # its next comma is something else (an annex, a signature, a table).
+            raise FormatoNonRiconosciuto(
+                f"testo dopo l'ultimo articolo (art. {art.numero}), su una nuova pagina: «{testo[:60]}»")
+        precedente = riga
+        richiami[art.numero] += segni
         if m_comma and _comma_atteso(comma, m_comma):
             comma = int(m_comma.group(1))
             lettera = None
             art.paragrafi.append(f"{testo[:m_comma.end()].rstrip()} {testo[m_comma.end():]}")
-        elif m_lettera and m_lettera.group(1) == (chr(ord(lettera) + 1) if lettera else "a"):
+        elif lettera_attesa:
             lettera = m_lettera.group(1)
             art.paragrafi.append(testo)
         elif art.paragrafi:
@@ -446,6 +464,11 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
         else:
             art.paragrafi.append(testo)
     return articoli, richiami, note
+
+
+def _fine_periodo(paragrafo: str) -> bool:
+    """Whether *paragrafo* ends a sentence («… giorni.», «… riscossione⁽²⁾.», «… vigenti».»)."""
+    return paragrafo.rstrip().rstrip("⁽⁾⁰¹²³⁴⁵⁶⁷⁸⁹»”\"'").endswith((".", "!", "?"))
 
 
 def _comma_atteso(ultimo: int | None, m: re.Match) -> bool:
