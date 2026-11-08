@@ -588,9 +588,19 @@ def test_a_cite_law_of_the_codice_deontologico_forense_covers_it(tmp_path):
     assert gate(t) == SILENT
 
 
-def test_the_codice_deontologico_forense_is_not_an_uncovered_source(tmp_path):
+def test_the_codice_deontologico_forense_is_asked_for_with_cite_law(tmp_path):
+    """The resolver knows the code: without a cite_law the gate asks for one, not for «fuori copertura»."""
     t = session(tmp_path).prompt().say("Per l'art. 68 del codice deontologico forense serve un biennio.")
-    assert gate(t) == NAGS
+    done = run({"transcript_path": str(t.write()), "hook_event_name": "Stop"})
+    assert done.returncode == NAGS
+    assert "(cite_law)" in done.stderr and "fonte non coperta" not in done.stderr, done.stderr
+
+
+def test_cdf_stays_an_uncovered_source(tmp_path):
+    """«CDF» may be the Carta dei diritti fondamentali: the resolver does not take it."""
+    t = session(tmp_path).prompt().say("Per l'art. 68 CDF serve un biennio.")
+    done = run({"transcript_path": str(t.write()), "hook_event_name": "Stop"})
+    assert done.returncode == NAGS and "fonte non coperta" in done.stderr, done.stderr
 
 
 def test_the_escape_covers_only_its_own_line(tmp_path):

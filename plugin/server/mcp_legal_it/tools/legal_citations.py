@@ -297,7 +297,7 @@ async def cite_law(
         (anche "allegato I.7 art. 30 D.Lgs. 36/2023")
       - "Allegato III AI Act" — allegato di un atto UE, restituito per intero
         (punti e lettere vengono ignorati, come i commi)
-      - "art. 68 codice deontologico forense" (anche "c.d.f.") — testo vigente dal PDF
+      - "art. 68 codice deontologico forense" (anche "NCDF") — testo vigente dal PDF
         consolidato del CNF, con le note sulle modifiche; solo testo vigente
 
     Un articolo che l'atto non ha produce un errore ("articolo N non trovato"), mai il

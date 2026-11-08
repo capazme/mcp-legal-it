@@ -7,7 +7,10 @@ is read by ``parser.analizza``, which refuses a document it does not recognise.
 
 Limits, since the PDF comes from the network: it must be served by the CNF's own host (the
 client's host guard, ``core/_http.HOST_PER_FONTE``), weigh at most ``MAX_BYTES`` (the download
-stops as soon as it passes them) and be read within ``TIMEOUT_ANALISI`` seconds.
+stops as soon as it passes them) and hold no more text than the parser's caps, which stop the
+reading from inside (``parser.MAX_RUN``, ``MAX_CARATTERI``, ``TEMPO_MASSIMO``). ``TIMEOUT_ANALISI``
+is the last guard, for a stall inside pypdf between two runs: the call returns, but a thread
+cannot be stopped from outside, and is left to finish.
 
 The code read is kept, as articles and not as the PDF:
 
@@ -33,22 +36,25 @@ import sys
 import threading
 import time
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
 import httpx
 
 from mcp_legal_it.core._http import async_client
+from mcp_legal_it.lib import _clock
 from mcp_legal_it.lib._cache import cache_enabled, cache_root
 from mcp_legal_it.lib._http import note_source, retry_request
 
-from .parser import Articolo, Codice, FormatoNonRiconosciuto, analizza
+from .parser import TEMPO_MASSIMO, Articolo, Codice, FormatoNonRiconosciuto, analizza
 
 PAGINA_CODICE = "https://www.consiglionazionaleforense.it/codice-deontologico-forense"
 HOST = "www.consiglionazionaleforense.it"
 #: The 2026 PDF weighs 0.7 MB.
 MAX_BYTES = 10 * 1024 * 1024
-TIMEOUT_ANALISI = 30.0
+#: The parser stops itself at ``TEMPO_MASSIMO``: past this, the call gives up on its thread.
+TIMEOUT_ANALISI = TEMPO_MASSIMO + 5.0
 #: The whole download (page and PDF): httpx's timeouts are per operation, and a server that
 #: sends a few bytes at a time would hold the stream open for ever.
 TEMPO_RETE = 90.0
@@ -65,6 +71,9 @@ _HREF = re.compile(r"""href\s*=\s*["']([^"']+)["']""", re.IGNORECASE)
 #: The code's own file: «nuovo codice deontologico forense  - agg. 2026.pdf».
 _NOME_PDF = re.compile(r"^(?:nuovo\s+)?codice\s+deontologico\s+forense\b")
 _IN_VIGORE = re.compile(r"in vigore dal\s+(\d{1,2}[°º]?\s+\w+\s+\d{4})", re.IGNORECASE)
+_MESI = {m: i for i, m in enumerate(("gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio",
+                                       "agosto", "settembre", "ottobre", "novembre", "dicembre"), 1)}
+_DATA = re.compile(r"(\d{1,2})[°º]?\s+(\w+)\s+(\d{4})")
 _DA_ULTIMO = re.compile(r"da ultimo modificato con\s+(delibera[^,;]{5,160}?\d{4})", re.IGNORECASE)
 
 
@@ -123,6 +132,18 @@ def link_del_pdf(pagina: str) -> str:
     if urlsplit(url).scheme != "https" or urlsplit(url).hostname != HOST:
         raise FormatoNonRiconosciuto(f"il PDF del codice non è sul sito del CNF ({urlsplit(url).hostname})")
     return url
+
+
+def data_in_vigore(testo: str) -> date | None:
+    """«7 aprile 2026», «1° luglio 2026» → the date; None when it does not read as one."""
+    m = _DATA.fullmatch((testo or "").strip())
+    mese = _MESI.get(m.group(2).lower()) if m else None
+    if not mese:
+        return None
+    try:
+        return date(int(m.group(3)), mese, int(m.group(1)))
+    except ValueError:
+        return None
 
 
 def _dalla_pagina(regex: re.Pattern, pagina: str) -> str:
@@ -307,7 +328,8 @@ def avvisi_edizione(e: Edizione) -> list[str]:
 
 
 async def fetch_articolo(numero: str) -> dict:
-    """The article *numero* of the code: ``{text, url, source, note_aggiornamento, avvisi_cnf}``.
+    """The article *numero* of the code: ``{text, url, source, note_aggiornamento, avvisi_cnf}``,
+    plus ``not_in_force`` and ``upcoming`` when the CNF's page says the text comes into force later.
 
     The readers' shape (``visualex.scraper.fetch_article``): ``error`` with ``esito``
     ``articolo_non_trovato`` for an article the code does not have, and
@@ -333,5 +355,17 @@ async def fetch_articolo(numero: str) -> dict:
                 "error": f"articolo {numero} non trovato nel codice deontologico forense"}
     note = [{"numero": n["numero"], "testo": n["testo"], "ordine": i, "corte_costituzionale": False}
             for i, n in enumerate(art.note, 1)]
-    return {"text": art.testo(), "url": e.pdf_url, "source": "cnf", "note_aggiornamento": note,
-            "avvisi_cnf": avvisi_edizione(e)}
+    risultato = {"text": art.testo(), "url": e.pdf_url, "source": "cnf", "note_aggiornamento": note,
+                 "avvisi_cnf": avvisi_edizione(e)}
+    # The CNF may publish an amended text before it comes into force (sixty days after the
+    # Gazzetta, art. 3 c. 4 l. 247/2012): then it is not the text in force, and is said so.
+    dal = data_in_vigore(e.in_vigore_dal)
+    if dal is None:
+        risultato["avvisi_cnf"].append(
+            "la pagina del CNF non indica in modo leggibile da quando il testo pubblicato è in vigore"
+            + (f" («{e.in_vigore_dal}»)" if e.in_vigore_dal else "")
+            + ": non è stato possibile verificare che sia il testo vigente oggi")
+    elif dal > _clock.today():
+        risultato["not_in_force"] = True
+        risultato["upcoming"] = {"change": None, "valid_from": dal.isoformat()}
+    return risultato

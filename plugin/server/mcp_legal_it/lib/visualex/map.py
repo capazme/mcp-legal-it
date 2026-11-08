@@ -224,11 +224,12 @@ ATTI_NOTI = {
     "eprivacy": {"tipo_atto": "direttiva ue", "data": "2002", "numero_atto": "58"},
     "direttiva eprivacy": {"tipo_atto": "direttiva ue", "data": "2002", "numero_atto": "58"},
     # The codice deontologico forense: a CNF act, not on Normattiva. Norma routes it to the
-    # PDF the CNF publishes (lib/cnf); "c.d.f." reaches "cdf" through _candidate_keys.
+    # PDF the CNF publishes (lib/cnf). «CDF» is deliberately absent: it is also read as the
+    # Carta dei diritti fondamentali, and «art. 47 CDF» served from the code would be the
+    # wrong article; unresolved, it is suggested instead (and the citation gate asks for it).
     CODICE_DEONTOLOGICO_FORENSE: {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
     "nuovo codice deontologico forense": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
     "codice deontologico degli avvocati": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
-    "cdf": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
     "ncdf": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
 }
 

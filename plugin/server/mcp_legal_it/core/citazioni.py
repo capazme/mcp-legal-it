@@ -215,8 +215,7 @@ _FINE_FRASE = re.compile(r"(?:(?<=[a-zà-ù]{4})|(?<=\d))[.!?]\s+(?=[A-ZÀ-Ý])"
 # theirs is a citation the session must verify elsewhere or mark out of coverage.
 _FONTE_NON_RISOLTA = re.compile(
     r"^[\s,;]*(?:(?:del|dello|della|dei|degli|delle|dell['’])\s*)?"
-    # The codice deontologico forense is read from the CNF (lib/cnf): another profession's is not.
-    r"(?:cedu\b|codice\s+deontologico(?!\s+forense)|convenzione\s+europea|"
+    r"(?:cedu\b|cdf\b|codice\s+deontologico|convenzione\s+europea|"
     r"(?:d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
     r"reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:\(\s*(?:ue|ce|cee)\s*\)\s*)?(?:n\.?\s*)?\d)",
     re.IGNORECASE,
@@ -344,7 +343,7 @@ def norme_nel_testo(testo: str) -> list[NormaCitata]:
 
     An article whose act cannot be told ("art. 5 del contratto", "l'art. 3")
     is not a citation of law and is left out; an article of a source that is law
-    but unknown to the resolver (CEDU, another profession's codice deontologico, an act number the
+    but unknown to the resolver (CEDU, codice deontologico, an act number the
     patterns cannot read) comes back with ``atto=None``.
     """
     trovate: list[NormaCitata] = []

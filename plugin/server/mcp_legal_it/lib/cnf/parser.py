@@ -22,7 +22,11 @@ exactly the articles the body has, with the same headings. A change in the CNF's
 therefore surfaces as an error, never as a wrong article.
 
 No JavaScript, form, attachment or link of the PDF is ever looked at: only the text runs
-pypdf extracts, page by page, up to ``MAX_PAGINE`` pages.
+pypdf extracts, page by page, up to ``MAX_PAGINE`` pages. The extraction stops itself, with
+``FormatoNonRiconosciuto``, past ``MAX_RUN`` runs, ``MAX_CARATTERI`` characters, ``MAX_CHIAMATE``
+calls of the visitor or ``TEMPO_MASSIMO`` seconds, checked at every run pypdf hands over and
+at every page: a hostile PDF of a few megabytes can hold millions of text operators, and a
+thread abandoned on a timeout would go on filling memory.
 """
 
 from __future__ import annotations
@@ -30,6 +34,7 @@ from __future__ import annotations
 import io
 import math
 import re
+import time
 import unicodedata
 from dataclasses import dataclass, field
 
@@ -37,6 +42,13 @@ from dataclasses import dataclass, field
 MAX_PAGINE = 150
 #: Fewer articles than this is not the whole code (73 articles, plus 25-bis and 62-bis, in 2026).
 MIN_ARTICOLI = 60
+#: The 2026 edition gives 1 770 runs and 92 405 characters: these are about thirty times that.
+MAX_RUN = 50_000
+MAX_CARATTERI = 2_000_000
+#: Every call of the visitor counts, text or not: a flood of empty runs is still work.
+MAX_CHIAMATE = 200_000
+#: The reading of the 2026 edition takes about half a second.
+TEMPO_MASSIMO = 30.0
 
 _SUFFISSI = ("bis", "ter", "quater", "quinquies", "sexies", "septies", "octies", "novies", "decies")
 _SUFFISSO = "|".join(_SUFFISSI)
@@ -57,6 +69,9 @@ _SEGNO = re.compile(r"\s*\x00(\d+)\x01")
 _APICE = str.maketrans("()0123456789", "⁽⁾⁰¹²³⁴⁵⁶⁷⁸⁹")
 #: Runs on one line differ in height by the raise of a reference mark (about 3 points).
 _TOLLERANZA_RIGA = 4.0
+#: Lines of one article are at most twice the body size apart (24 points in 2026, against 42
+#: between two articles): a wider gap inside an article is a block that is not its text.
+_STACCO = 2.6
 
 
 class FormatoNonRiconosciuto(ValueError):
@@ -138,7 +153,18 @@ def _apice(numero: str) -> str:
     return f"({numero})".translate(_APICE)
 
 
-def _runs(dati: bytes) -> tuple[list[_Run], str]:
+def _runs(dati: bytes, tempo: float | None = None) -> tuple[list[_Run], str]:
+    tempo = TEMPO_MASSIMO if tempo is None else tempo
+    scadenza = time.monotonic() + tempo
+    conti = {"chiamate": 0, "caratteri": 0}
+
+    def tetti() -> None:
+        if time.monotonic() > scadenza:
+            raise FormatoNonRiconosciuto(f"lettura del PDF oltre {tempo:.0f} secondi")
+        if conti["chiamate"] > MAX_CHIAMATE or len(runs) > MAX_RUN or conti["caratteri"] > MAX_CARATTERI:
+            raise FormatoNonRiconosciuto("il PDF contiene molto più testo del codice: non è il documento atteso")
+
+    runs: list[_Run] = []
     try:
         from pypdf import PdfReader
     except ImportError as exc:  # pragma: no cover - a broken install
@@ -151,9 +177,13 @@ def _runs(dati: bytes) -> tuple[list[_Run], str]:
         if len(pagine) > MAX_PAGINE:
             raise FormatoNonRiconosciuto(f"il PDF ha {len(pagine)} pagine, più di {MAX_PAGINE}")
         titolo = str((reader.metadata or {}).get("/Title") or "")
-        runs: list[_Run] = []
         for numero, pagina in enumerate(pagine):
+            tetti()
+
             def visita(testo, cm, tm, font, corpo, numero=numero):
+                conti["chiamate"] += 1
+                conti["caratteri"] += len(testo or "")
+                tetti()
                 nome = str((font or {}).get("/BaseFont") or "")
                 if not testo or not nome:
                     return  # pypdf's own line breaks carry no font
@@ -239,11 +269,14 @@ def _confronto(testo: str) -> str:
 # The reading
 # ---------------------------------------------------------------------------
 
-def analizza(dati: bytes) -> Codice:
-    """The code in *dati*, a PDF published by the CNF; ``FormatoNonRiconosciuto`` otherwise."""
+def analizza(dati: bytes, tempo: float | None = None) -> Codice:
+    """The code in *dati*, a PDF published by the CNF; ``FormatoNonRiconosciuto`` otherwise.
+
+    *tempo*: the seconds the extraction may take (``TEMPO_MASSIMO``).
+    """
     if not dati.startswith(b"%PDF-"):
         raise FormatoNonRiconosciuto("il file non è un PDF")
-    runs, titolo = _runs(dati)
+    runs, titolo = _runs(dati, tempo)
     if not runs:
         raise FormatoNonRiconosciuto("il PDF non contiene testo estraibile")
     righe = _righe(runs)
@@ -336,6 +369,9 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
     note: dict[str, str] = {}
     art: Articolo | None = None
     nota: str | None = None
+    pagina_nota = -1  # the page of the last line of the current note
+    pagine_con_note: set[int] = set()
+    precedente: _Riga | None = None  # the last line of the current article's text
     in_intestazione = False
     comma: int | None = None  # the number of the last comma read
     lettera: str | None = None
@@ -353,10 +389,14 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
                 if nota in note:
                     raise FormatoNonRiconosciuto(f"due note con il numero {nota}")
                 note[nota] = testo
-            elif nota is not None:
-                note[nota] = f"{note[nota]} {testo}"  # a note goes on, on this page or the next
+            elif nota is not None and (riga.pagina == pagina_nota or (
+                    riga.pagina == pagina_nota + 1 and riga.pagina not in pagine_con_note)):
+                # A note goes on below, or at the head of the next page's notes; never further.
+                note[nota] = f"{note[nota]} {testo}"
             else:
                 raise FormatoNonRiconosciuto(f"testo in nota senza numero: «{testo[:60]}»")
+            pagina_nota = riga.pagina
+            pagine_con_note.add(riga.pagina)
             continue
         if not stesso_corpo(riga):
             raise FormatoNonRiconosciuto(f"riga in un corpo che il codice non usa: «{testo[:60]}»")
@@ -365,6 +405,7 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
                 art.rubrica = _pulisci(f"{art.rubrica} {testo}")  # a heading on two lines
                 art.segni_rubrica += segni
                 richiami[art.numero] += segni
+                precedente = riga
                 continue
             m = _INTESTAZIONE.match(testo)
             if not m:
@@ -374,14 +415,22 @@ def _corpo(righe: list[_Riga], corpo_note: float, corpo_segni: float,
                 raise FormatoNonRiconosciuto(f"l'art. {numero} compare due volte")
             art = Articolo(numero=numero, rubrica=m.group(3).strip(), segni_rubrica=list(segni))
             articoli[numero], richiami[numero] = art, list(segni)
-            in_intestazione, comma, lettera = True, None, None
+            in_intestazione, comma, lettera, precedente = True, None, None, riga
             continue
         in_intestazione = False
         if all(_grassetto(r.font) for r in riga.runs if r.testo.strip() and r.corpo >= corpo_segni):
-            art = None  # a title («TITOLO VI»): the article before it is over
+            if testo != testo.upper():
+                raise FormatoNonRiconosciuto(f"riga in grassetto che non è un titolo: «{testo[:60]}»")
+            art, precedente = None, None  # a title («TITOLO VI»): the article before it is over
             continue
         if art is None:
             raise FormatoNonRiconosciuto(f"testo fuori da ogni articolo: «{testo[:60]}»")
+        if precedente is not None and precedente.pagina == riga.pagina \
+                and precedente.y - riga.y > _STACCO * riga.corpo:
+            # Text set apart from the article above it (after the last article, an annex or a
+            # signature): it is not the article's, and nothing says whose it is.
+            raise FormatoNonRiconosciuto(f"testo staccato dall'art. {art.numero}: «{testo[:60]}»")
+        precedente = riga
         richiami[art.numero] += segni
         testo = _pulisci(grezzo, segni=True)
         m_comma, m_lettera = _COMMA.match(testo), _LETTERA.match(testo)

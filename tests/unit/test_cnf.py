@@ -3,16 +3,22 @@
 The PDFs here are built with fpdf2 in the CNF's typography (headings in bold italic,
 text at 12 points, notes at 10 with smaller reference marks, «pagina N di M» at the
 foot, the index on the first page): the reading depends on that typography, and on
-nothing else. The live test at the end reads the CNF's own PDF.
+nothing else. fpdf2's typography is not the CNF's own (Helvetica, «-», no dot leaders), so
+``tests/fixtures/cnf/runs.json.gz`` keeps the runs pypdf extracts from the CNF's real PDF
+(``scripts/cnf_runs_fixture.py``) and the suite reads them offline. The live test at the
+end reads the PDF the CNF publishes today.
 """
 
+import gzip
 import json
+from pathlib import Path
 
 import httpx
 import pytest
 from fpdf import FPDF
 
 from mcp_legal_it.lib.cnf import client as cnf
+from mcp_legal_it.lib.cnf import parser
 from mcp_legal_it.lib.cnf.parser import Codice, FormatoNonRiconosciuto, analizza, chiave_articolo
 
 # ---------------------------------------------------------------------------
@@ -52,8 +58,10 @@ def _articoli_base() -> list[dict]:
 
 
 def _pdf(arts: list[dict], *, indice: "list[tuple[str, str]] | None" = None,
-         titolo: str = "CODICE DEONTOLOGICO FORENSE", titoli: "dict[str, str] | None" = None) -> bytes:
-    """A PDF of *arts*; *indice* overrides the index entries; *titoli*: a title before an article."""
+         titolo: str = "CODICE DEONTOLOGICO FORENSE", titoli: "dict[str, str] | None" = None,
+         coda: str = "") -> bytes:
+    """A PDF of *arts*; *indice* overrides the index entries; *titoli*: a title before an article;
+    *coda*: a line of plain text set apart after the last article."""
     pdf = FPDF(unit="pt", format="A4")
     pdf.set_auto_page_break(False)
     pdf.add_page()
@@ -143,6 +151,8 @@ def _pdf(arts: list[dict], *, indice: "list[tuple[str, str]] | None" = None,
         if art.get("pagina_dopo"):
             y = nuova_pagina()
             riporto.extend(riporto_dopo)
+    if coda:
+        scrivi(y, coda, "")
     chiudi_pagina()
     return bytes(pdf.output())
 
@@ -215,6 +225,17 @@ def test_notes_marks_and_page_footers(codice):
 def test_a_title_ends_the_article_before_it():
     codice = analizza(_pdf(_articoli_base(), titoli={"11": "TITOLO II"}))
     assert codice.articolo("10").paragrafi[-1] == "2. Secondo comma dell'articolo 10."
+
+
+def test_a_bold_line_that_is_not_an_upper_case_title_is_refused():
+    with pytest.raises(FormatoNonRiconosciuto, match="grassetto"):
+        analizza(_pdf(_articoli_base(), titoli={"11": "Una nota in grassetto"}))
+
+
+def test_text_set_apart_after_the_last_article_is_refused():
+    """An annex or a signature after the last article is not that article's text."""
+    with pytest.raises(FormatoNonRiconosciuto, match="staccato dall'art. 60"):
+        analizza(_pdf(_articoli_base(), coda="Roma, 23 gennaio 2026. Il Presidente"))
 
 
 @pytest.mark.parametrize("numero, chiave", [("25-bis", "25-bis"), ("25 bis", "25-bis"), ("25Bis", "25-bis"),
@@ -395,6 +416,57 @@ async def test_an_article_is_served_with_its_notes_and_notices(servito):
     assert "in vigore dal 7 aprile 2026" in r["avvisi_cnf"][0]
 
 
+@pytest.mark.parametrize("testo, data", [("7 aprile 2026", "2026-04-07"), ("1° luglio 2026", "2026-07-01"),
+                                         ("1º Luglio 2026", "2026-07-01"), ("31 febbraio 2026", None),
+                                         ("7 aprele 2026", None), ("", None), ("aprile 2026", None)])
+def test_the_date_in_force_is_read(testo, data):
+    letta = cnf.data_in_vigore(testo)
+    assert (letta.isoformat() if letta else None) == data
+
+
+def _servito_dal(monkeypatch, codice, in_vigore_dal: str) -> None:
+    async def edizione():
+        return cnf.Edizione(codice=codice, pdf_url="https://www.consiglionazionaleforense.it/documents/codice.pdf",
+                            in_vigore_dal=in_vigore_dal, ultima_modifica="", salvato=cnf.time.time())
+
+    monkeypatch.setattr(cnf, "edizione", edizione)
+
+
+async def test_a_text_published_before_it_comes_into_force_is_not_served_as_in_force(monkeypatch, codice):
+    monkeypatch.setenv("LEGAL_TODAY", "2026-03-01")
+    _servito_dal(monkeypatch, codice, "7 aprile 2026")
+    r = await cnf.fetch_articolo("7")
+    assert r["text"] and r["not_in_force"] is True
+    assert r["upcoming"] == {"change": None, "valid_from": "2026-04-07"}
+
+
+async def test_a_text_in_force_since_a_past_day_is_in_force(monkeypatch, codice):
+    monkeypatch.setenv("LEGAL_TODAY", "2026-04-07")
+    _servito_dal(monkeypatch, codice, "7 aprile 2026")
+    r = await cnf.fetch_articolo("7")
+    assert r["text"] and "not_in_force" not in r and "upcoming" not in r
+
+
+@pytest.mark.parametrize("in_vigore_dal", ["", "nei termini di legge"])
+async def test_a_date_in_force_that_cannot_be_read_is_said(monkeypatch, codice, in_vigore_dal):
+    _servito_dal(monkeypatch, codice, in_vigore_dal)
+    r = await cnf.fetch_articolo("7")
+    assert r["text"] and "not_in_force" not in r
+    assert any("non indica in modo leggibile" in a for a in r["avvisi_cnf"]), r["avvisi_cnf"]
+
+
+async def test_cite_law_and_verifica_say_a_text_not_in_force_yet(monkeypatch, codice):
+    from mcp_legal_it.tools.legal_citations import _cite_law_impl, _verifica_citazioni_struct
+
+    monkeypatch.setenv("LEGAL_TODAY", "2026-03-01")
+    _servito_dal(monkeypatch, codice, "7 aprile 2026")
+    j = json.loads(await _cite_law_impl("art. 7 codice deontologico forense", formato="json"))
+    assert j["not_in_force"] is True and j["upcoming"]["valid_from"] == "2026-04-07"
+    assert j["avvisi"][0].startswith("testo non ancora in vigore: entra in vigore il 2026-04-07")
+    out = await _verifica_citazioni_struct("art. 7, comma 2, codice deontologico forense")
+    assert out["citazioni"][0]["verdetto"] == "non in vigore", out
+
+
 async def test_an_article_the_code_lacks_is_not_found(servito):
     r = await cnf.fetch_articolo("99")
     assert r["esito"] == "articolo_non_trovato" and not r["text"]
@@ -523,8 +595,8 @@ def test_one_lock_per_event_loop(sito):
 # The tools
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("nome", ["codice deontologico forense", "del codice deontologico forense", "c.d.f.",
-                                  "CDF", "nuovo codice deontologico forense"])
+@pytest.mark.parametrize("nome", ["codice deontologico forense", "del codice deontologico forense", "NCDF",
+                                  "nuovo codice deontologico forense"])
 def test_the_resolver_knows_the_code(nome):
     from mcp_legal_it.core.riferimenti import _resolve_act
 
@@ -535,6 +607,13 @@ def test_another_professions_code_is_not_taken_for_it():
     from mcp_legal_it.core.riferimenti import _resolve_act
 
     assert _resolve_act("codice deontologico") is None
+
+
+def test_cdf_is_not_taken_for_the_code():
+    """«CDF» may be the Carta dei diritti fondamentali: «art. 47 CDF» must not serve the code's art. 47."""
+    from mcp_legal_it.core.riferimenti import _resolve_act
+
+    assert _resolve_act("CDF") is None and _resolve_act("c.d.f.") is None
 
 
 async def test_cite_law_serves_the_article(servito):
@@ -551,7 +630,7 @@ async def test_cite_law_serves_the_article(servito):
 async def test_cite_law_json(servito):
     from mcp_legal_it.tools.legal_citations import _cite_law_impl
 
-    j = json.loads(await _cite_law_impl("art. 6 c.d.f.", formato="json"))
+    j = json.loads(await _cite_law_impl("art. 6 ncdf", formato="json"))
     assert j["fonte"] == "cnf" and j["errore"] is None
     assert j["testo"].startswith("### Art. 6 – Rubrica dell'articolo 6")
     assert j["note_aggiornamento"] == [] and j["avvisi"][0].startswith("testo consolidato pubblicato")
@@ -605,9 +684,94 @@ async def test_the_reader_refuses_what_the_cnf_does_not_publish(articolo, campi,
 async def test_verifica_citazioni_reads_the_code(servito):
     from mcp_legal_it.tools.legal_citations import _verifica_citazioni_struct
 
-    out = await _verifica_citazioni_struct("art. 7, comma 2, codice deontologico forense\nart. 99 c.d.f.")
+    out = await _verifica_citazioni_struct("art. 7, comma 2, codice deontologico forense\nart. 99 NCDF")
     verdetti = [c["verdetto"] for c in out["citazioni"]]
     assert verdetti[0] == "verificata" and verdetti[1] != "verificata", out
+
+
+# ---------------------------------------------------------------------------
+# The CNF's real layout, offline: the runs of the 2026 PDF
+# ---------------------------------------------------------------------------
+
+_FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "cnf" / "runs.json.gz"
+
+
+def _runs_reali() -> tuple[list, str]:
+    rec = json.loads(gzip.decompress(_FIXTURE.read_bytes()))
+    return [parser._Run(**r) for r in rec["runs"]], rec["titolo"]
+
+
+def _leggi(monkeypatch, runs, titolo="") -> Codice:
+    monkeypatch.setattr(parser, "_runs", lambda dati, tempo=None: (runs, titolo))
+    return analizza(b"%PDF-1.7 (runs from the fixture)")
+
+
+@pytest.fixture
+def reale(monkeypatch) -> Codice:
+    return _leggi(monkeypatch, *_runs_reali())
+
+
+def test_the_real_pdf_is_read_whole(reale):
+    numeri = list(reale.articoli)
+    assert len(numeri) == 75 and numeri[0] == "1" and numeri[-1] == "73"
+    assert numeri.index("25-bis") == numeri.index("25") + 1 and numeri.index("62-bis") == numeri.index("62") + 1
+
+
+def test_the_real_art_68(reale):
+    art = reale.articolo("68")
+    assert art.rubrica == "Assunzione di incarichi contro una parte già assistita"
+    assert [p[:3] for p in art.paragrafi] == ["1. ", "2. ", "3. ", "4. ", "5. ", "6. "]
+    assert not art.note
+
+
+def test_the_real_art_25_bis_has_its_notes(reale):
+    art = reale.articolo("25-bis")
+    assert art.segni_rubrica == ["2"]
+    assert [n["numero"] for n in art.note] == ["2", "3", "4", "5"]
+    assert art.testo().startswith("### Art. 25-bis – ") and "⁽²⁾\n\n1. " in art.testo()
+
+
+def test_a_note_on_a_title_belongs_to_no_article(reale):
+    """Note 8 is on the heading of TITOLO IV: no article claims it."""
+    assert all(n["numero"] != "8" for a in reale.articoli.values() for n in a.note)
+
+
+def test_the_real_text_has_no_footers_nor_index(reale):
+    testi = [p for a in reale.articoli.values() for p in a.paragrafi]
+    assert not any("pagina" in p.lower() and " di " in p for p in testi)
+    assert not any("....." in p for p in testi)
+
+
+def test_a_note_line_far_from_its_note_is_refused(monkeypatch):
+    """A note goes on below, or at the head of the next page's notes: a line of a page-13 note
+    found on page 17, after page 15's notes, is not taken as the end of whichever note came last."""
+    runs, titolo = _runs_reali()
+    riga = next(r for r in parser._righe(runs) if r.pagina == 13 and r.corpo == 10.0
+                and "".join(x.testo for x in r.runs).strip() == "forensi vigenti».")
+    for run in riga.runs:
+        run.pagina, run.y = 17, 80.0
+    with pytest.raises(FormatoNonRiconosciuto, match="testo in nota senza numero"):
+        _leggi(monkeypatch, runs, titolo)
+
+
+# ---------------------------------------------------------------------------
+# A PDF with far more text than the code: the extraction stops itself
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("tetto", ["MAX_RUN", "MAX_CARATTERI", "MAX_CHIAMATE"])
+def test_more_text_than_the_code_stops_the_extraction(monkeypatch, tetto):
+    monkeypatch.setattr(parser, tetto, 100)
+    with pytest.raises(FormatoNonRiconosciuto, match="molto più testo"):
+        analizza(_pdf(_articoli_base()))
+
+
+def test_the_extraction_stops_at_its_time_limit():
+    with pytest.raises(FormatoNonRiconosciuto, match="oltre 0 secondi"):
+        analizza(_pdf(_articoli_base()), tempo=0)
+
+
+def test_the_call_waits_a_little_longer_than_the_extraction():
+    assert cnf.TIMEOUT_ANALISI > parser.TEMPO_MASSIMO
 
 
 # ---------------------------------------------------------------------------

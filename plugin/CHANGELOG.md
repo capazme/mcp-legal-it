@@ -23,6 +23,14 @@ entry, it is the same feature as ported to the 3.0 line.
   safe.
 
 ### Added
+- **The codice deontologico forense in `cite_law`**, read from the consolidated PDF the
+  Consiglio nazionale forense publishes (not on Normattiva): «art. 68 codice deontologico
+  forense», «art. 25-bis NCDF». The article comes with the CNF's notes on each amendment,
+  as `INDICATIVO` (the deliberations in the Gazzetta Ufficiale are authentic), and a text
+  published before it comes into force is said to be so. A PDF the server does not
+  recognise is refused, never read into another article. **Citation gate:** a `cite_law`
+  of the code now covers its citations, so they no longer need «fuori copertura»; «CDF»
+  (it may be the Carta dei diritti fondamentali) and other professions' codes still do.
 - **`LEGAL_IT_GATE_SKIP_PATHS`: folders whose sessions the citation gate
   skips.** A list of absolute folders (separated by `:` on macOS/Linux, `;` on
   Windows, or by commas): a session whose `cwd` (from the hook input, else the
