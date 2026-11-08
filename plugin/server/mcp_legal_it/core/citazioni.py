@@ -215,7 +215,9 @@ _FINE_FRASE = re.compile(r"(?:(?<=[a-zà-ù]{4})|(?<=\d))[.!?]\s+(?=[A-ZÀ-Ý])"
 # theirs is a citation the session must verify elsewhere or mark out of coverage.
 _FONTE_NON_RISOLTA = re.compile(
     r"^[\s,;]*(?:(?:del|dello|della|dei|degli|delle|dell['’])\s*)?"
-    r"(?:cedu\b|cdf\b|codice\s+deontologico|convenzione\s+europea|"
+    # «CDF», «c.d.f.»: the resolver does not take them (they may be the Carta dei diritti
+    # fondamentali), so a citation of either is a source no tool covers.
+    r"(?:cedu\b|c\.?d\.?f\b\.?|codice\s+deontologico|convenzione\s+europea|"
     r"(?:d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
     r"reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:\(\s*(?:ue|ce|cee)\s*\)\s*)?(?:n\.?\s*)?\d)",
     re.IGNORECASE,

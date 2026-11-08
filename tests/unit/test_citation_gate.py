@@ -596,9 +596,10 @@ def test_the_codice_deontologico_forense_is_asked_for_with_cite_law(tmp_path):
     assert "(cite_law)" in done.stderr and "fonte non coperta" not in done.stderr, done.stderr
 
 
-def test_cdf_stays_an_uncovered_source(tmp_path):
+@pytest.mark.parametrize("sigla", ["CDF", "c.d.f.", "C.D.F."])
+def test_cdf_stays_an_uncovered_source(tmp_path, sigla):
     """«CDF» may be the Carta dei diritti fondamentali: the resolver does not take it."""
-    t = session(tmp_path).prompt().say("Per l'art. 68 CDF serve un biennio.")
+    t = session(tmp_path).prompt().say(f"Per l'art. 68 {sigla} serve un biennio.")
     done = run({"transcript_path": str(t.write()), "hook_event_name": "Stop"})
     assert done.returncode == NAGS and "fonte non coperta" in done.stderr, done.stderr
 
