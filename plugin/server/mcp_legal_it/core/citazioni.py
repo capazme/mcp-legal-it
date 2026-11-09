@@ -217,7 +217,11 @@ _FONTE_NON_RISOLTA = re.compile(
     r"^[\s,;]*(?:(?:del|dello|della|dei|degli|delle|dell['’])\s*)?"
     # «CDF», «c.d.f.»: the resolver does not take them (they may be the Carta dei diritti
     # fondamentali), so a citation of either is a source no tool covers.
+    # The «norme integrative» of the Corte costituzionale: a deliberation of the Court that
+    # Normattiva does not publish (map.FONTI_NON_COPERTE, G-440). Only the Court's: the
+    # «norme integrative» of a CCNL or of a regolamento condominiale are not law.
     r"(?:cedu\b|c\.?d\.?f\b\.?|codice\s+deontologico|convenzione\s+europea|"
+    r"norme\s+integrative\s+(?:per\s+i\s+giudizi\s+(?:davanti|dinanzi)\s+alla\s+|della\s+)?corte\s+cost|"
     r"(?:d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
     r"reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:\(\s*(?:ue|ce|cee)\s*\)\s*)?(?:n\.?\s*)?\d)",
     re.IGNORECASE,
@@ -258,12 +262,15 @@ def identita_atto(act_info: dict) -> str:
 
     Every alias of one act lands on one URL ("codice privacy" and "D.Lgs. 196/2003"
     both give the decree's URN). A cited year stands in for the full date, so the
-    date is reduced to its year.
+    date is reduced to its year. An annex the resolver names is part of the act's
+    identity (``;104:3`` for «disp. att. c.p.a.», ``;175:1`` for the testo unico della
+    giustizia tributaria): its art. 1 is not the decree's or the code's art. 1 (G-440).
     """
     norma = Norma(
         tipo_atto=act_info.get("tipo_atto", "") or "",
         data=act_info.get("data", "") or "",
         numero_atto=act_info.get("numero_atto", "") or "",
+        allegato=act_info.get("allegato", "") or "",
     )
     return re.sub(r":(\d{4})-\d{2}-\d{2}(?=[;:~]|$)", r":\1", norma.url())
 

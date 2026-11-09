@@ -663,6 +663,11 @@ async def _fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
 
             act = await fetch_act_akn(nv.norma, _vigenza_akn(nv))
             if act is not None:
+                decreto = _articolo_del_decreto(act, nv, url, part)
+                if decreto:
+                    # The URN names the decree's own article, which it has (G-440).
+                    return {"text": decreto, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data,
+                            **_note_export(act, nv.numero_articolo, _DISPOSITIVO)}
                 akn_text = _akn_article(act, nv.numero_articolo, part)
                 if akn_text:
                     result = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data,
@@ -1508,13 +1513,16 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
         act = await _akn_act(nv)
         if requested is not None and act is not None:
             if (got is None and requested in _identita_articoli(act, part)
-                    and (part or not annex_id_of(act.main_part) or _URL_NOMINA_PARTE.search(url))):
+                    and not _nomina_il_decreto(act, url, part)):
                 # The page does not say which article it is ("Codice Penale-art. 524"
                 # with the repeal notice outside the label) and the act has it: the
                 # page is the article, as VisuaLex serves it. Not when the act's main
                 # text is a code in an annex and the URN names the decree's body
-                # (art. 2 of d.lgs. 104/2010 asked as the decree's): the unlabelled page
-                # is then the decree's, and the code's article comes from the export.
+                # (art. 3 of d.lgs. 104/2010 asked as the decree's, which has artt. 1-2
+                # only): the unlabelled page is then the decree's, and the code's article
+                # comes from the export; the decree's own artt. 1-2 stay the decree's.
+                # The annex may have no identifier («Allegato», d.lgs. 175/2024): the
+                # URN, not the annex's name, says the page is the decree's.
                 return result
             if got is None and requested in _identita_articoli(act, part) and not part:
                 servito = _da_export(act, nv, url, part, result, etichetta=True)
@@ -1548,6 +1556,10 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
                       "Normattiva non contiene il testo dell'articolo e l'export Akoma Ntoso non lo fornisce")}
 
 
+#: The part of an export holding the articles of a decree whose main text is an annex
+#: (``akn_parser``: the enacting provisions Normattiva serves as the act's *Dispositivo*).
+_DISPOSITIVO = "Dispositivo"
+
 #: The ":k" after the act number of a Normattiva URL: the URN names one of the act's parts.
 _URL_NOMINA_PARTE = re.compile(r";[^;:~!@?]+:\d+(?=~|!|@|$)")
 
@@ -1564,22 +1576,53 @@ def _numeri_articoli(act, part: "str | None") -> "set[str] | None":
     return {ident[0] for ident in map(_article_identity, act.article_keys(part)) if ident}
 
 
+def _nomina_il_decreto(act, url: str, part: "str | None") -> bool:
+    """Whether the URN names the body of a decree whose main text is an annex.
+
+    The decree is cited by its own number (``;175~art1``, no ``:k``) and its text is a code
+    or a testo unico it approves in an annex (d.lgs. 104/2010, d.lgs. 175/2024). An act
+    named by its code's URN (``;262:2``) or by an annex (*part*) is not.
+    """
+    return bool(act.main_part) and not part and not _URL_NOMINA_PARTE.search(url)
+
+
+def _articolo_del_decreto(act, nv: NormaVisitata, url: str, part: "str | None") -> "str | None":
+    """The decree's own article asked for, from the export, when the URN names it.
+
+    A decree that approves a testo unico in its annex has articles of its own (d.lgs.
+    175/2024: art. 1, «È approvato l'allegato testo unico …»). Its URN names them: the
+    annex's article of the same number, served under that URN, was another article
+    (G-440). None when the decree has no such article (the annex's then answers, labelled).
+    """
+    if not _nomina_il_decreto(act, url, part) or _DISPOSITIVO not in act.parts:
+        return None
+    return _akn_article(act, nv.numero_articolo, _DISPOSITIVO)
+
+
 def _da_export(act, nv: NormaVisitata, url: str, part: "str | None", base: dict, *,
                etichetta: bool = False) -> "dict | None":
     """The article from the Akoma Ntoso export, labelled as such, or None when the export lacks it.
 
+    The decree's own article when the URN names the body of a decree whose main text is
+    an annex and the decree has that article (``_articolo_del_decreto``). Otherwise
     ``allegato`` names the part it comes from when the act's main text is a code approved
     in an annex, or when *etichetta* says the URN's page does not reach that part; the URL
-    is then the part's own (``;104:2~art120``).
+    is then the part's own (``;104:2~art120``). So does an annex without an identifier of
+    its own (d.lgs. 175/2024's «Allegato») reached through the decree's URN.
     """
+    data_atto = base.get("data_atto", "")
+    decreto = _articolo_del_decreto(act, nv, url, part)
+    if decreto:
+        return {"text": decreto, "url": url, "source": "normattiva-akn", "data_atto": data_atto,
+                **_note_export(act, nv.numero_articolo, _DISPOSITIVO)}
     akn_text = _akn_article(act, nv.numero_articolo, part)
     if not akn_text:
         return None
-    servito = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": base.get("data_atto", ""),
+    servito = {"text": akn_text, "url": url, "source": "normattiva-akn", "data_atto": data_atto,
                **_note_export(act, nv.numero_articolo, part)}
-    if not part and (etichetta or annex_id_of(act.main_part)):
+    if not part and (etichetta or annex_id_of(act.main_part) or _nomina_il_decreto(act, url, part)):
         servito["allegato"] = act.main_part
-        if etichetta:
+        if etichetta or _nomina_il_decreto(act, url, part):
             servito["url"] = url_in_part(url, act.part_position())
     return servito
 
