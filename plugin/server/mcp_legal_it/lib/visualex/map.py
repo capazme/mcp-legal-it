@@ -223,6 +223,22 @@ ATTI_NOTI = {
     "european accessibility act": {"tipo_atto": "direttiva ue", "data": "2019", "numero_atto": "882"},
     "eprivacy": {"tipo_atto": "direttiva ue", "data": "2002", "numero_atto": "58"},
     "direttiva eprivacy": {"tipo_atto": "direttiva ue", "data": "2002", "numero_atto": "58"},
+    # Consumer Credit Directive 2: dir. (UE) 2023/2225 of 18 October 2023 (CELLAR title, checked
+    # 9 November 2026). «Direttiva credito ai consumatori» is deliberately absent: it also names
+    # dir. 2008/48/CE, which 2023/2225 repeals only from 20 November 2026 (G-440).
+    "ccd2": {"tipo_atto": "direttiva ue", "data": "2023", "numero_atto": "2225"},
+    "ccd 2": {"tipo_atto": "direttiva ue", "data": "2023", "numero_atto": "2225"},
+    "ccd ii": {"tipo_atto": "direttiva ue", "data": "2023", "numero_atto": "2225"},
+    "direttiva ccd2": {"tipo_atto": "direttiva ue", "data": "2023", "numero_atto": "2225"},
+    "direttiva ccd 2": {"tipo_atto": "direttiva ue", "data": "2023", "numero_atto": "2225"},
+    # The testo unico della giustizia tributaria is the annex of d.lgs. 14 novembre 2024, n. 175
+    # (checked on Normattiva, 9 November 2026: a one-article decree, «È approvato l'allegato testo
+    # unico …», the testo unico at part :1). Cited by name, an article is the annex's; cited as
+    # «d.lgs. 175/2024» the decree's own art. 1 stays the decree's, the rest is labelled (G-440).
+    **{nome: {"tipo_atto": "decreto legislativo", "data": "2024-11-14", "numero_atto": "175", "allegato": "1"}
+       for nome in ("testo unico della giustizia tributaria", "testo unico giustizia tributaria",
+                    "testo unico delle disposizioni legislative in materia di giustizia tributaria",
+                    "tu giustizia tributaria", "t.u. giustizia tributaria", "tugt")},
     # The codice deontologico forense: a CNF act, not on Normattiva. Norma routes it to the
     # PDF the CNF publishes (lib/cnf). «CDF» is deliberately absent: it is also read as the
     # Carta dei diritti fondamentali, and «art. 47 CDF» served from the code would be the
@@ -232,6 +248,43 @@ ATTI_NOTI = {
     "codice deontologico degli avvocati": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
     "ncdf": {"tipo_atto": CODICE_DEONTOLOGICO_FORENSE, "data": "", "numero_atto": ""},
 }
+
+
+# ---------------------------------------------------------------------------
+# FONTI NON COPERTE — law the resolver knows by name and no tool reads
+# ---------------------------------------------------------------------------
+
+_NORME_INTEGRATIVE_CORTE_COST = (
+    "le «Norme integrative per i giudizi davanti alla Corte costituzionale» sono una deliberazione "
+    "della Corte costituzionale (delibera 22 luglio 2021, GU n. 262 del 3 novembre 2021, poi "
+    "modificata con delibere pubblicate anch'esse in Gazzetta Ufficiale), non un atto legislativo: "
+    "Normattiva non le pubblica, quindi il loro testo non è disponibile qui. Testo come pubblicato: "
+    "Gazzetta Ufficiale, codice redazionale 21A06516 (senza le modifiche successive)."
+)
+
+#: A source a citation may name that no tool reads, by name, with what cite_law answers:
+#: what the source is and where its official text is, never a nearby act (no suggestions).
+#: Facts checked 9 November 2026 (G-440): Normattiva's search and URNs have no deliberation
+#: of the Court; the Gazzetta Ufficiale lists the 2021 text and its later amendments.
+FONTI_NON_COPERTE: dict[str, str] = {
+    nome: _NORME_INTEGRATIVE_CORTE_COST
+    for nome in (
+        "norme integrative per i giudizi davanti alla corte costituzionale",
+        "norme integrative per i giudizi dinanzi alla corte costituzionale",
+        "norme integrative della corte costituzionale",
+        "norme integrative corte costituzionale",
+        "norme integrative corte cost.",
+        "norme integrative",
+    )
+}
+
+
+def fonte_non_coperta(name: str) -> "str | None":
+    """What cite_law answers for a source no tool reads (``FONTI_NON_COPERTE``), else None."""
+    for key in _candidate_keys(name):
+        if key in FONTI_NON_COPERTE:
+            return FONTI_NON_COPERTE[key]
+    return None
 
 
 # ---------------------------------------------------------------------------

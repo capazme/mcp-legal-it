@@ -15,6 +15,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **CCD2 and the testo unico della giustizia tributaria by name (G-440).** «CCD2», «CCD 2», «CCD II»
+  resolve to dir. (UE) 2023/2225; «testo unico della giustizia tributaria», «TU giustizia tributaria»,
+  «TUGT» resolve to the annex of d.lgs. 175/2024 (part :1). The «Norme integrative per i giudizi
+  davanti alla Corte costituzionale», a deliberation Normattiva does not publish, are a declared
+  uncovered source: `cite_law` says so without suggesting a nearby act, and the citation gate
+  flags them as out of coverage.
 - **The codice deontologico forense in `cite_law`**, read live from the consolidated PDF
   the Consiglio nazionale forense publishes (the code is a CNF act: Normattiva and Brocardi
   do not carry it). `"art. 68 codice deontologico forense"`, `"art. 25-bis NCDF"`
@@ -925,7 +931,15 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **Wrong article for a decree whose text is an annex (G-440).** «art. 1 d.lgs. 175/2024» served
+  art. 1 of the testo unico, unlabelled, under the decree's URN: when the decree's page states no
+  validity window the export answered from the annex. The decree's own article now answers when
+  the URN names it (also «art. 1 d.lgs. 104/2010», previously the c.p.a.'s art. 1); an article
+  only the annex has is served labelled, and an unlabelled decree page is no longer taken for
+  the annex's article. The citation gate now keeps an annex in an act's identity, so «art. 1
+  disp. att. c.p.a.» is no longer the c.p.a.'s art. 1.
 - **The replay recorder keeps the live client's session** (`scripts/replay_mcp_outputs.py`).
+
   It dropped `Set-Cookie` from the response handed to the client, not only from the tape, so
   Normattiva answered the per-version update tables with its session page and `storia_norma`
   was recorded incomplete. Cookies now reach the live client and still never reach the tape.
