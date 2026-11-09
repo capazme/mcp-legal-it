@@ -43,7 +43,7 @@ class TestNormeIntegrative:
         "norme integrative per i giudizi davanti alla Corte costituzionale",
         "Norme integrative per i giudizi dinanzi alla Corte costituzionale",
         "delle norme integrative per i giudizi davanti alla Corte costituzionale",
-        "norme integrative",
+        "norme integrative della Corte costituzionale",
         "norme integrative corte cost.",
     ])
     def test_known_as_uncovered(self, nome):
@@ -66,6 +66,26 @@ class TestNormeIntegrative:
         monkeypatch.setattr(norme, "fetch_article", boom)
         out = await lc._cite_law_impl("art. 10 norme integrative per i giudizi davanti alla Corte costituzionale")
         assert "fonte non coperta" in out
+
+    def test_a_bare_name_is_not_the_courts(self):
+        # «Norme integrative» alone may be a CCNL's or a regolamento's: no identity given.
+        assert fonte_non_coperta("norme integrative") is None
+        assert "fonte non coperta" not in _unresolved_act_error("norme integrative")
+
+    @pytest.mark.parametrize("testo", [
+        "L'art. 3 delle norme integrative del CCNL commercio prevede il preavviso.",
+        "Ai sensi dell'art. 2 delle norme integrative del regolamento condominiale.",
+    ])
+    def test_the_gate_ignores_other_norme_integrative(self, testo):
+        assert norme_nel_testo(testo) == []
+
+    @pytest.mark.parametrize("testo", [
+        "Si veda l'art. 24 delle norme integrative della Corte costituzionale.",
+        "Si veda l'art. 24 delle norme integrative per i giudizi dinanzi alla Corte costituzionale.",
+        "Si veda l'art. 24 delle Norme integrative Corte cost.",
+    ])
+    def test_the_gate_flags_the_courts_other_spellings(self, testo):
+        assert [(n.atto, n.articolo) for n in norme_nel_testo(testo)] == [(None, "24")]
 
     def test_other_unknown_acts_keep_their_message(self):
         assert "non riconosciuto" in _unresolved_act_error("legge immaginaria")

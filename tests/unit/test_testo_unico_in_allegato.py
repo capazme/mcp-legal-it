@@ -24,7 +24,7 @@ from mcp_legal_it.lib.visualex.models import Norma, NormaVisitata
 from mcp_legal_it.lib.visualex.scraper import fetch_article
 from mcp_legal_it.tools import legal_citations as lc
 
-from .test_allegati import _serve_akn
+from .test_allegati import FIXTURES, _serve_akn
 
 # Markup copied from the real export (caricaAKN, consolidated 2026-08-26), trimmed to the
 # decree's art. 1 and the testo unico's artt. 1-3.
@@ -160,3 +160,44 @@ class TestTestoUnicoByName:
         out = await lc._cite_law_impl("art. 1 testo unico della giustizia tributaria")
         assert "corti di giustizia tributaria" in out, out
         assert "approvato" not in out
+
+
+class TestCodiceDelProcessoAmministrativo:
+    """The real shape of d.lgs. 104/2010 (fixture dlgs_104_2010_trimmed.xml): a decree of two
+    articles (approval, entry into force) and the c.p.a. in Allegato 1, Normattiva's part :2.
+    Cited by the decree's number, artt. 1-2 are the decree's; art. 3 is the code's, labelled."""
+
+    @pytest.fixture
+    def cpa(self):
+        return parse_akn((FIXTURES / "akn" / "dlgs_104_2010_trimmed.xml").read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _nv(articolo):
+        return NormaVisitata(norma=Norma(tipo_atto="decreto legislativo", data="2010-07-02", numero_atto="104"),
+                             numero_articolo=articolo)
+
+    @pytest.mark.asyncio
+    async def test_art_1_is_the_decrees(self, monkeypatch, cpa):
+        _serve_akn(monkeypatch, cpa)
+        result = await fetch_article(self._nv("1"), canale="akn")
+        assert "Approvazione del codice" in result["text"], result
+        assert not result.get("allegato") and result["url"].endswith(";104~art1")
+
+    @pytest.mark.asyncio
+    @pytest.mark.finestra_reale  # the decree's page states no window: the export answers
+    async def test_art_1_is_the_decrees_on_the_html_channel(self, monkeypatch, cpa):
+        pagina = ('<html><body><div class="bodyTesto"><h2 class="article-num-akn" id="art_1">Art. 1</h2>'
+                  '<div class="art-comma-div-akn">1. È approvato il codice del processo amministrativo.'
+                  "</div></div></body></html>")
+        _serve_akn(monkeypatch, cpa, pagine={";104~art1": pagina, _oggi(";104~art1"): pagina})
+        result = await fetch_article(self._nv("1"))
+        assert "Approvazione del codice" in result["text"], result
+        assert not result.get("allegato") and result["url"].endswith(";104~art1")
+
+    @pytest.mark.asyncio
+    async def test_art_3_is_the_codes_labelled(self, monkeypatch, cpa):
+        _serve_akn(monkeypatch, cpa)
+        result = await fetch_article(self._nv("3"), canale="akn")
+        assert result["text"].startswith("### Art. 3") and "Approvazione" not in result["text"], result
+        assert result["allegato"] == "Allegato 1 Codice del processo amministrativo"
+        assert result["url"].endswith(";104:2~art3")

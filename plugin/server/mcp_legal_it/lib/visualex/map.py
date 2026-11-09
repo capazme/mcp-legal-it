@@ -264,6 +264,8 @@ _NORME_INTEGRATIVE_CORTE_COST = (
 
 #: A source a citation may name that no tool reads, by name, with what cite_law answers:
 #: what the source is and where its official text is, never a nearby act (no suggestions).
+#: Every key names the source unambiguously: a bare «norme integrative» (a CCNL's, a
+#: regolamento's) is not keyed, and stays an ordinary unresolved name.
 #: Facts checked 9 November 2026 (G-440): Normattiva's search and URNs have no deliberation
 #: of the Court; the Gazzetta Ufficiale lists the 2021 text and its later amendments.
 FONTI_NON_COPERTE: dict[str, str] = {
@@ -274,7 +276,6 @@ FONTI_NON_COPERTE: dict[str, str] = {
         "norme integrative della corte costituzionale",
         "norme integrative corte costituzionale",
         "norme integrative corte cost.",
-        "norme integrative",
     )
 }
 

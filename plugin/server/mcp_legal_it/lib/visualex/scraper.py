@@ -1518,8 +1518,9 @@ async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict
                 # with the repeal notice outside the label) and the act has it: the
                 # page is the article, as VisuaLex serves it. Not when the act's main
                 # text is a code in an annex and the URN names the decree's body
-                # (art. 2 of d.lgs. 104/2010 asked as the decree's): the unlabelled page
-                # is then the decree's, and the code's article comes from the export.
+                # (art. 3 of d.lgs. 104/2010 asked as the decree's, which has artt. 1-2
+                # only): the unlabelled page is then the decree's, and the code's article
+                # comes from the export; the decree's own artt. 1-2 stay the decree's.
                 # The annex may have no identifier («Allegato», d.lgs. 175/2024): the
                 # URN, not the annex's name, says the page is the decree's.
                 return result
