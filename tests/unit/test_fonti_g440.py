@@ -44,6 +44,10 @@ class TestNormeIntegrative:
         "Norme integrative per i giudizi dinanzi alla Corte costituzionale",
         "delle norme integrative per i giudizi davanti alla Corte costituzionale",
         "norme integrative della Corte costituzionale",
+        "norme integrative per i giudizi innanzi alla Corte costituzionale",
+        "N.I. Corte cost.",
+        "N.I. Corte cost",
+        "n.i. Corte costituzionale",
         "norme integrative corte cost.",
     ])
     def test_known_as_uncovered(self, nome):
@@ -83,9 +87,25 @@ class TestNormeIntegrative:
         "Si veda l'art. 24 delle norme integrative della Corte costituzionale.",
         "Si veda l'art. 24 delle norme integrative per i giudizi dinanzi alla Corte costituzionale.",
         "Si veda l'art. 24 delle Norme integrative Corte cost.",
+        "Si veda l'art. 24 delle norme integrative per i giudizi innanzi alla Corte costituzionale.",
+        "Si veda l'art. 24 N.I. Corte cost.",
+        "Si veda l'art. 24 delle N.I. della Corte costituzionale.",
     ])
     def test_the_gate_flags_the_courts_other_spellings(self, testo):
         assert [(n.atto, n.articolo) for n in norme_nel_testo(testo)] == [(None, "24")]
+
+    @pytest.mark.parametrize("riferimento", [
+        "art. 24 norme integrative per i giudizi innanzi alla Corte costituzionale",
+        "art. 24 N.I. Corte cost.",
+    ])
+    @pytest.mark.asyncio
+    async def test_cite_law_on_the_other_spellings(self, riferimento):
+        assert "fonte non coperta" in await lc._cite_law_impl(riferimento)
+
+    def test_a_bare_sigla_is_not_the_courts(self):
+        # «N.I.» alone names nothing: only with the Court.
+        assert fonte_non_coperta("N.I.") is None
+        assert norme_nel_testo("Si veda l'art. 24 delle N.I. del contratto.") == []
 
     def test_other_unknown_acts_keep_their_message(self):
         assert "non riconosciuto" in _unresolved_act_error("legge immaginaria")

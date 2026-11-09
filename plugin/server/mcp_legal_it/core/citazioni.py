@@ -221,7 +221,8 @@ _FONTE_NON_RISOLTA = re.compile(
     # Normattiva does not publish (map.FONTI_NON_COPERTE, G-440). Only the Court's: the
     # «norme integrative» of a CCNL or of a regolamento condominiale are not law.
     r"(?:cedu\b|c\.?d\.?f\b\.?|codice\s+deontologico|convenzione\s+europea|"
-    r"norme\s+integrative\s+(?:per\s+i\s+giudizi\s+(?:davanti|dinanzi)\s+alla\s+|della\s+)?corte\s+cost|"
+    r"(?:norme\s+integrative\s+(?:per\s+i\s+giudizi\s+(?:davanti|dinanzi|innanzi)\s+alla\s+|della\s+)?"
+    r"|n\.\s?i\.\s*(?:della\s+)?)corte\s+cost|"
     r"(?:d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
     r"reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:\(\s*(?:ue|ce|cee)\s*\)\s*)?(?:n\.?\s*)?\d)",
     re.IGNORECASE,
