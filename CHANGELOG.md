@@ -933,13 +933,14 @@ described in those sections, not repeated here. Upgrading from 2.x:
 ### Fixed
 - **Wrong article for a decree whose text is an annex (G-440).** «art. 1 d.lgs. 175/2024» served
   art. 1 of the testo unico, unlabelled, under the decree's URN: when the decree's page states no
-  validity window the export answered from the annex. The decree's own article now answers when
-  the URN names it; an article only the annex has is served labelled, and an unlabelled decree
-  page is no longer taken for the annex's article. The same rule changes other decrees that
-  approve a code in an annex, cited by the decree's number: d.lgs. 104/2010 artt. 1-2 (art. 1
-  was the c.p.a.'s, labelled), d.lgs. 174/2016 artt. 1-2, d.lgs. 79/2011 artt. 1-4 on the AKN
-  channel, and r.d. 262/1942 artt. 1-2, which served the codice civile's artt. 1-2 unlabelled
-  (a wrong article, now fixed); the codes cited by name are unchanged. The citation gate now keeps an annex in an act's identity, so «art. 1
+  validity window the export answered from the annex. The decree's own article now answers when the
+  URN names it; an article only the annex has is served labelled, and an unlabelled decree page is
+  no longer taken for the annex's article. The same rule changes other decrees that approve a code
+  in an annex, cited by the decree's number: d.lgs. 104/2010 artt. 1-2 (art. 1 was the c.p.a.'s,
+  labelled), d.lgs. 174/2016 artt. 1-2, d.lgs. 79/2011 art. 1 (on both channels: the HTML page is
+  dropped and the export answers) and artt. 2-4 on the AKN channel, and r.d. 262/1942 artt. 1-2,
+  which served the codice civile's artt. 1-2 unlabelled (a wrong article, now fixed); the codes
+  cited by name are unchanged. The citation gate now keeps an annex in an act's identity, so «art. 1
   disp. att. c.p.a.» is no longer the c.p.a.'s art. 1.
 - **The replay recorder keeps the live client's session** (`scripts/replay_mcp_outputs.py`).
   It dropped `Set-Cookie` from the response handed to the client, not only from the tape, so

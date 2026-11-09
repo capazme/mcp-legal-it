@@ -273,9 +273,15 @@ FONTI_NON_COPERTE: dict[str, str] = {
     for nome in (
         "norme integrative per i giudizi davanti alla corte costituzionale",
         "norme integrative per i giudizi dinanzi alla corte costituzionale",
+        "norme integrative per i giudizi innanzi alla corte costituzionale",
         "norme integrative della corte costituzionale",
         "norme integrative corte costituzionale",
         "norme integrative corte cost.",
+        # «N.I.», the sigla the Court's own decisions use, only together with the Court.
+        "n.i. corte cost.",
+        "n.i. corte cost",
+        "n.i. corte costituzionale",
+        "n.i. della corte costituzionale",
     )
 }
 
