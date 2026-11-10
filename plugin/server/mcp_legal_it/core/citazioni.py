@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from mcp_legal_it.core.riferimenti import _parse_reference, _resolve_act
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION
+from mcp_legal_it.lib.visualex.map import SIGLE_COME_MESI
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, Norma
 
 # Cassazione decision shape: a decision number followed by a 4-digit year,
@@ -220,7 +221,15 @@ _FONTE_NON_RISOLTA = re.compile(
     # The «norme integrative» of the Corte costituzionale: a deliberation of the Court that
     # Normattiva does not publish (map.FONTI_NON_COPERTE, G-440). Only the Court's: the
     # «norme integrative» of a CCNL or of a regolamento condominiale are not law.
-    r"(?:cedu\b|c\.?d\.?f\b\.?|codice\s+deontologico|convenzione\s+europea|"
+    # The other sources of map.FONTI_NON_COPERTE (G-440): the protocols of the CEDU, Consob's
+    # regulations, the Carta sociale europea and the treaties keyed there, each by its own name
+    # (a «protocollo d'intesa», a «regolamento condominiale» or a company's charter are not law).
+    r"(?:cedu\b|c\.e\.d\.u\.|c\.?d\.?f\b\.?|codice\s+deontologico|convenzione\s+europea|"
+    r"(?:primo\s+)?prot(?:ocollo|\.)\s*(?:n\.?\s*\d+\s+|\d+\s+|addiz(?:ionale|\.)\s+)(?:alla\s+)?(?:cedu\b|convenzione\s+europea)|"
+    r"reg(?:olamento|\.)\s*(?:consob\s+)?(?:emittenti|opc|mercati)\b|"
+    r"carta\s+sociale\s+europea|convenzione\s+di\s+aarhus|cedaw\b|(?:convenzione\s+)?marpol\b|"
+    r"patto\s+internazionale\s+(?:sui|relativo\s+ai)\s+diritti\s+civili|"
+    r"convenzione\s+(?:onu\s+)?sui\s+diritti\s+del\s+fanciullo|"
     r"(?:norme\s+integrative\s+(?:per\s+i\s+giudizi\s+(?:davanti|dinanzi|innanzi)\s+alla\s+|della\s+)?"
     r"|n\.\s?i\.\s*(?:della\s+)?)corte\s+cost|"
     r"(?:d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
@@ -333,6 +342,10 @@ def _atto_prima(prima: str) -> "dict | None":
             k < len(parole) and parole[-k - 1].lower() in ("di", "d'", "d’")
         ):
             return None
+        if " ".join(candidato).lower().strip(".,;:") in SIGLE_COME_MESI:
+            # «mar» before an article is a date's month («il 17 mar art. 2 …»), never the MAR:
+            # the MAR is read only after the article («art. 17 MAR»).
+            continue
         info = _risolvi(" ".join(candidato))
         if info:
             return info

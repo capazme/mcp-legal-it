@@ -15,6 +15,20 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **Act spellings from citex's corpus (G-440).** EU regulations by name: «MAR» (also «Regolamento
+  MAR», «Regolamento europeo sugli abusi di mercato»), «MiCAR», «MiFIR», «Regolamento Prospetto»,
+  «Regolamento DLT», «CSDR», «Regolamento SAFE», «Regolamento sull'IA»; any «Regolamento <nickname>»
+  whose nickname is already an EU regulation of the table («Regolamento DORA», «Regolamento eIDAS»),
+  never a «regolamento condominiale» or a directive. «MAR» is never read from a date's «mar.».
+  Testi unici written «t.u. …» («t.u. edilizia», «T.U. bancario»), more spellings of the codes
+  («codice della crisi e dell'insolvenza», «cod. contratti pubblici», «preleggi al codice civile»,
+  «Costituzione italiana»), «Codice Rosso» (l. 69/2019), «Legge Capitali» (l. 21/2024), and the act
+  type «regio decreto legislativo» / «r.d.lgs.». Declared uncovered sources, each with its identity
+  and no near-miss suggestion: the Consob regulations Emittenti (delibera 11971/1999), OPC (17221)
+  and Mercati (20249); the CEDU and its Protocols 1, 4 and 7 (not served from the 1955 law: its text
+  is the original one, renumbered since); the Carta sociale europea and the treaties of Aarhus,
+  ICCPR, the Convention on the Rights of the Child, CEDAW and MARPOL. The citation gate flags them;
+  a «protocollo d'intesa» or a «regolamento condominiale» stays out.
 - **CCD2 and the testo unico della giustizia tributaria by name (G-440).** «CCD2», «CCD 2», «CCD II»
   resolve to dir. (UE) 2023/2225; «testo unico della giustizia tributaria», «TU giustizia tributaria»,
   «TUGT» resolve to the annex of d.lgs. 175/2024 (part :1). The «Norme integrative per i giudizi
