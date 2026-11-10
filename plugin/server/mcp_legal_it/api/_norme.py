@@ -84,6 +84,7 @@ TIPI_ATTO_VERIFICATI: tuple[str, ...] = (
     "decreto del presidente della repubblica",
     "regio decreto",
     "regio decreto legge",
+    "regio decreto legislativo",  # since the resolver takes «r.d.lgs.» (G-440)
     "legge costituzionale",
 )
 

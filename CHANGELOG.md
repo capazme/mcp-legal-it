@@ -15,7 +15,7 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
-- **Act spellings from citex's corpus (G-440).** EU regulations by name: «MAR» (also «Regolamento
+- **Act spellings from an external citation corpus (G-440).** EU regulations by name: «MAR» (also «Regolamento
   MAR», «Regolamento europeo sugli abusi di mercato»), «MiCAR», «MiFIR», «Regolamento Prospetto»,
   «Regolamento DLT», «CSDR», «Regolamento SAFE», «Regolamento sull'IA»; any «Regolamento <nickname>»
   whose nickname is already an EU regulation of the table («Regolamento DORA», «Regolamento eIDAS»),
@@ -23,7 +23,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   Testi unici written «t.u. …» («t.u. edilizia», «T.U. bancario»), more spellings of the codes
   («codice della crisi e dell'insolvenza», «cod. contratti pubblici», «preleggi al codice civile»,
   «Costituzione italiana»), «Codice Rosso» (l. 69/2019), «Legge Capitali» (l. 21/2024), and the act
-  type «regio decreto legislativo» / «r.d.lgs.». Declared uncovered sources, each with its identity
+  type «regio decreto legislativo» / «r.d.lgs.», which `api.risolvi_atto` now dates from the page's
+  title (`TIPI_ATTO_VERIFICATI`, `ESATTO`). Declared uncovered sources, each with its identity
   and no near-miss suggestion: the Consob regulations Emittenti (delibera 11971/1999), OPC (17221)
   and Mercati (20249); the CEDU and its Protocols 1, 4 and 7 (not served from the 1955 law: its text
   is the original one, renumbered since); the Carta sociale europea and the treaties of Aarhus,
@@ -178,10 +179,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
   art. 1). It returns an `AttoRisolto`: `data` («1993-09-01»), `urn`, `url`,
   `precisione` and `esito`, in the new closed vocabulary `EsitoAtto`.
   - **Precisione.** The date is `ESATTO` when the page's title names this act's
-    type, year and number, for the seven types the new constant
+    type, year and number, for the eight types the new constant
     `api.TIPI_ATTO_VERIFICATI` declares (legge, d.lgs., d.l., d.P.R., r.d., r.d.l.,
-    l. cost.). VisuaLex's title reader knows two more, the regio decreto
-    legislativo and the bare «decreto», which this constant leaves out. It is
+    r.d.lgs., l. cost.). VisuaLex's title reader knows one more, the bare «decreto»,
+    which this constant leaves out. It is
     `INDICATIVO` when it comes from the page's ELI date (DPCM, decreto ministeriale).
   - **Esiti.**
     - A full date whose day is not the act's is `ambiguo`, with the act Normattiva

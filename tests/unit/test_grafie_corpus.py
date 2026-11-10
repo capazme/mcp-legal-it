@@ -1,4 +1,4 @@
-"""Spellings of acts that citex's corpus cites and the tables did not know (G-440).
+"""Spellings of acts that an external citation corpus cites and the tables did not know (G-440).
 
 Each alias points to an act checked live on 11 November 2026: CELLAR titles for the EU
 regulations, Normattiva titles for the Italian laws and laws of ratification, consob.it for
@@ -71,6 +71,8 @@ class TestMarIsNotMarch:
         "Il termine scade il 17 mar art. 2 del contratto.",
         "Entro il 10 marzo, l'art. 5 del regolamento interno si applica.",
         "Dal 17 mar. l'art. 3 dello statuto sociale prevede la convocazione.",
+        "Per l'art. 17 mar. 2020 la comunicazione è tardiva.",
+        "Si applica l'art. 17 mar 2020, n. 18.",
     ])
     def test_a_date_never_gives_the_mar(self, testo):
         mar = identita_atto(_ue("2014", "596"))
@@ -107,6 +109,13 @@ class TestTestiUniciEcodici:
     ])
     def test_nicknames(self, nome, data, numero):
         assert _resolve_act(nome) == {"tipo_atto": "legge", "data": data, "numero_atto": numero}
+
+
+def test_the_legge_sulle_locazioni_abitative_is_a_legge():
+    from mcp_legal_it.lib.visualex.map import resolve_atto
+
+    assert resolve_atto("legge sulle locazioni abitative") == {
+        "tipo_atto": "legge", "data": "1998-12-09", "numero_atto": "431"}
 
 
 class TestRegioDecretoLegislativo:
@@ -171,6 +180,9 @@ class TestGate:
         ("Si veda l'art. 65 del Regolamento Emittenti.", "65"),
         ("Si veda l'art. 65 del reg. Consob emittenti.", "65"),
         ("Si veda l'art. 5 del Regolamento OPC.", "5"),
+        ("Si veda l'art. 3 del Regolamento Mercati.", "3"),
+        ("Si veda l'art. 3 del Regolamento Mercati Consob sulle sedi.", "3"),
+        ("Si veda l'art. 3 del regolamento mercati n. 20249 sulle sedi.", "3"),
         ("Si veda l'art. 24 della Carta sociale europea.", "24"),
         ("Si veda l'art. 9 della Convenzione di Aarhus.", "9"),
         ("Si veda l'art. 14 del Patto internazionale sui diritti civili e politici.", "14"),
@@ -185,6 +197,8 @@ class TestGate:
         "L'art. 4 del protocollo n. 3 del verbale di assemblea.",
         "L'art. 7 della carta sociale dell'associazione.",
         "L'art. 1 del regolamento interno del comitato.",
+        "L'art. 4 del regolamento mercati rionali del Comune fissa gli orari.",
+        "L'art. 2 del regolamento mercati comunali disciplina i posteggi.",
     ])
     def test_not_law_stays_out(self, testo):
         assert norme_nel_testo(testo) == []

@@ -226,7 +226,10 @@ _FONTE_NON_RISOLTA = re.compile(
     # (a «protocollo d'intesa», a «regolamento condominiale» or a company's charter are not law).
     r"(?:cedu\b|c\.e\.d\.u\.|c\.?d\.?f\b\.?|codice\s+deontologico|convenzione\s+europea|"
     r"(?:primo\s+)?prot(?:ocollo|\.)\s*(?:n\.?\s*\d+\s+|\d+\s+|addiz(?:ionale|\.)\s+)(?:alla\s+)?(?:cedu\b|convenzione\s+europea)|"
-    r"reg(?:olamento|\.)\s*(?:consob\s+)?(?:emittenti|opc|mercati)\b|"
+    # «Mercati» names Consob's regulation only when it closes the name or Consob is said: a
+    # «regolamento mercati rionali del Comune» is a municipal act.
+    r"reg(?:olamento|\.)\s*(?:consob\s+(?:emittenti|opc|mercati)\b|(?:emittenti|opc)\b"
+    r"|mercati(?=\s*(?:[,;.:)]|$)|\s+(?:consob\b|(?:n\.\s*)?20249\b)))|"
     r"carta\s+sociale\s+europea|convenzione\s+di\s+aarhus|cedaw\b|(?:convenzione\s+)?marpol\b|"
     r"patto\s+internazionale\s+(?:sui|relativo\s+ai)\s+diritti\s+civili|"
     r"convenzione\s+(?:onu\s+)?sui\s+diritti\s+del\s+fanciullo|"
@@ -317,10 +320,18 @@ def _atto_dopo(coda: str) -> "dict | None":
             break
         parole.append(parola)
     for k in range(len(parole), 0, -1):
+        if (k < len(parole) and parole[k - 1].lower().strip(".,;:") in SIGLE_COME_MESI
+                and _ANNO.match(parole[k])):
+            # «art. 17 mar. 2020»: a month followed by its year, never the MAR.
+            continue
         info = _risolvi(" ".join(parole[:k]))
         if info:
             return info
     return None
+
+
+#: A year right after a word («mar. 2020,»): that word is the month of a date.
+_ANNO = re.compile(r"^(?:1[89]|20)\d{2}\b")
 
 
 def _atto_prima(prima: str) -> "dict | None":

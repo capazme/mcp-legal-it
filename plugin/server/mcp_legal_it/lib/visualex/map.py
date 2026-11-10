@@ -214,7 +214,7 @@ ATTI_NOTI = {
     "cyber resilience act": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "2847"},
     "cra": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "2847"},
     "mica": {"tipo_atto": "regolamento ue", "data": "2023", "numero_atto": "1114"},
-    # Financial-market regulations by the names citex's corpus gives them (G-440). CELLAR titles
+    # Financial-market regulations by the names an external citation corpus gives them (G-440). CELLAR titles
     # checked 11 November 2026. «Prospetto», «DLT» and «SAFE» are keyed only after «regolamento»:
     # alone they are a common noun, an acronym of a technology and an English word. «MAR» is keyed
     # bare but never read from a date's «mar.» (see SIGLE_COME_MESI).
@@ -229,7 +229,7 @@ ATTI_NOTI = {
     "regolamento pilota dlt": {"tipo_atto": "regolamento ue", "data": "2022", "numero_atto": "858"},
     "csdr": {"tipo_atto": "regolamento ue", "data": "2014", "numero_atto": "909"},
     # SAFE: reg. (UE) 2025/1106 of the Council (Security Action for Europe), so named by the
-    # decisions of citex's corpus (confirmed by citex, 11 November 2026).
+    # decisions of an external citation corpus (confirmed against the corpus documents, 11 November 2026).
     "regolamento safe": {"tipo_atto": "regolamento ue", "data": "2025", "numero_atto": "1106"},
     "regolamento sull'ia": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "1689"},
     "regolamento sull'intelligenza artificiale": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "1689"},
@@ -759,7 +759,7 @@ NORMATTIVA_SEARCH = {
     "att. c.p.p.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
     "norme att. c.p.p.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
     "norme att. cod. proc. pen.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
-    # Other spellings of the codes (G-440): citex's corpus.
+    # Other spellings of the codes (G-440): an external citation corpus.
     "codice della crisi e dell'insolvenza": "codice della crisi d'impresa e dell'insolvenza",
     "codice della crisi d'impresa": "codice della crisi d'impresa e dell'insolvenza",
     "c. crisi impresa": "codice della crisi d'impresa e dell'insolvenza",
