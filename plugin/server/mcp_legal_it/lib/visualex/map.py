@@ -546,7 +546,9 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     ("legge", "1941-04-22", "633", [
         "legge sulla protezione del diritto d'autore", "legge sul diritto d'autore",
         "legge diritto d'autore", "lda"]),
-    ("decreto legislativo", "1998-12-09", "431", [
+    # A legge, not a decreto legislativo: the type was wrong and every lookup was refused
+    # (live gate, 11 November 2026: Normattiva titles it «LEGGE 9 dicembre 1998, n. 431»).
+    ("legge", "1998-12-09", "431", [
         "legge sulle locazioni abitative", "locazioni abitative"]),
     ("legge", "1978-07-27", "392", ["legge equo canone", "equo canone"]),
     ("legge", "1982-05-03", "203", ["norme sui contratti agrari", "legge sui contratti agrari"]),

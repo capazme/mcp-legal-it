@@ -945,6 +945,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **«Legge sulle locazioni abitative» was refused.** The table typed l. 9 dicembre 1998, n. 431 as a
+  decreto legislativo, so every lookup by name was refused as another act; it is a legge.
 - **Wrong article for a decree whose text is an annex (G-440).** «art. 1 d.lgs. 175/2024» served
   art. 1 of the testo unico, unlabelled, under the decree's URN: when the decree's page states no
   validity window the export answered from the annex. The decree's own article now answers when the
