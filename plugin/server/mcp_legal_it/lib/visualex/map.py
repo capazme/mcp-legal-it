@@ -523,7 +523,7 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     # --- Amministrativo ------------------------------------------------------
     ("legge", "1990-08-07", "241", [
         "legge sul procedimento amministrativo", "legge sul procedimento",
-        "legge 241", "legge sulla trasparenza amministrativa"]),
+        "legge 241", "legge sulla trasparenza amministrativa", "l. proc. amm."]),
     ("decreto legislativo", "2000-08-18", "267", [
         "testo unico degli enti locali", "testo unico enti locali", "tu enti locali", "tuel"]),
     ("decreto del presidente della repubblica", "2001-06-06", "380", [
@@ -754,12 +754,13 @@ NORMATTIVA_SEARCH = {
     "cod. ass. priv.": "codice delle assicurazioni private",
     # More spellings of the codes (G-440).
     "cod. ass.": "codice delle assicurazioni private",
-    "cod. priv.": "codice privacy",
-    "c.priv.": "codice privacy",
-    "c. priv.": "codice privacy",
+    # The values here are act types (api's _TIPI_NOTI reads them): the code's own name, never
+    # another alias («codice privacy» is a key of ATTI_NOTI, not a type).
+    "cod. priv.": "codice in materia di protezione dei dati personali",
+    "c.priv.": "codice in materia di protezione dei dati personali",
+    "c. priv.": "codice in materia di protezione dei dati personali",
     "codice urbani": "codice dei beni culturali e del paesaggio",
     "cbcp": "codice dei beni culturali e del paesaggio",
-    "l. proc. amm.": "legge sul procedimento amministrativo",
     "cod. beni cult.": "codice dei beni culturali e del paesaggio",
     "cod. civ.": "codice civile",
     "cod. com. elet.": "codice delle comunicazioni elettroniche",

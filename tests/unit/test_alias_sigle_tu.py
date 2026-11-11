@@ -58,7 +58,16 @@ def test_the_codes(nome, tipo, numero):
 
 @pytest.mark.parametrize("nome", ["cod. priv.", "c.priv.", "c. priv."])
 def test_the_codice_privacy(nome):
-    assert _resolve_act(nome) == _resolve_act("codice privacy")
+    # The code's own type, so the same URN as «codice privacy» (d.lgs. 196/2003), never a type
+    # «codice privacy» Normattiva has no heading for.
+    info = _resolve_act(nome)
+    assert info["tipo_atto"] == "codice in materia di protezione dei dati personali"
+    assert identita_atto(info) == identita_atto(_resolve_act("codice privacy"))
+    assert Norma(tipo_atto=info["tipo_atto"]).url().endswith("decreto.legislativo:2003-06-30;196")
+
+
+def test_l_proc_amm_is_the_241():
+    assert _resolve_act("l. proc. amm.") == _resolve_act("legge sul procedimento amministrativo")
 
 
 class TestArt36BisTued:
