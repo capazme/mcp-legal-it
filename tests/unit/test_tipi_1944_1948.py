@@ -55,3 +55,20 @@ def test_the_urn_kinds_are_normattivas(tipo, urn):
 
 def test_the_legge_basevi():
     assert _resolve_act("legge Basevi") == {"tipo_atto": DLGSCPS, "data": "1947-12-14", "numero_atto": "1577"}
+
+
+@pytest.mark.parametrize("citazione", [
+    "DCPS 5/2020", "D.C.P.S. 5/2020", "D.Lgs.C.P.S. 1/1949", "d.lgs.c.p.s. 1577/1945",
+    "D.Lgt. 12/1990", "d.lgt. 1/1943", "decreto luogotenenziale 3 marzo 1950, n. 4",
+    "decreto del capo provvisorio dello stato 1 gennaio 1949, n. 1",
+])
+def test_a_year_the_type_cannot_bear_names_no_act(citazione):
+    # The Luogotenenza (1944-1946) and the Capo provvisorio dello Stato (1946-1948).
+    assert _resolve_act(citazione) is None
+
+
+@pytest.mark.parametrize("citazione", [
+    "D.Lgt. 208/1944", "D.Lgt. 512/1946", "D.C.P.S. 659/1946", "D.Lgs.C.P.S. 3/1947", "D.Lgs.C.P.S. 1/1948",
+])
+def test_the_years_at_the_edges_still_resolve(citazione):
+    assert _resolve_act(citazione) is not None

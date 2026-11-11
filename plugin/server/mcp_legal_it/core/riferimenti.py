@@ -266,6 +266,22 @@ _IT_SHORT_PATTERN = re.compile(
 )
 
 
+#: The years the act types of 1944-1948 can bear, inclusive: the Luogotenenza (1944-1946) and
+#: the Capo provvisorio dello Stato (1946-1948; G-440). A «DCPS 5/2020» or a «D.Lgt. 12/1990»
+#: names no act: unresolved, never a type the reader would then ask Normattiva about.
+_ANNI_DEL_TIPO = {
+    "decreto luogotenenziale": (1944, 1946),
+    "decreto del capo provvisorio dello stato": (1946, 1948),
+    "decreto legislativo del capo provvisorio dello stato": (1946, 1948),
+}
+
+
+def _anno_possibile(tipo: str, anno: str) -> bool:
+    """Whether an act of *tipo* can bear *anno* (any year for a type outside ``_ANNI_DEL_TIPO``)."""
+    limiti = _ANNI_DEL_TIPO.get(tipo)
+    return limiti is None or (anno.isdigit() and limiti[0] <= int(anno) <= limiti[1])
+
+
 def _canonical_tipo(raw: str) -> str:
     """Map a cited act type to its canonical Normattiva name."""
     key = re.sub(r"[.\s-]", "", raw.lower())
@@ -324,12 +340,18 @@ def _resolve_act(act_name: str) -> dict | None:
     if long_match:
         tipo_raw, giorno, mese_it, anno, numero = long_match.groups()
         data = f"{anno}-{_MESI_IT[mese_it.lower()]}-{giorno.zfill(2)}"
-        return {"tipo_atto": _canonical_tipo(tipo_raw), "data": data, "numero_atto": numero}
+        tipo = _canonical_tipo(tipo_raw)
+        if not _anno_possibile(tipo, anno):
+            return None
+        return {"tipo_atto": tipo, "data": data, "numero_atto": numero}
 
     short_match = _IT_SHORT_PATTERN.match(candidate)
     if short_match:
         tipo_raw, numero, anno = short_match.groups()
-        return {"tipo_atto": _canonical_tipo(tipo_raw), "data": anno, "numero_atto": numero}
+        tipo = _canonical_tipo(tipo_raw)
+        if not _anno_possibile(tipo, anno):
+            return None
+        return {"tipo_atto": tipo, "data": anno, "numero_atto": numero}
 
     return None
 

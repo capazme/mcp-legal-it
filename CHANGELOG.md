@@ -20,7 +20,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   («D.Lgs.C.P.S.»), with the URN kinds Normattiva's own exports give them, each checked against its
   page's heading; `risolvi_atto` dates them from the heading (`INDICATIVO`, as the d.lgs.lgt.).
   «legge Basevi» is the D.Lgs.C.P.S. 14 dicembre 1947, n. 1577. Cited as another type («d.lgs.
-  1577/1947», «r.d.lgs. 512/1946») the act stays refused, and the refusal names it.
+  1577/1947», «r.d.lgs. 512/1946») the act stays refused, and the refusal names it. A year the type
+  cannot bear (a D.Lgt. outside 1944-1946, a D.C.P.S. or D.Lgs.C.P.S. outside 1946-1948) names no act.
 - **Act spellings from an external citation corpus (G-440).** EU regulations by name: «MAR» (also «Regolamento
   MAR», «Regolamento europeo sugli abusi di mercato»), «MiCAR», «MiFIR», «Regolamento Prospetto»,
   «Regolamento DLT», «CSDR», «Regolamento SAFE», «Regolamento sull'IA»; any «Regolamento <nickname>»

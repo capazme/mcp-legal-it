@@ -1,7 +1,7 @@
 """Records kept before the heading check knew the historical types are never read (G-440).
 
-Before ``scraper._INTESTAZIONI_ALTRE``, a «r.d.lgs. 512/1946» (or a legge, r.d., r.d.l. n. 512
-of 1946) got the page of the D.Lgt. 30 marzo 1946, n. 512 and kept it as its own. Each cache
+Before the historical heading types were known (now ``scraper._INTESTAZIONI_ELI``), a
+«r.d.lgs. 512/1946» (or a legge, r.d., r.d.l. n. 512 of 1946) got the page of the D.Lgt. 30 marzo 1946, n. 512 and kept it as its own. Each cache
 that keeps what such a page said carries a version raised with that fix: a record of the
 previous one is another act's, possibly, and is not served (the next reading asks again).
 """
