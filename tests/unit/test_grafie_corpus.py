@@ -62,6 +62,15 @@ class TestMarIsNotMarch:
     def test_a_month_is_no_act(self, nome):
         assert _resolve_act(nome) is None
 
+    @pytest.mark.parametrize("testo", [
+        "Si veda l'art. 17 del MAR 2014 sulla comunicazione.",
+        "Si veda l'art. 17 MAR 2014 sulla comunicazione.",
+        "Si veda l'art. 17 MAR, 2014, sulla comunicazione.",
+        "Si veda l'art. 17 Regolamento MAR 2014 sulla comunicazione.",
+    ])
+    def test_the_sigla_before_a_year_is_still_the_regulation(self, testo):
+        assert [n.atto for n in norme_nel_testo(testo)] == [identita_atto(_ue("2014", "596"))]
+
     def test_mar_after_the_article_is_the_regulation(self):
         trovate = norme_nel_testo("Si applica l'art. 17 MAR agli emittenti.")
         assert [(n.atto, n.articolo) for n in trovate] == [(identita_atto(_ue("2014", "596")), "17")]
@@ -183,6 +192,8 @@ class TestGate:
         ("Si veda l'art. 3 del Regolamento Mercati.", "3"),
         ("Si veda l'art. 3 del Regolamento Mercati Consob sulle sedi.", "3"),
         ("Si veda l'art. 3 del regolamento mercati n. 20249 sulle sedi.", "3"),
+        ("Si veda l'art. 4 del Regolamento Mercati (delibera n. 20249/2017).", "4"),
+        ("Si veda l'art. 4 del Regolamento Mercati adottato con delibera 20249.", "4"),
         ("Si veda l'art. 24 della Carta sociale europea.", "24"),
         ("Si veda l'art. 9 della Convenzione di Aarhus.", "9"),
         ("Si veda l'art. 14 del Patto internazionale sui diritti civili e politici.", "14"),
@@ -190,6 +201,10 @@ class TestGate:
     ])
     def test_flagged_as_out_of_coverage(self, testo, articolo):
         assert [(n.atto, n.articolo) for n in norme_nel_testo(testo)] == [(None, articolo)]
+
+    def test_mercati_and_the_tuf_both_count(self):
+        trovate = norme_nel_testo("Ai sensi dell'art. 2 del Regolamento Mercati e l'art. 3 del TUF.")
+        assert [(n.atto is None, n.articolo) for n in trovate] == [(True, "2"), (False, "3")]
 
     @pytest.mark.parametrize("testo", [
         "L'art. 3 del regolamento condominiale vieta gli animali.",
@@ -199,6 +214,8 @@ class TestGate:
         "L'art. 1 del regolamento interno del comitato.",
         "L'art. 4 del regolamento mercati rionali del Comune fissa gli orari.",
         "L'art. 2 del regolamento mercati comunali disciplina i posteggi.",
+        "L'art. 6 del regolamento mercati all'ingrosso della città.",
+        "L'art. 1 del regolamento mercati settimanali del Comune.",
     ])
     def test_not_law_stays_out(self, testo):
         assert norme_nel_testo(testo) == []

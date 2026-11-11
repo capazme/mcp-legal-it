@@ -400,14 +400,23 @@ class TestTipoConTitolo:
         assert chieste == [N2LS + self.URL] and ancora == []
 
     async def test_a_heading_of_an_unknown_type_keeps_the_year_only_urn(self):
-        # Derived from the real page: a heading type no table knows says nothing about another act.
+        # Derived from the real page, with a made-up type: a heading type no table knows says
+        # nothing about another act. (The historical types once used here are measured now.)
         ignota = L241.replace("<title>LEGGE 7 agosto 1990, n. 241 - Normattiva</title>",
-                              "<title>DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 7 agosto 1990, n. 241"
-                              " - Normattiva</title>")
+                              "<title>TIPO NON MISURATO 7 agosto 1990, n. 241 - Normattiva</title>")
         _r, chieste = await self._con_normattiva(
             lambda: scraper.fetch_article(NormaVisitata(norma=self.DLGS, numero_articolo="3")),
             routes={self.URL: ignota})
         assert any("~art3" in u for u in chieste)
+
+    async def test_a_measured_historical_heading_is_another_act(self):
+        storica = L241.replace("<title>LEGGE 7 agosto 1990, n. 241 - Normattiva</title>",
+                               "<title>DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 7 agosto 1990, n. 241"
+                               " - Normattiva</title>")
+        r, chieste = await self._con_normattiva(
+            lambda: scraper.fetch_article(NormaVisitata(norma=self.DLGS, numero_articolo="3")),
+            routes={self.URL: storica})
+        assert r["esito"] == scraper.ACT_NOT_FOUND and not any("~art3" in u for u in chieste)
 
     async def test_verifica_citazioni_names_the_page_served(self):
         from mcp_legal_it.tools.legal_citations import _verifica_norma
@@ -446,3 +455,54 @@ class TestSottotipoSbagliato:
             payload = json.loads(await _cite_law_impl("art. 1 r.d. 1825/1924", formato="json"))
         assert "REGIO DECRETO-LEGGE" in payload["errore"]
         assert payload["url"] == "" and payload["urn"] is None and not payload["testo"]
+
+
+class TestIntestazioniStoriche:
+    """A page headed by a historical type the library never cites is another act's (G-440).
+
+    Asked a «r.d.lgs. 512/1946» (or a legge, r.d., r.d.l. n. 512 of 1946), Normattiva serves
+    the page of D.Lgt. 30 marzo 1946, n. 512 (fixture captured 11 Nov 2026). «DECRETO
+    LUOGOTENENZIALE» was in no table, so the heading said nothing and the article of that
+    decree was served as the asked act's. The three types measured live on 1923-1950 pages.
+    """
+
+    DLGT512 = _pagina("landing_dlgt_512_1946_serve_rdlgs.html")
+    INTESTAZIONE = "DECRETO LUOGOTENENZIALE 30 marzo 1946, n. 512"
+
+    def test_the_measured_historical_headings_are_known(self):
+        assert scraper._INTESTAZIONI_ALTRE == {
+            "DECRETO LUOGOTENENZIALE", "DECRETO DEL CAPO PROVVISORIO DELLO STATO",
+            "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO"}
+        assert scraper._INTESTAZIONI_ALTRE <= scraper._TIPI_INTESTAZIONE_NOTI
+        # Never the heading of a type the library cites: they only say «another act».
+        assert not scraper._INTESTAZIONI_ALTRE & set().union(*scraper._INTESTAZIONI.values())
+
+    @pytest.mark.parametrize("tipo, kind", [
+        ("regio decreto legislativo", "regio.decreto.legislativo"),
+        ("legge", "legge"), ("regio decreto", "regio.decreto"), ("regio decreto legge", "regio.decreto.legge"),
+    ])
+    async def test_by_year_the_decreto_luogotenenziale_is_not_found(self, tipo, kind):
+        r, _ = await _risolvi({f"{kind}:1946-01-01;512": self.DLGT512}, tipo, "512", "1946")
+        assert r.esito == "atto_non_trovato" and r.data is None
+        assert f"la pagina restituita è «{self.INTESTAZIONE}»" in r.errore
+
+    async def test_by_year_the_article_is_never_read(self):
+        chieste: list = []
+        fabbrica = _normattiva({"regio.decreto.legislativo:1946-01-01;512": self.DLGT512}, chieste,
+                               altrimenti=self.DLGT512)
+        nv = NormaVisitata(norma=Norma(tipo_atto="regio decreto legislativo", data="1946", numero_atto="512"),
+                           numero_articolo="1")
+        with api.configurazione(client_factory=fabbrica, brocardi=False):
+            r = await scraper.fetch_article(nv)
+        assert r["text"] == "" and r["esito"] == scraper.ACT_NOT_FOUND, r
+        assert self.INTESTAZIONE in r["error"]
+
+    @pytest.mark.parametrize("kind", ["regio.decreto.legislativo", "legge", "regio.decreto", "regio.decreto.legge"])
+    def test_with_the_full_date_the_page_is_refused(self, kind):
+        with pytest.raises(scraper.AttoNonVerificato, match=self.INTESTAZIONE) as exc:
+            scraper.controlla_intestazione(f"{N2LS}{kind}:1946-03-30;512~art1", self.DLGT512)
+        assert exc.value.altro_atto
+
+    def test_the_asked_type_still_passes(self):
+        page = self.DLGT512.replace(self.INTESTAZIONE, "REGIO DECRETO LEGISLATIVO 31 maggio 1946, n. 511")
+        scraper.controlla_intestazione(f"{N2LS}regio.decreto.legislativo:1946-05-31;511~art2", page)

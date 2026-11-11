@@ -946,6 +946,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **Another act's article under a historical heading.** Asked «art. 1 r.d.lgs. 512/1946» (or a legge,
+  r.d., r.d.l. n. 512 of 1946, with the year or the full date), Normattiva serves the page of the
+  D.Lgt. 30 marzo 1946, n. 512, and its art. 1 was served as the asked act's: «DECRETO
+  LUOGOTENENZIALE» was in no table, so the heading proved nothing. Three historical heading types,
+  measured on 1923-1950 pages (decreto luogotenenziale, decreto and decreto legislativo del Capo
+  provvisorio dello Stato), now mark such a page as another act's.
 - **«Legge sulle locazioni abitative» was refused.** The table typed l. 9 dicembre 1998, n. 431 as a
   decreto legislativo, so every lookup by name was refused as another act; it is a legge.
 - **Wrong article for a decree whose text is an annex (G-440).** «art. 1 d.lgs. 175/2024» served
