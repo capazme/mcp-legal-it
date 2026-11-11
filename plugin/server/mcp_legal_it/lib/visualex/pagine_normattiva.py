@@ -46,7 +46,10 @@ MAX_SU_DISCO = 2000
 #: 4: and the parts of an article Normattiva splits (``parti``, ``parte_servita``).
 #: 5: written only after the page's heading was checked against the URN asked
 #: (``scraper.controlla_intestazione``): a record kept before could be another act's page.
-SCHEMA = 5
+#: 6: written by a heading check that knows the historical heading types (``scraper.
+#: _INTESTAZIONI_ALTRE``, G-440): the check before let the D.Lgt. 30 marzo 1946, n. 512 through
+#: as a «r.d.lgs. 512/1946», so a record of 5 may be another act's article.
+SCHEMA = 6
 
 _memoria: "OrderedDict[str, dict]" = OrderedDict()
 #: The disk is pruned once every this many writes, not at each one (a glob of up to 2000 files).

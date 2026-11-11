@@ -15,6 +15,21 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **Act spellings from an external citation corpus (G-440).** EU regulations by name: «MAR» (also «Regolamento
+  MAR», «Regolamento europeo sugli abusi di mercato»), «MiCAR», «MiFIR», «Regolamento Prospetto»,
+  «Regolamento DLT», «CSDR», «Regolamento SAFE», «Regolamento sull'IA»; any «Regolamento <nickname>»
+  whose nickname is already an EU regulation of the table («Regolamento DORA», «Regolamento eIDAS»),
+  never a «regolamento condominiale» or a directive. «MAR» is never read from a date's «mar.».
+  Testi unici written «t.u. …» («t.u. edilizia», «T.U. bancario»), more spellings of the codes
+  («codice della crisi e dell'insolvenza», «cod. contratti pubblici», «preleggi al codice civile»,
+  «Costituzione italiana»), «Codice Rosso» (l. 69/2019), «Legge Capitali» (l. 21/2024), and the act
+  type «regio decreto legislativo» / «r.d.lgs.», which `api.risolvi_atto` now dates from the page's
+  title (`TIPI_ATTO_VERIFICATI`, `ESATTO`). Declared uncovered sources, each with its identity
+  and no near-miss suggestion: the Consob regulations Emittenti (delibera 11971/1999), OPC (17221)
+  and Mercati (20249); the CEDU and its Protocols 1, 4 and 7 (not served from the 1955 law: its text
+  is the original one, renumbered since); the Carta sociale europea and the treaties of Aarhus,
+  ICCPR, the Convention on the Rights of the Child, CEDAW and MARPOL. The citation gate flags them;
+  a «protocollo d'intesa» or a «regolamento condominiale» stays out.
 - **CCD2 and the testo unico della giustizia tributaria by name (G-440).** «CCD2», «CCD 2», «CCD II»
   resolve to dir. (UE) 2023/2225; «testo unico della giustizia tributaria», «TU giustizia tributaria»,
   «TUGT» resolve to the annex of d.lgs. 175/2024 (part :1). The «Norme integrative per i giudizi
@@ -164,10 +179,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
   art. 1). It returns an `AttoRisolto`: `data` («1993-09-01»), `urn`, `url`,
   `precisione` and `esito`, in the new closed vocabulary `EsitoAtto`.
   - **Precisione.** The date is `ESATTO` when the page's title names this act's
-    type, year and number, for the seven types the new constant
+    type, year and number, for the eight types the new constant
     `api.TIPI_ATTO_VERIFICATI` declares (legge, d.lgs., d.l., d.P.R., r.d., r.d.l.,
-    l. cost.). VisuaLex's title reader knows two more, the regio decreto
-    legislativo and the bare «decreto», which this constant leaves out. It is
+    r.d.lgs., l. cost.). VisuaLex's title reader knows one more, the bare «decreto»,
+    which this constant leaves out. It is
     `INDICATIVO` when it comes from the page's ELI date (DPCM, decreto ministeriale).
   - **Esiti.**
     - A full date whose day is not the act's is `ambiguo`, with the act Normattiva
@@ -931,6 +946,18 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **Another act's article under a historical heading.** Asked «art. 1 r.d.lgs. 512/1946» (or a legge,
+  r.d., r.d.l. n. 512 of 1946, with the year or the full date), Normattiva serves the page of the
+  D.Lgt. 30 marzo 1946, n. 512, and its art. 1 was served as the asked act's: «DECRETO
+  LUOGOTENENZIALE» was in no table, so the heading proved nothing. Three historical heading types,
+  measured on 1923-1950 pages (decreto luogotenenziale, decreto and decreto legislativo del Capo
+  provvisorio dello Stato), now mark such a page as another act's. The caches that may hold such a
+  page's reading are not read after the upgrade: Normattiva pages (`normattiva_pagine`, schema 6),
+  the versions of an article (`normattiva_aggiornamenti`, schema 3) and the act URL → export map
+  (`akn_url_params.json`, marker `intestazione-2`; it never expires, so an old entry would have
+  served the other act's export for ever).
+- **«Legge sulle locazioni abitative» was refused.** The table typed l. 9 dicembre 1998, n. 431 as a
+  decreto legislativo, so every lookup by name was refused as another act; it is a legge.
 - **Wrong article for a decree whose text is an annex (G-440).** «art. 1 d.lgs. 175/2024» served
   art. 1 of the testo unico, unlabelled, under the decree's URN: when the decree's page states no
   validity window the export answered from the annex. The decree's own article now answers when the

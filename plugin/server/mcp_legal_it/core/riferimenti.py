@@ -179,11 +179,11 @@ _TIPO_ALT = (
     r"|decreto\s+del\s+presidente\s+del\s+consiglio(?:\s+dei\s+ministri)?"
     r"|decreto\s+legislativo\s+luogotenenziale"
     r"|decreto\s+legislativo|decreto[-\s]legge|decreto\s+ministeriale"
-    r"|regio\s+decreto[-\s]legge|regio\s+decreto"
+    r"|regio\s+decreto[-\s]legislativo|regio\s+decreto[-\s]legge|regio\s+decreto"
     r"|legge\s+cost(?:ituzionale|\.)|legge"
     # Constitutional laws, royal decree-laws and lieutenancy decrees before the
     # forms they start with ("l.", "r.d.", "d.lgs."/"d.l.").
-    r"|L\.?\s?cost(?:ituzionale|\.)?|R\.?\s?D\.?\s?L\.?|D\.?\s?(?:Lgs|L)\.?\s?Lgt\.?"
+    r"|L\.?\s?cost(?:ituzionale|\.)?|R\.?\s?D\.?\s?Lgs\.?|R\.?\s?D\.?\s?L\.?|D\.?\s?(?:Lgs|L)\.?\s?Lgt\.?"
     r"|D\.?\s?Lgs\.?|D\.?P\.?C\.?M\.?|D\.?P\.?R\.?|DPR|R\.?D\.?"
     r"|D\.?\s?M\.?|D\.?\s?L\.?|L\.?"
 )
@@ -214,6 +214,9 @@ _TIPO_CANONICO = {
     "leggecostituzionale": "legge costituzionale",
     "rdl": "regio decreto legge",
     "regiodecretolegge": "regio decreto legge",
+    # regio.decreto.legislativo on Normattiva (r.d.lgs. 31 maggio 1946, n. 511, checked, G-440).
+    "rdlgs": "regio decreto legislativo",
+    "regiodecretolegislativo": "regio decreto legislativo",
     "dllgt": "decreto legislativo luogotenenziale",
     "dlgslgt": "decreto legislativo luogotenenziale",
     "decretolegislativoluogotenenziale": "decreto legislativo luogotenenziale",

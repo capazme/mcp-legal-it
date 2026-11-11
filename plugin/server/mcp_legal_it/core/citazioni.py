@@ -18,6 +18,7 @@ from dataclasses import dataclass
 
 from mcp_legal_it.core.riferimenti import _parse_reference, _resolve_act
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION
+from mcp_legal_it.lib.visualex.map import SIGLE_COME_MESI
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, Norma
 
 # Cassazione decision shape: a decision number followed by a 4-digit year,
@@ -220,7 +221,19 @@ _FONTE_NON_RISOLTA = re.compile(
     # The «norme integrative» of the Corte costituzionale: a deliberation of the Court that
     # Normattiva does not publish (map.FONTI_NON_COPERTE, G-440). Only the Court's: the
     # «norme integrative» of a CCNL or of a regolamento condominiale are not law.
-    r"(?:cedu\b|c\.?d\.?f\b\.?|codice\s+deontologico|convenzione\s+europea|"
+    # The other sources of map.FONTI_NON_COPERTE (G-440): the protocols of the CEDU, Consob's
+    # regulations, the Carta sociale europea and the treaties keyed there, each by its own name
+    # (a «protocollo d'intesa», a «regolamento condominiale» or a company's charter are not law).
+    r"(?:cedu\b|c\.e\.d\.u\.|c\.?d\.?f\b\.?|codice\s+deontologico|convenzione\s+europea|"
+    r"(?:primo\s+)?prot(?:ocollo|\.)\s*(?:n\.?\s*\d+\s+|\d+\s+|addiz(?:ionale|\.)\s+)(?:alla\s+)?(?:cedu\b|convenzione\s+europea)|"
+    # «Mercati» is Consob's regulation unless the words after it make it a municipal one
+    # («regolamento mercati rionali del Comune», «… comunali», «… all'ingrosso»).
+    r"reg(?:olamento|\.)\s*(?:consob\s+)?(?:emittenti|opc)\b|"
+    r"reg(?:olamento|\.)\s*(?:consob\s+)?mercati\b(?!\s+(?:rional|comunal|settimanal|ortofrutticol|"
+    r"agroalimentar|ittic|di\s+quartiere|all['’]ingrosso|del\s+comune))|"
+    r"carta\s+sociale\s+europea|convenzione\s+di\s+aarhus|cedaw\b|(?:convenzione\s+)?marpol\b|"
+    r"patto\s+internazionale\s+(?:sui|relativo\s+ai)\s+diritti\s+civili|"
+    r"convenzione\s+(?:onu\s+)?sui\s+diritti\s+del\s+fanciullo|"
     r"(?:norme\s+integrative\s+(?:per\s+i\s+giudizi\s+(?:davanti|dinanzi|innanzi)\s+alla\s+|della\s+)?"
     r"|n\.\s?i\.\s*(?:della\s+)?)corte\s+cost|"
     r"(?:d\.?\s?lgs|d\.?\s?l|d\.?p\.?r|d\.?p\.?c\.?m|d\.?\s?m|l|legge|decreto(?:[-\s]legge)?|"
@@ -308,10 +321,25 @@ def _atto_dopo(coda: str) -> "dict | None":
             break
         parole.append(parola)
     for k in range(len(parole), 0, -1):
+        if k < len(parole) and _mese(parole[k - 1]) and _ANNO.match(parole[k]):
+            # «art. 17 mar. 2020»: a month followed by its year, never the MAR («art. 17 MAR
+            # 2014», all capitals and no dot, stays the regulation).
+            continue
         info = _risolvi(" ".join(parole[:k]))
         if info:
             return info
     return None
+
+
+#: A year right after a word («mar. 2020,»): that word is the month of a date.
+_ANNO = re.compile(r"^(?:1[89]|20)\d{2}\b")
+
+
+def _mese(parola: str) -> bool:
+    """Whether a sigla of ``SIGLE_COME_MESI`` is written as a month: with its dot («mar.»), or
+    not all in capitals («mar», «Mar»). «MAR» and «MAR,» are the sigla."""
+    nuda = parola.strip(",;:")
+    return nuda.lower().rstrip(".") in SIGLE_COME_MESI and (nuda.endswith(".") or not nuda.isupper())
 
 
 def _atto_prima(prima: str) -> "dict | None":
@@ -333,6 +361,10 @@ def _atto_prima(prima: str) -> "dict | None":
             k < len(parole) and parole[-k - 1].lower() in ("di", "d'", "d’")
         ):
             return None
+        if len(candidato) == 1 and _mese(candidato[0]):
+            # «mar» before an article is a date's month («il 17 mar art. 2 …»), never the MAR:
+            # the MAR is read only after the article («art. 17 MAR»).
+            continue
         info = _risolvi(" ".join(candidato))
         if info:
             return info

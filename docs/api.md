@@ -379,9 +379,10 @@ that page is Normattiva's error page (below; the check is shared per event loop)
   - **ESATTO:** for the types in `TIPI_ATTO_VERIFICATI`, the date is read from the
     page's title. It is accepted only when the title names this act's type, year and
     number, because Normattiva's resolver does not check what it is asked and a page of
-    another act gives no date. The seven types are `legge`, `decreto legislativo`,
+    another act gives no date. The eight types are `legge`, `decreto legislativo`,
     `decreto legge`, `decreto del presidente della repubblica`, `regio decreto`,
-    `regio decreto legge` and `legge costituzionale`, named as `normalize_act_type`
+    `regio decreto legge`, `regio decreto legislativo` and `legge costituzionale`, named
+    as `normalize_act_type`
     names them, so `"d.lgs."` and `"d.P.R."` count.
   - **INDICATIVO:** for the other types it accepts (DPCM, `decreto ministeriale`, d.lgs.
     luogotenenziale), the page's heading must name the asked type, year and number, read
@@ -1103,7 +1104,8 @@ No network.
 - **`TIPI_ATTO_VERIFICATI`**: the act types whose date and number `risolvi_atto`
   reads from the Normattiva page's title (`ESATTO`), as `normalize_act_type` names
   them: `legge`, `decreto legislativo`, `decreto legge`, `decreto del presidente
-  della repubblica`, `regio decreto`, `regio decreto legge`, `legge costituzionale`.
+  della repubblica`, `regio decreto`, `regio decreto legge`, `regio decreto
+  legislativo`, `legge costituzionale`.
 - **`ARTICLE_SUFFIX_ALTERNATION`**: VisuaLex's regex alternation of all those
   spellings plus `semel` ("vicies semel", 21st), longest first. Close the group
   with `\b`, or a suffix matches the head of an ordinary word ("art. 5 bisogna"):

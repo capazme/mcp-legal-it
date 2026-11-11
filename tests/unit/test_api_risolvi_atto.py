@@ -113,7 +113,7 @@ class TestTipiVerificati:
             assert normalize_act_type(tipo).lower() == tipo
             assert scraper._tipo_urn(Norma(tipo_atto=tipo)) in act_dates._TITLES
 
-    @pytest.mark.parametrize("tipo", ["regio decreto legislativo", "decreto"])
+    @pytest.mark.parametrize("tipo", ["decreto"])
     async def test_a_title_type_the_library_does_not_accept_is_refused(self, tipo):
         r, chieste = await _risolvi({}, tipo, "1", "2000")
         assert r.esito == "atto_non_riconosciuto" and chieste == []

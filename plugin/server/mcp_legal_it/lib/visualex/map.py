@@ -191,6 +191,8 @@ ATTI_NOTI = {
     "tuir": {"tipo_atto": "decreto del presidente della repubblica", "data": "1986-12-22", "numero_atto": "917"},
     "testo unico delle imposte sui redditi": {"tipo_atto": "decreto del presidente della repubblica", "data": "1986-12-22", "numero_atto": "917"},
     "testo unico imposte sui redditi": {"tipo_atto": "decreto del presidente della repubblica", "data": "1986-12-22", "numero_atto": "917"},
+    "testo unico imposte redditi": {"tipo_atto": "decreto del presidente della repubblica", "data": "1986-12-22", "numero_atto": "917"},
+    "tu imposte redditi": {"tipo_atto": "decreto del presidente della repubblica", "data": "1986-12-22", "numero_atto": "917"},
     # EU treaties — Norma.url() routes these to the fixed CELEX pages in EURLEX
     "tue": {"tipo_atto": "TUE", "data": "", "numero_atto": ""},
     "trattato sull'unione europea": {"tipo_atto": "TUE", "data": "", "numero_atto": ""},
@@ -212,6 +214,26 @@ ATTI_NOTI = {
     "cyber resilience act": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "2847"},
     "cra": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "2847"},
     "mica": {"tipo_atto": "regolamento ue", "data": "2023", "numero_atto": "1114"},
+    # Financial-market regulations by the names an external citation corpus gives them (G-440). CELLAR titles
+    # checked 11 November 2026. «Prospetto», «DLT» and «SAFE» are keyed only after «regolamento»:
+    # alone they are a common noun, an acronym of a technology and an English word. «MAR» is keyed
+    # bare but never read from a date's «mar.» (see SIGLE_COME_MESI).
+    "mar": {"tipo_atto": "regolamento ue", "data": "2014", "numero_atto": "596"},
+    "market abuse regulation": {"tipo_atto": "regolamento ue", "data": "2014", "numero_atto": "596"},
+    "regolamento sugli abusi di mercato": {"tipo_atto": "regolamento ue", "data": "2014", "numero_atto": "596"},
+    "regolamento europeo sugli abusi di mercato": {"tipo_atto": "regolamento ue", "data": "2014", "numero_atto": "596"},
+    "micar": {"tipo_atto": "regolamento ue", "data": "2023", "numero_atto": "1114"},
+    "mifir": {"tipo_atto": "regolamento ue", "data": "2014", "numero_atto": "600"},
+    "regolamento prospetto": {"tipo_atto": "regolamento ue", "data": "2017", "numero_atto": "1129"},
+    "regolamento dlt": {"tipo_atto": "regolamento ue", "data": "2022", "numero_atto": "858"},
+    "regolamento pilota dlt": {"tipo_atto": "regolamento ue", "data": "2022", "numero_atto": "858"},
+    "csdr": {"tipo_atto": "regolamento ue", "data": "2014", "numero_atto": "909"},
+    # SAFE: reg. (UE) 2025/1106 of the Council (Security Action for Europe), so named by the
+    # decisions of an external citation corpus (confirmed against the corpus documents, 11 November 2026).
+    "regolamento safe": {"tipo_atto": "regolamento ue", "data": "2025", "numero_atto": "1106"},
+    "regolamento sull'ia": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "1689"},
+    "regolamento sull'intelligenza artificiale": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "1689"},
+    "regolamento europeo sull'intelligenza artificiale": {"tipo_atto": "regolamento ue", "data": "2024", "numero_atto": "1689"},
     "machinery regulation": {"tipo_atto": "regolamento ue", "data": "2023", "numero_atto": "1230"},
     "direttiva whistleblowing": {"tipo_atto": "direttiva ue", "data": "2019", "numero_atto": "1937"},
     "whistleblowing": {"tipo_atto": "direttiva ue", "data": "2019", "numero_atto": "1937"},
@@ -268,7 +290,88 @@ _NORME_INTEGRATIVE_CORTE_COST = (
 #: regolamento's) is not keyed, and stays an ordinary unresolved name.
 #: Facts checked 9 November 2026 (G-440): Normattiva's search and URNs have no deliberation
 #: of the Court; the Gazzetta Ufficiale lists the 2021 text and its later amendments.
+_CONSOB = (
+    "il {nome} è un regolamento della Consob ({estremi}), non un atto legislativo: Normattiva ed "
+    "EUR-Lex non lo pubblicano, quindi il suo testo non è disponibile qui. Il testo vigente è sul "
+    "sito della Consob (Regolamentazione); la delibera di adozione si legge con gli strumenti "
+    "CONSOB per numero."
+)
+
+_CEDU_TESTO = (
+    "il testo vigente non è disponibile qui: quello allegato alla legge di esecuzione su Normattiva "
+    "è il testo originario, e i Protocolli successivi hanno modificato e rinumerato parte della "
+    "Convenzione, quindi servirlo come vigente rischierebbe l'articolo sbagliato. Testo ufficiale: "
+    "Consiglio d'Europa."
+)
+
+_TRATTATO = (
+    "{nome} è un trattato internazionale ({estremi}): cite_law legge le fonti italiane ed europee, "
+    "non i trattati, quindi il suo testo non è disponibile qui."
+)
+
+
+def _fonti(messaggio: str, *nomi: str) -> dict[str, str]:
+    return {nome: messaggio for nome in nomi}
+
+
+#: Facts of the entries below, checked 11 November 2026 (G-440): Consob's numbers on consob.it
+#: (delibere 11971, 17221, 20249); the laws of ratification on Normattiva (their titles).
+#: Bare sigle that name something else too («CSE», «Convenzione di Ginevra») are not keyed.
 FONTI_NON_COPERTE: dict[str, str] = {
+    **_fonti(_CONSOB.format(nome="Regolamento Emittenti",
+                            estremi="delibera 14 maggio 1999, n. 11971, attuativa del d.lgs. 58/1998"),
+             "regolamento emittenti", "regolamento emittenti consob", "regolamento consob emittenti",
+             "reg. emittenti", "reg. consob 11971/1999", "delibera consob n. 11971/1999",
+             "regolamento consob n. 11971/1999", "regolamento consob 11971/1999"),
+    **_fonti(_CONSOB.format(nome="Regolamento OPC (operazioni con parti correlate)",
+                            estremi="delibera n. 17221"),
+             "regolamento opc", "regolamento opc consob", "regolamento consob opc",
+             "regolamento operazioni con parti correlate", "regolamento parti correlate"),
+    **_fonti(_CONSOB.format(nome="Regolamento Mercati", estremi="delibera n. 20249, attuativa del d.lgs. 58/1998"),
+             "regolamento mercati", "regolamento mercati consob", "regolamento consob mercati"),
+    **_fonti("la CEDU è la Convenzione per la salvaguardia dei diritti dell'uomo e delle libertà "
+             "fondamentali (Roma, 4 novembre 1950), resa esecutiva in Italia con la legge 4 agosto 1955, "
+             "n. 848: " + _CEDU_TESTO,
+             "cedu", "convenzione europea dei diritti dell'uomo",
+             "convenzione europea per la salvaguardia dei diritti dell'uomo",
+             "convenzione europea per la salvaguardia dei diritti dell'uomo e delle libertà fondamentali",
+             "convenzione per la salvaguardia dei diritti dell'uomo e delle libertà fondamentali",
+             "convenzione edu"),
+    **_fonti("il Protocollo addizionale (n. 1) alla CEDU (Parigi, 20 marzo 1952) è reso esecutivo con "
+             "la legge 4 agosto 1955, n. 848, insieme alla Convenzione: " + _CEDU_TESTO,
+             "prot. addiz. cedu", "protocollo addizionale alla cedu", "primo protocollo addizionale alla cedu",
+             "protocollo addizionale alla convenzione europea dei diritti dell'uomo",
+             "primo protocollo addizionale alla convenzione europea dei diritti dell'uomo",
+             "protocollo n. 1 cedu", "prot. n. 1 cedu", "protocollo 1 cedu", "prot. 1 cedu"),
+    **_fonti("il Protocollo n. 4 alla CEDU (Strasburgo, 16 settembre 1963) è reso esecutivo con il "
+             "d.P.R. 14 aprile 1982, n. 217: " + _CEDU_TESTO,
+             "protocollo n. 4 cedu", "prot. n. 4 cedu", "protocollo 4 cedu", "prot. 4 cedu"),
+    **_fonti("il Protocollo n. 7 alla CEDU (Strasburgo, 22 novembre 1984) è ratificato con la legge "
+             "9 aprile 1990, n. 98: " + _CEDU_TESTO,
+             "protocollo n. 7 cedu", "prot. n. 7 cedu", "protocollo 7 cedu", "prot. 7 cedu"),
+    **_fonti(_TRATTATO.format(nome="la Carta sociale europea (riveduta)",
+                              estremi="Strasburgo, 3 maggio 1996, ratificata con la legge 9 febbraio 1999, n. 30"),
+             "carta sociale europea", "carta sociale europea riveduta"),
+    **_fonti(_TRATTATO.format(nome="la Convenzione di Aarhus",
+                              estremi="Aarhus, 25 giugno 1998, ratificata con la legge 16 marzo 2001, n. 108"),
+             "convenzione di aarhus"),
+    **_fonti(_TRATTATO.format(nome="il Patto internazionale sui diritti civili e politici",
+                              estremi="New York, 19 dicembre 1966, ratificato con la legge 25 ottobre 1977, n. 881"),
+             "patto internazionale sui diritti civili e politici",
+             "patto internazionale relativo ai diritti civili e politici"),
+    **_fonti(_TRATTATO.format(nome="la Convenzione sui diritti del fanciullo",
+                              estremi="New York, 20 novembre 1989, ratificata con la legge 27 maggio 1991, n. 176"),
+             "convenzione sui diritti del fanciullo", "convenzione onu sui diritti del fanciullo"),
+    **_fonti(_TRATTATO.format(nome="la CEDAW (Convenzione sull'eliminazione di ogni forma di discriminazione "
+                                   "nei confronti della donna)",
+                              estremi="New York, 18 dicembre 1979, ratificata con la legge 14 marzo 1985, n. 132"),
+             "cedaw"),
+    **_fonti(_TRATTATO.format(nome="la Convenzione MARPOL 73/78",
+                              estremi="Londra, 2 novembre 1973, ratificata con la legge 29 settembre 1980, n. 662; "
+                                      "Protocollo del 17 febbraio 1978, legge 4 giugno 1982, n. 438"),
+             "convenzione marpol 73/78", "convenzione marpol", "marpol 73/78", "marpol"),
+}
+FONTI_NON_COPERTE.update({
     nome: _NORME_INTEGRATIVE_CORTE_COST
     for nome in (
         "norme integrative per i giudizi davanti alla corte costituzionale",
@@ -283,7 +386,7 @@ FONTI_NON_COPERTE: dict[str, str] = {
         "n.i. corte costituzionale",
         "n.i. della corte costituzionale",
     )
-}
+})
 
 
 def fonte_non_coperta(name: str) -> "str | None":
@@ -390,7 +493,10 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     ("decreto legislativo", "2000-08-18", "267", [
         "testo unico degli enti locali", "testo unico enti locali", "tu enti locali", "tuel"]),
     ("decreto del presidente della repubblica", "2001-06-06", "380", [
-        "testo unico edilizia", "testo unico dell'edilizia", "tu edilizia"]),
+        "testo unico edilizia", "testo unico dell'edilizia", "tu edilizia", "t.u.ed."]),
+    # Laws by their nickname (G-440; titles checked on Normattiva, 11 November 2026).
+    ("legge", "2019-07-19", "69", ["codice rosso"]),
+    ("legge", "2024-03-05", "21", ["legge capitali"]),
     ("decreto del presidente della repubblica", "2001-06-08", "327", [
         "testo unico sulle espropriazioni per pubblica utilità",
         "testo unico espropriazioni", "tu espropri", "tu espropriazioni"]),
@@ -440,7 +546,9 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     ("legge", "1941-04-22", "633", [
         "legge sulla protezione del diritto d'autore", "legge sul diritto d'autore",
         "legge diritto d'autore", "lda"]),
-    ("decreto legislativo", "1998-12-09", "431", [
+    # A legge, not a decreto legislativo: the type was wrong and every lookup was refused
+    # (live gate, 11 November 2026: Normattiva titles it «LEGGE 9 dicembre 1998, n. 431»).
+    ("legge", "1998-12-09", "431", [
         "legge sulle locazioni abitative", "locazioni abitative"]),
     ("legge", "1978-07-27", "392", ["legge equo canone", "equo canone"]),
     ("legge", "1982-05-03", "203", ["norme sui contratti agrari", "legge sui contratti agrari"]),
@@ -650,6 +758,16 @@ NORMATTIVA_SEARCH = {
     "disp. att. cpp": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
     "att. c.p.p.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
     "norme att. c.p.p.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+    "norme att. cod. proc. pen.": "norme di attuazione, di coordinamento e transitorie del codice di procedura penale",
+    # Other spellings of the codes (G-440): an external citation corpus.
+    "codice della crisi e dell'insolvenza": "codice della crisi d'impresa e dell'insolvenza",
+    "codice della crisi d'impresa": "codice della crisi d'impresa e dell'insolvenza",
+    "c. crisi impresa": "codice della crisi d'impresa e dell'insolvenza",
+    "cod. contratti pubblici": "codice dei contratti pubblici",
+    "codice dei beni culturali": "codice dei beni culturali e del paesaggio",
+    "codice della proprieta' industriale": "codice della proprietà industriale",
+    "preleggi al codice civile": "preleggi",
+    "costituzione italiana": "costituzione",
     "c.p.m.p.": "codice penale militare di pace",
     "c.p.m.p": "codice penale militare di pace",
     "cpmp": "codice penale militare di pace",
@@ -1036,6 +1154,14 @@ def _strip_leading_words(key: str) -> str:
 _DOTTED_ACRONYM = re.compile(r"^[a-zà-ù]+(?:\.[a-zà-ù]*)+$", re.IGNORECASE)
 
 
+#: Sigle that are also an abbreviated month: «mar.» in «17 mar. 2020» is March, never the
+#: MAR. They are read only as written, without dots (no dotted-acronym collapse).
+SIGLE_COME_MESI = frozenset({"mar"})
+
+# «t.u. edilizia», «T.U. bancario», «t. u. enti locali»: the testi unici are keyed «tu …».
+_TU_PUNTATO = re.compile(r"^t\.\s?u\.\s+")
+
+
 def _candidate_keys(name: str):
     """Yield lookup keys for an act name, most literal first.
 
@@ -1044,9 +1170,11 @@ def _candidate_keys(name: str):
     """
     seen = set()
     normalized = _normalize_key(name)
-    candidates = [name.strip(), normalized, _strip_leading_words(normalized)]
-    if _DOTTED_ACRONYM.match(normalized):
+    stripped = _strip_leading_words(normalized)
+    candidates = [name.strip(), normalized, stripped]
+    if _DOTTED_ACRONYM.match(normalized) and normalized.replace(".", "") not in SIGLE_COME_MESI:
         candidates.append(normalized.replace(".", ""))
+    candidates += [_TU_PUNTATO.sub("tu ", c) for c in (normalized, stripped) if _TU_PUNTATO.match(c)]
     for candidate in candidates:
         if candidate and candidate not in seen:
             seen.add(candidate)
@@ -1101,7 +1229,29 @@ def resolve_atto(name: str) -> dict | None:
         result = _lookup_key(key)
         if result:
             return result
-    return _sigla_di_allegato(name)
+    return _regolamento_per_soprannome(name) or _sigla_di_allegato(name)
+
+
+# «Regolamento DORA», «Regolamento (UE) eIDAS», «regolamento europeo MAR»: the word before a
+# regulation's nickname.
+_REGOLAMENTO_PREFISSO = re.compile(r"^(?:il\s+)?regolamento\s+(?:\(?\s*ue\s*\)?\s+|europeo\s+)?", re.IGNORECASE)
+
+
+def _regolamento_per_soprannome(name: str) -> dict | None:
+    """«Regolamento <nickname>» when the nickname is an EU regulation of ATTI_NOTI, else None.
+
+    Only a regulation ATTI_NOTI keys by that nickname (hand-verified): «Regolamento DORA» is
+    reg. (UE) 2022/2554, but «regolamento condominiale» or «Regolamento Emittenti» (Consob)
+    name no EU act, and «regolamento NIS2» is not one either (NIS2 is a directive).
+    """
+    resto = _REGOLAMENTO_PREFISSO.sub("", _normalize_key(name), count=1)
+    if not resto or resto == _normalize_key(name):
+        return None
+    for key in _candidate_keys(resto):
+        entry = ATTI_NOTI.get(key)
+        if entry and entry["tipo_atto"] == "regolamento ue":
+            return dict(entry)
+    return None
 
 
 #: The code sigle of more than one word, read in any spacing or dotting as the annex sigle are.
