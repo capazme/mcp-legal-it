@@ -200,6 +200,9 @@ def _lookup_base(reference: str) -> dict:
         # An EU act's text: the consolidation read ({celex, data, modificato_da}, None for the
         # Official Journal text), and whether CELLAR was asked (False: it could not say).
         "consolidato": None, "consolidato_verificato": None,
+        # The consolidation of corrigenda CELLAR lists but does not publish, whose OJ text was
+        # served instead (#163); None otherwise.
+        "consolidato_non_pubblicato": None,
     }
 
 
@@ -253,6 +256,7 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     base["testo"] = result.get("text", "") or ""
     base["consolidato"] = result.get("consolidato")
     base["consolidato_verificato"] = result.get("consolidato_verificato")
+    base["consolidato_non_pubblicato"] = result.get("consolidato_non_pubblicato")
     if result.get("error"):
         base["errore"] = result["error"]
     elif not base["testo"]:
@@ -462,7 +466,10 @@ def _qualita_ue(base: dict, act_info: "dict | None", article: str) -> dict:
     consolidato, verificato = base.get("consolidato"), base.get("consolidato_verificato")
     allegato_oj = bool(split_annex(article)) and not consolidato
     avvisi = ec.avvisi(consolidato, verificato, (act_info or {}).get("data_versione") or None, allegato_oj)
-    precisione = "INDICATIVO" if (consolidato or verificato is False or allegato_oj) else "ESATTO"
+    # The OJ text served for a consolidation of corrigenda CELLAR does not publish (#163): the
+    # corrigenda are not in it, so it is not the corrected text.
+    non_pubblicato = bool(base.get("consolidato_non_pubblicato"))
+    precisione = "INDICATIVO" if (consolidato or verificato is False or allegato_oj or non_pubblicato) else "ESATTO"
     return {**vuoto, "precisione": precisione, "avvisi": avvisi}
 
 

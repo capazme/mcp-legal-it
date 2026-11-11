@@ -1781,9 +1781,20 @@ async def _html_ue(nv: NormaVisitata, ue: dict) -> "tuple[NormaVisitata, dict, s
         status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
         celex = nv.norma.celex_consolidated or _build_celex(nv.norma) or ""
         scelto = ue.get("consolidato") and ue.get("consolidato_verificato") is True
+        if status == 404 and scelto and not ec.solo_rettifiche(ue["consolidato"].get("modificato_da") or []):
+            # The text in force folds a real amendment in: the OJ text is not it. Refused,
+            # never the OJ text served as the text in force.
+            cons = ue["consolidato"]
+            return nv, {**ue, "esito": CHECK_UNAVAILABLE,
+                        "error": (f"il testo vigente di {nv.norma} è la versione consolidata al {cons['data']} "
+                                  f"(CELEX {cons['celex']}), che CELLAR non pubblica ora: il testo in GUUE "
+                                  "non incorpora le modifiche successive e non viene riportato come vigente. "
+                                  "Riprova più tardi, oppure chiedi il testo pubblicato in GUUE "
+                                  "(versione=\"originale\")")}, "", nv.norma.url()
         if status == 404 and scelto:
+            # Corrigenda only: the OJ text, said, and INDICATIVO (``consolidato_non_pubblicato``).
             oj = dataclasses.replace(nv, norma=dataclasses.replace(nv.norma, celex_consolidated=""))
-            ripiego = {**ue, "consolidato": None,
+            ripiego = {**ue, "consolidato": None, "consolidato_non_pubblicato": ue["consolidato"],
                        "avvisi_ue": [ec.avviso_consolidato_non_pubblicato(ue["consolidato"])]
                        + list(ue.get("avvisi_ue") or [])}
             try:
