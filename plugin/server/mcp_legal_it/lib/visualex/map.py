@@ -407,13 +407,19 @@ NOMI_AMBIGUI: dict[str, str] = {
     **dict.fromkeys((
         "tu rinnovabili", "testo unico rinnovabili", "tufer", "decreto fer", "decreto cer",
         "decreto trasparenza", "decreto semplificazioni", "riforma cartabia",
-        "s.l.", "sl", "tui", "cgc", "l.p.a.", "lpa",
+        "s.l.", "sl", "tui", "l.p.a.", "lpa",
     ), ""),
 }
 
 
 def nome_ambiguo(name: str) -> "str | None":
-    """What cite_law answers for a name more than one act answers (``NOMI_AMBIGUI``), else None."""
+    """What cite_law answers for a name more than one act answers (``NOMI_AMBIGUI``), else None.
+
+    A name the tables resolve is never ambiguous: the key «cgc» once caught «c.g.c.» (the
+    codice di giustizia contabile) through the dotted-acronym collapse of ``_candidate_keys``.
+    """
+    if resolve_atto(name):
+        return None
     for key in _candidate_keys(name):
         if key in NOMI_AMBIGUI:
             quali = NOMI_AMBIGUI[key]

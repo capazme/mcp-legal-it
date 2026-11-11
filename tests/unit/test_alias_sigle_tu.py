@@ -92,7 +92,7 @@ def test_tue_stays_the_treaty():
 @pytest.mark.parametrize("nome", [
     "TUS", "T.U.S.", "decreto trasparenza", "decreto Semplificazioni", "riforma Cartabia",
     "TUIVA", "TU IVA", "T.U. registro", "testo unico registro", "T.U. rinnovabili", "testo unico rinnovabili",
-    "TUFER", "decreto FER", "decreto CER", "S.L.", "SL", "TUI", "CGC", "L.P.A.", "LPA", "cod. app.",
+    "TUFER", "decreto FER", "decreto CER", "S.L.", "SL", "TUI", "L.P.A.", "LPA", "cod. app.",
     "testo unico dei servizi di media audiovisivi", "testo unico servizi media audiovisivi",
 ])
 def test_ambiguous_names_are_refused_on_purpose(nome):
@@ -133,3 +133,40 @@ def test_the_ambiguous_fiscal_names_say_which_acts():
 def test_an_unknown_sigla_stays_unresolved():
     # «TUOG» names no testo unico that could be checked: unresolved, not guessed.
     assert _resolve_act("TUOG") is None
+
+
+@pytest.mark.parametrize("rif", ["art. 190 c.g.c.", "art. 190 c.g.c"])
+def test_the_codice_di_giustizia_contabile_is_never_ambiguous(rif):
+    from mcp_legal_it.lib.visualex.map import nome_ambiguo
+
+    articolo, atto = _parse_reference(rif)
+    info = _resolve_act(atto)
+    assert articolo == "190" and info["numero_atto"] == "174" and info["data"] == "2016-08-26"
+    assert nome_ambiguo(atto) is None
+
+
+def _forme(chiave: str) -> set:
+    """The key as written, upper case, and dotted/undotted for a short sigla."""
+    nuda = chiave.replace(".", "").replace(" ", "")
+    forme = {chiave, chiave.upper()}
+    if nuda.isalpha() and len(nuda) <= 6:
+        forme |= {nuda, nuda.upper(), ".".join(nuda) + ".", ".".join(nuda)}
+    return forme
+
+
+def test_no_ambiguous_key_resolves_in_the_tables():
+    # Checks the tables, not nome_ambiguo: a key that also resolves is a contradiction.
+    from mcp_legal_it.lib.visualex.map import NOMI_AMBIGUI, resolve_atto
+
+    for chiave in NOMI_AMBIGUI:
+        for forma in _forme(chiave):
+            assert resolve_atto(forma) is None, (chiave, forma, resolve_atto(forma))
+
+
+def test_no_name_the_tables_know_collides_with_an_ambiguous_key():
+    # Every name the resolver knows, through the same keys it is looked up by.
+    from mcp_legal_it.lib.visualex.map import NOMI_AMBIGUI, _candidate_keys, known_act_names, resolve_atto
+
+    for nome in known_act_names():
+        if resolve_atto(nome):
+            assert not set(_candidate_keys(nome)) & set(NOMI_AMBIGUI), nome
