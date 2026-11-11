@@ -166,10 +166,10 @@ class TestCache:
         akn_fetch._url_params_loaded = False
         assert akn_fetch._get_url_params(url) == ("090G0294", "1990-08-18")
         raw = json.loads((tmp_path / "cache" / "akn_acts" / "akn_url_params.json").read_text(encoding="utf-8"))
-        assert raw[url] == ["090G0294", "1990-08-18", "intestazione"]
+        assert raw[url] == ["090G0294", "1990-08-18", "intestazione-2"]  # raised for G-440
 
     def test_the_page_cache_schema_was_raised(self):
-        assert pagine_normattiva.SCHEMA == 5
+        assert pagine_normattiva.SCHEMA == 6  # 5: the heading check; 6: its historical types (G-440)
 
 
 class TestExport:

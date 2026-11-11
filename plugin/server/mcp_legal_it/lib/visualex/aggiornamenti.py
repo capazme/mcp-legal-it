@@ -295,7 +295,9 @@ TTL_SECONDI = 90 * 86400
 #: Raised when the record's shape changes, so records written before are not read.
 #: 2: version 1 is kept with its introduction rows (1 kept its window only, ``righe=[]``,
 #: which would now read as «no introduction»).
-SCHEMA = 2
+#: 3: written after a heading check that knows the historical heading types (G-440): a record
+#: of 2 may hold the versions of another act's article, kept 90 days.
+SCHEMA = 3
 
 
 def _dir_cache():

@@ -951,7 +951,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
   D.Lgt. 30 marzo 1946, n. 512, and its art. 1 was served as the asked act's: «DECRETO
   LUOGOTENENZIALE» was in no table, so the heading proved nothing. Three historical heading types,
   measured on 1923-1950 pages (decreto luogotenenziale, decreto and decreto legislativo del Capo
-  provvisorio dello Stato), now mark such a page as another act's.
+  provvisorio dello Stato), now mark such a page as another act's. The caches that may hold such a
+  page's reading are not read after the upgrade: Normattiva pages (`normattiva_pagine`, schema 6),
+  the versions of an article (`normattiva_aggiornamenti`, schema 3) and the act URL → export map
+  (`akn_url_params.json`, marker `intestazione-2`; it never expires, so an old entry would have
+  served the other act's export for ever).
 - **«Legge sulle locazioni abitative» was refused.** The table typed l. 9 dicembre 1998, n. 431 as a
   decreto legislativo, so every lookup by name was refused as another act; it is a legge.
 - **Wrong article for a decree whose text is an annex (G-440).** «art. 1 d.lgs. 175/2024» served
