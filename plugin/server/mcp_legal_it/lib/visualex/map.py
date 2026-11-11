@@ -389,6 +389,39 @@ FONTI_NON_COPERTE.update({
 })
 
 
+#: Names that more than one act answers, refused on purpose (G-440): resolving them would pick
+#: one act for the reader. The value names the acts where they are known, checked 11 November
+#: 2026 (Normattiva lists both the old act and the new testo unico of the fiscal reform).
+NOMI_AMBIGUI: dict[str, str] = {
+    "tus": "testo unico sicurezza, stupefacenti, successioni…",
+    "tuiva": "d.P.R. 26 ottobre 1972, n. 633, o il testo unico IVA, d.lgs. 19 gennaio 2026, n. 10",
+    "tu iva": "d.P.R. 26 ottobre 1972, n. 633, o il testo unico IVA, d.lgs. 19 gennaio 2026, n. 10",
+    "tu registro": "d.P.R. 26 aprile 1986, n. 131, o il testo unico, d.lgs. 1 agosto 2025, n. 123",
+    "testo unico registro": "d.P.R. 26 aprile 1986, n. 131, o il testo unico, d.lgs. 1 agosto 2025, n. 123",
+    # Three codes over time, each titled «codice dei contratti pubblici» (checked on Normattiva).
+    "cod. app.": "d.lgs. 12 aprile 2006, n. 163, 18 aprile 2016, n. 50, o 31 marzo 2023, n. 36",
+    # The short name is TUSMA's (d.lgs. 208/2021, art. 1) and the start of the title the
+    # d.lgs. 177/2005 had from 2010, «testo unico dei servizi di media audiovisivi e radiofonici».
+    "testo unico dei servizi di media audiovisivi": "d.lgs. 8 novembre 2021, n. 208, o d.lgs. 31 luglio 2005, n. 177",
+    "testo unico servizi media audiovisivi": "d.lgs. 8 novembre 2021, n. 208, o d.lgs. 31 luglio 2005, n. 177",
+    **dict.fromkeys((
+        "tu rinnovabili", "testo unico rinnovabili", "tufer", "decreto fer", "decreto cer",
+        "decreto trasparenza", "decreto semplificazioni", "riforma cartabia",
+        "s.l.", "sl", "tui", "cgc", "l.p.a.", "lpa",
+    ), ""),
+}
+
+
+def nome_ambiguo(name: str) -> "str | None":
+    """What cite_law answers for a name more than one act answers (``NOMI_AMBIGUI``), else None."""
+    for key in _candidate_keys(name):
+        if key in NOMI_AMBIGUI:
+            quali = NOMI_AMBIGUI[key]
+            return (f"«{name.strip()}» può indicare atti diversi" + (f" ({quali})" if quali else "")
+                    + ": cita l'atto per tipo, data e numero (es. «d.lgs. n/aaaa»)")
+    return None
+
+
 def fonte_non_coperta(name: str) -> "str | None":
     """What cite_law answers for a source no tool reads (``FONTI_NON_COPERTE``), else None."""
     for key in _candidate_keys(name):
@@ -429,7 +462,8 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
         "disposizioni di attuazione del codice di procedura penale", "disp. att. cpp"]),
     ("decreto legislativo", "2003-06-30", "196", ["codice della privacy"]),
     ("decreto legislativo", "2006-04-03", "152", [
-        "codice dell'ambiente", "codice ambiente", "testo unico ambientale", "tua"]),
+        "codice dell'ambiente", "codice ambiente", "testo unico ambientale", "tua",
+        "tu ambiente", "testo unico ambiente", "tuamb"]),
     ("decreto legislativo", "2017-07-03", "117", ["codice del terzo settore"]),
     ("decreto legislativo", "2023-03-31", "36", ["nuovo codice appalti"]),
     ("decreto legislativo", "2006-04-12", "163", [
@@ -437,7 +471,7 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
 
     # --- Lavoro --------------------------------------------------------------
     ("legge", "1970-05-20", "300", [
-        "statuto dei lavoratori", "statuto lavoratori", "statuto dei diritti dei lavoratori"]),
+        "statuto dei lavoratori", "statuto lavoratori", "statuto dei diritti dei lavoratori", "st. lav."]),
     ("decreto legislativo", "2001-03-30", "165", [
         "testo unico sul pubblico impiego", "testo unico pubblico impiego",
         "tu pubblico impiego", "tupi"]),
@@ -473,7 +507,7 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
 
     # --- Impresa, crisi, societario -----------------------------------------
     ("regio decreto", "1942-03-16", "267", [
-        "legge fallimentare", "l. fall.", "legge fall."]),
+        "legge fallimentare", "l. fall.", "legge fall.", "l.f."]),
     ("decreto legislativo", "2001-06-08", "231", [
         "disciplina della responsabilità amministrativa delle persone giuridiche",
         "responsabilità amministrativa degli enti", "decreto 231", "d.lgs 231"]),
@@ -489,19 +523,48 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     # --- Amministrativo ------------------------------------------------------
     ("legge", "1990-08-07", "241", [
         "legge sul procedimento amministrativo", "legge sul procedimento",
-        "legge 241", "legge sulla trasparenza amministrativa"]),
+        "legge 241", "legge sulla trasparenza amministrativa", "l. proc. amm."]),
     ("decreto legislativo", "2000-08-18", "267", [
         "testo unico degli enti locali", "testo unico enti locali", "tu enti locali", "tuel"]),
     ("decreto del presidente della repubblica", "2001-06-06", "380", [
-        "testo unico edilizia", "testo unico dell'edilizia", "tu edilizia", "t.u.ed."]),
+        "testo unico edilizia", "testo unico dell'edilizia", "tu edilizia", "t.u.ed.",
+        # «TUED», «T.U.E.D.», «TUEd» (G-440): «TUE» alone stays the Treaty on European Union.
+        "tued"]),
     # Laws by their nickname (G-440; titles checked on Normattiva, 11 November 2026).
     ("legge", "2019-07-19", "69", ["codice rosso"]),
     ("legge", "2024-03-05", "21", ["legge capitali"]),
+    # Testi unici and nicknames of the second alias pass (G-440): heading and title of each
+    # checked on Normattiva, 11 November 2026; each act calls itself «testo unico» where the
+    # alias says so. Not keyed, because more than one act answers them: «TUIVA» and «T.U.
+    # registro» (the old acts and the new testi unici of 2025-2026), «T.U. rinnovabili» (d.lgs.
+    # 190/2024 does not call itself one), «decreto FER», «decreto CER» (see NOMI_AMBIGUI).
+    ("decreto del presidente della repubblica", "2002-05-30", "115", [
+        "testo unico spese di giustizia", "testo unico delle spese di giustizia",
+        "testo unico in materia di spese di giustizia", "tu spese di giustizia", "tusg"]),
+    ("decreto del presidente della repubblica", "2000-12-28", "445", [
+        "testo unico documentazione amministrativa", "testo unico sulla documentazione amministrativa",
+        "tu documentazione amministrativa", "tuda"]),
+    ("decreto legislativo", "1995-10-26", "504", ["testo unico accise", "tu accise"]),
+    # Repealed whole by d.lgs. 26 settembre 2024, n. 141: the identity of historical citations.
+    ("decreto del presidente della repubblica", "1973-01-23", "43", [
+        "testo unico leggi doganali", "testo unico delle leggi doganali", "testo unico doganale", "tuld"]),
+    ("decreto legislativo", "2021-11-08", "208", [
+        "tusma"]),
+    ("decreto legislativo", "2005-07-31", "177", [
+        "testo unico dei servizi di media audiovisivi e radiofonici", "tusmar"]),
+    ("decreto del presidente della repubblica", "2010-03-15", "90", [
+        "testo unico ordinamento militare", "testo unico delle disposizioni regolamentari in materia di "
+        "ordinamento militare", "tuom"]),
+    ("legge", "2015-08-07", "124", ["legge madia"]),
+    ("decreto legge", "2012-09-13", "158", ["legge balduzzi", "decreto balduzzi"]),
+    ("decreto legislativo", "2023-03-10", "24", ["decreto whistleblowing"]),
+    ("decreto legge", "2018-07-12", "87", ["decreto dignità", "decreto dignita"]),
+    ("decreto legge", "2024-05-29", "69", ["decreto salva casa", "decreto salva-casa", "decreto salvacasa"]),
     # «Provvedimenti per la cooperazione» (Normattiva's title, checked 11 November 2026).
     ("decreto legislativo del capo provvisorio dello stato", "1947-12-14", "1577", ["legge basevi"]),
     ("decreto del presidente della repubblica", "2001-06-08", "327", [
         "testo unico sulle espropriazioni per pubblica utilità",
-        "testo unico espropriazioni", "tu espropri", "tu espropriazioni"]),
+        "testo unico espropriazioni", "tu espropri", "tu espropriazioni", "tues", "tuespr"]),
     ("decreto del presidente della repubblica", "1971-11-24", "1199", [
         "semplificazione dei procedimenti in materia di ricorsi amministrativi",
         "ricorsi amministrativi"]),
@@ -532,7 +595,7 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     ("legge", "1975-07-26", "354", [
         "legge sull'ordinamento penitenziario", "ordinamento penitenziario"]),
     ("decreto del presidente della repubblica", "1990-10-09", "309", [
-        "testo unico stupefacenti", "testo unico sugli stupefacenti", "tu stupefacenti"]),
+        "testo unico stupefacenti", "testo unico sugli stupefacenti", "tu stupefacenti", "tustup"]),
     ("regio decreto", "1931-06-18", "773", [
         "testo unico delle leggi di pubblica sicurezza", "testo unico di pubblica sicurezza",
         "tulps", "tu pubblica sicurezza"]),
@@ -596,7 +659,7 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
 
     # --- Immigrazione --------------------------------------------------------
     ("decreto legislativo", "1998-07-25", "286", [
-        "testo unico sull'immigrazione", "testo unico immigrazione", "tu immigrazione"]),
+        "testo unico sull'immigrazione", "testo unico immigrazione", "tu immigrazione", "tuimm"]),
     ("legge", "2002-07-30", "189", ["legge bossi-fini", "legge bossi fini"]),
 
     # --- Processo civile: mediazione e durata --------------------------------
@@ -689,6 +752,15 @@ NORMATTIVA_SEARCH = {
     "cod. amm. dig.": "codice dell'amministrazione digitale",
     "cod. antimafia": "codice antimafia",
     "cod. ass. priv.": "codice delle assicurazioni private",
+    # More spellings of the codes (G-440).
+    "cod. ass.": "codice delle assicurazioni private",
+    # The values here are act types (api's _TIPI_NOTI reads them): the code's own name, never
+    # another alias («codice privacy» is a key of ATTI_NOTI, not a type).
+    "cod. priv.": "codice in materia di protezione dei dati personali",
+    "c.priv.": "codice in materia di protezione dei dati personali",
+    "c. priv.": "codice in materia di protezione dei dati personali",
+    "codice urbani": "codice dei beni culturali e del paesaggio",
+    "cbcp": "codice dei beni culturali e del paesaggio",
     "cod. beni cult.": "codice dei beni culturali e del paesaggio",
     "cod. civ.": "codice civile",
     "cod. com. elet.": "codice delle comunicazioni elettroniche",

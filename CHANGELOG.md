@@ -15,6 +15,19 @@ described in those sections, not repeated here. Upgrading from 2.x:
 [`docs/migration/2.x-to-3.0.md`](docs/migration/2.x-to-3.0.md).
 
 ### Added
+- **Sigle and nicknames of testi unici and laws, second pass (G-440).** «TUED» / «T.U.E.D.» (testo
+  unico edilizia, so «art. 36-bis TUED» reads), «TUEs» / «TUEspr» (espropri), «TUSG» and «T.U. spese
+  di giustizia» (d.P.R. 115/2002), «TUDA» (d.P.R. 445/2000), «T.U. accise» (d.lgs. 504/1995), «TULD»
+  (d.P.R. 43/1973, repealed), «TUSMA» (d.lgs. 208/2021), «TUSMAR» (d.lgs. 177/2005), «TUOM» (d.P.R.
+  90/2010), «TUIMM», «TUStup», «TU ambiente» / «TUAmb», «St. lav.», «L.F.», «l. proc. amm.», «cod.
+  ass.», «cod. priv.», «codice Urbani» / «CBCP», «legge Madia», «legge Balduzzi», «decreto
+  whistleblowing», «decreto dignità», «decreto Salva Casa»; every identity checked on Normattiva.
+  Names more than one act answers are refused on purpose with «nome ambiguo» and no near-miss
+  suggestion (`NOMI_AMBIGUI`): «TUS», «TUIVA» and «T.U. registro» (the old acts and the fiscal
+  reform's new testi unici, d.lgs. 10/2026 and 123/2025), «T.U. rinnovabili», «decreto FER» / «CER»,
+  «decreto trasparenza», «decreto Semplificazioni», «riforma Cartabia», «S.L.», «TUI», «CGC»,
+  «L.P.A.», «cod. app.» (three codes, 2006, 2016, 2023), the short «testo unico dei servizi di media
+  audiovisivi» (2021 or 2005). «TUE» stays the Treaty on European Union.
 - **The act types of the Luogotenenze and of the Capo provvisorio dello Stato (G-440).** Decreti
   luogotenenziali («D.Lgt.», «d. lgt.»), decreti del Capo provvisorio dello Stato («D.C.P.S.») and
   decreti legislativi del Capo provvisorio dello Stato («D.Lgs.C.P.S.»), with the URN kinds

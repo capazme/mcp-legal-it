@@ -11,7 +11,7 @@ import re
 
 from mcp_legal_it.lib.visualex import resolve_atto, strip_leading_particles, known_act_names
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION as _SUFFISSI
-from mcp_legal_it.lib.visualex.map import fonte_non_coperta
+from mcp_legal_it.lib.visualex.map import fonte_non_coperta, nome_ambiguo
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference
 
 # ---------------------------------------------------------------------------
@@ -377,6 +377,10 @@ def _unresolved_act_error(act_name: str) -> str:
     non_coperta = fonte_non_coperta(act_name)
     if non_coperta:
         return f"**Errore**: fonte non coperta — {non_coperta}"
+    ambiguo = nome_ambiguo(act_name)
+    if ambiguo:
+        # A near miss would be one of the acts the name may mean: none is suggested.
+        return f"**Errore**: nome ambiguo — {ambiguo}."
     message = f"**Errore**: atto '{act_name}' non riconosciuto."
     suggestions = _suggest_acts(act_name)
     if suggestions:
