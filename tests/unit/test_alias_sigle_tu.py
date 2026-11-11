@@ -50,7 +50,6 @@ def test_the_aliases(nome, tipo, data, numero):
     ("cod. ass.", "codice delle assicurazioni private", "209"),
     ("codice Urbani", "codice dei beni culturali e del paesaggio", "42"),
     ("CBCP", "codice dei beni culturali e del paesaggio", "42"),
-    ("cod. app.", "codice dei contratti pubblici", "36"),
 ])
 def test_the_codes(nome, tipo, numero):
     info = _resolve_act(nome)
@@ -84,13 +83,37 @@ def test_tue_stays_the_treaty():
 @pytest.mark.parametrize("nome", [
     "TUS", "T.U.S.", "decreto trasparenza", "decreto Semplificazioni", "riforma Cartabia",
     "TUIVA", "TU IVA", "T.U. registro", "testo unico registro", "T.U. rinnovabili", "testo unico rinnovabili",
-    "TUFER", "decreto FER", "decreto CER", "S.L.", "TUI", "CGC", "L.P.A.",
+    "TUFER", "decreto FER", "decreto CER", "S.L.", "SL", "TUI", "CGC", "L.P.A.", "LPA", "cod. app.",
+    "testo unico dei servizi di media audiovisivi", "testo unico servizi media audiovisivi",
 ])
 def test_ambiguous_names_are_refused_on_purpose(nome):
     assert _resolve_act(nome) is None
     out = _unresolved_act_error(nome)
     assert out.startswith("**Errore**: nome ambiguo") and f"«{nome}»" in out, out
     assert "Forse intendevi" not in out
+
+
+def test_the_example_is_a_placeholder_not_an_act():
+    assert "«d.lgs. n/aaaa»" in _unresolved_act_error("TUS")
+
+
+def test_cod_app_names_the_three_codes_and_no_article_goes_to_one_of_them():
+    out = _unresolved_act_error("cod. app.")
+    assert all(s in out for s in ("n. 163", "n. 50", "n. 36"))
+    codice_2023 = identita_atto({"tipo_atto": "codice dei contratti pubblici", "data": "2023-03-31", "numero_atto": "36"})
+    assert all(n.atto != codice_2023 for n in norme_nel_testo("Art. 80 cod. app. (d.lgs. 50/2016)."))
+
+
+def test_an_act_a_nickname_is_ambiguous_for_still_resolves_by_its_number():
+    # «decreto trasparenza» is refused, the d.lgs. 33/2013 it may mean is not.
+    assert _resolve_act("d.lgs. 33/2013") == {"tipo_atto": DLGS, "data": "2013", "numero_atto": "33"}
+    assert _resolve_act("decreto legislativo 14 marzo 2013, n. 33")["numero_atto"] == "33"
+
+
+def test_tusma_and_tusmar_stay_distinct():
+    assert _resolve_act("TUSMA")["numero_atto"] == "208"
+    assert _resolve_act("TUSMAR")["numero_atto"] == "177"
+    assert _resolve_act("testo unico dei servizi di media audiovisivi e radiofonici")["numero_atto"] == "177"
 
 
 def test_the_ambiguous_fiscal_names_say_which_acts():

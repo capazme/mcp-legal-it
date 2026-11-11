@@ -398,10 +398,16 @@ NOMI_AMBIGUI: dict[str, str] = {
     "tu iva": "d.P.R. 26 ottobre 1972, n. 633, o il testo unico IVA, d.lgs. 19 gennaio 2026, n. 10",
     "tu registro": "d.P.R. 26 aprile 1986, n. 131, o il testo unico, d.lgs. 1 agosto 2025, n. 123",
     "testo unico registro": "d.P.R. 26 aprile 1986, n. 131, o il testo unico, d.lgs. 1 agosto 2025, n. 123",
+    # Three codes over time, each titled «codice dei contratti pubblici» (checked on Normattiva).
+    "cod. app.": "d.lgs. 12 aprile 2006, n. 163, 18 aprile 2016, n. 50, o 31 marzo 2023, n. 36",
+    # The short name is TUSMA's (d.lgs. 208/2021, art. 1) and the start of the title the
+    # d.lgs. 177/2005 had from 2010, «testo unico dei servizi di media audiovisivi e radiofonici».
+    "testo unico dei servizi di media audiovisivi": "d.lgs. 8 novembre 2021, n. 208, o d.lgs. 31 luglio 2005, n. 177",
+    "testo unico servizi media audiovisivi": "d.lgs. 8 novembre 2021, n. 208, o d.lgs. 31 luglio 2005, n. 177",
     **dict.fromkeys((
         "tu rinnovabili", "testo unico rinnovabili", "tufer", "decreto fer", "decreto cer",
         "decreto trasparenza", "decreto semplificazioni", "riforma cartabia",
-        "s.l.", "tui", "cgc", "l.p.a.",
+        "s.l.", "sl", "tui", "cgc", "l.p.a.", "lpa",
     ), ""),
 }
 
@@ -412,7 +418,7 @@ def nome_ambiguo(name: str) -> "str | None":
         if key in NOMI_AMBIGUI:
             quali = NOMI_AMBIGUI[key]
             return (f"«{name.strip()}» può indicare atti diversi" + (f" ({quali})" if quali else "")
-                    + ": cita l'atto per tipo, data e numero (es. «d.lgs. 24/2023»)")
+                    + ": cita l'atto per tipo, data e numero (es. «d.lgs. n/aaaa»)")
     return None
 
 
@@ -543,7 +549,7 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     ("decreto del presidente della repubblica", "1973-01-23", "43", [
         "testo unico leggi doganali", "testo unico delle leggi doganali", "testo unico doganale", "tuld"]),
     ("decreto legislativo", "2021-11-08", "208", [
-        "testo unico dei servizi di media audiovisivi", "testo unico servizi media audiovisivi", "tusma"]),
+        "tusma"]),
     ("decreto legislativo", "2005-07-31", "177", [
         "testo unico dei servizi di media audiovisivi e radiofonici", "tusmar"]),
     ("decreto del presidente della repubblica", "2010-03-15", "90", [
@@ -753,7 +759,6 @@ NORMATTIVA_SEARCH = {
     "c. priv.": "codice privacy",
     "codice urbani": "codice dei beni culturali e del paesaggio",
     "cbcp": "codice dei beni culturali e del paesaggio",
-    "cod. app.": "codice dei contratti pubblici",
     "l. proc. amm.": "legge sul procedimento amministrativo",
     "cod. beni cult.": "codice dei beni culturali e del paesaggio",
     "cod. civ.": "codice civile",
