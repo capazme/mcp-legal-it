@@ -171,6 +171,15 @@ def avviso_assente(articolo: str, consolidato: dict) -> str:
             "il testo pubblicato in GUUE è disponibile con versione=\"originale\"")
 
 
+def avviso_consolidato_non_pubblicato(consolidato: dict) -> str:
+    """A consolidation CELLAR lists but does not serve: the OJ text instead, and what it lacks (#163)."""
+    modifiche = consolidato.get("modificato_da") or []
+    elenco = "; ".join(f"{m['atto']} (CELEX {m['celex']})" for m in modifiche)
+    return (f"EUR-Lex elenca una versione consolidata al {consolidato['data']} (CELEX {consolidato['celex']}) "
+            "che CELLAR non pubblica: il testo riportato è quello pubblicato in GUUE, che fa fede ma non "
+            "incorpora " + (f"le modifiche successive ({elenco})" if elenco else "le modifiche successive"))
+
+
 def avviso_non_ancora_in_vigore(giorno: str, in_vigore_dal: str) -> str:
     return f"il {giorno} l'atto era pubblicato in GUUE ma non ancora in vigore (in vigore dal {in_vigore_dal})"
 

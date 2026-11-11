@@ -612,7 +612,9 @@ async def _fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
         nv, ue = await _versione_ue(nv)
         if ue.get("error"):
             return {"text": "", "url": nv.norma.url(), "source": source, **ue}
-        html, url = await _fetch_eurlex_html(nv.norma)
+        nv, ue, html, url = await _html_ue(nv, ue)
+        if ue.get("error"):
+            return {"text": "", "url": url, "source": source, **ue}
         if not html:
             return {"text": "", "url": url, "source": source, **ue, "error": "Could not fetch EUR-Lex document"}
         text = _extract_eurlex_article(html, nv.numero_articolo)
@@ -1755,8 +1757,55 @@ async def _pagina_ue(norma: Norma, *, oj: bool = False) -> "tuple[str, str, dict
     nv, ue = await _versione_ue(nv)
     if ue.get("error"):
         return "", nv.norma.url(), ue
-    html, url = await _fetch_eurlex_html(nv.norma)
+    nv, ue, html, url = await _html_ue(nv, ue)
     return html, url or nv.norma.url(), {**ue, "norma": nv.norma}
+
+
+async def _html_ue(nv: NormaVisitata, ue: dict) -> "tuple[NormaVisitata, dict, str, str]":
+    """``(nv read, extra keys, page, URL)`` of the EU text :func:`_versione_ue` chose (#163).
+
+    CELLAR lists consolidations it does not serve: reg. (UE) 2022/858 and 2025/1106 have one
+    that folds a corrigendum in, and its sector-0 CELEX answers 404 in every language
+    (11 November 2026). A consolidation chosen here that CELLAR does not serve is replaced by
+    the Official Journal text, said with its notice. A consolidation named by the caller is
+    not replaced: they asked that version. Any other failure is a readable error
+    (``esito`` :data:`CHECK_UNAVAILABLE` or, for a named version CELLAR does not have,
+    :data:`ARTICLE_NOT_FOUND`), never the HTTP client's raw message.
+    """
+    from . import eurlex_consolidate as ec
+
+    try:
+        html, url = await _fetch_eurlex_html(nv.norma)
+        return nv, ue, html, url
+    except httpx.HTTPError as exc:
+        status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+        celex = nv.norma.celex_consolidated or _build_celex(nv.norma) or ""
+        scelto = ue.get("consolidato") and ue.get("consolidato_verificato") is True
+        if status == 404 and scelto:
+            oj = dataclasses.replace(nv, norma=dataclasses.replace(nv.norma, celex_consolidated=""))
+            ripiego = {**ue, "consolidato": None,
+                       "avvisi_ue": [ec.avviso_consolidato_non_pubblicato(ue["consolidato"])]
+                       + list(ue.get("avvisi_ue") or [])}
+            try:
+                html, url = await _fetch_eurlex_html(oj.norma)
+                return oj, ripiego, html, url
+            except httpx.HTTPError as exc_oj:
+                return oj, {**ripiego, **_errore_cellar(oj.norma, _build_celex(oj.norma) or "", exc_oj)}, "", oj.norma.url()
+        if status == 404 and nv.norma.celex_consolidated:
+            return nv, {**ue, "esito": ARTICLE_NOT_FOUND,
+                        "error": (f"la versione consolidata CELEX {celex} di {nv.norma} non è pubblicata su "
+                                  "CELLAR: controlla il CELEX, oppure chiedi il testo vigente senza indicarla")}, "", nv.norma.url()
+        return nv, {**ue, **_errore_cellar(nv.norma, celex, exc)}, "", nv.norma.url()
+
+
+def _errore_cellar(norma: Norma, celex: str, exc: "httpx.HTTPError") -> dict:
+    """A readable refusal for a CELLAR document that could not be read (#163)."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        come = f"CELLAR risponde HTTP {exc.response.status_code}"
+    else:
+        come = f"CELLAR non risponde ({type(exc).__name__})"
+    return {"esito": CHECK_UNAVAILABLE,
+            "error": f"testo di {norma} (CELEX {celex}) non disponibile: {come}. Riprova più tardi"}
 
 
 async def fetch_eurlex_tree(norma: Norma, *, link: bool = False, details: bool = False) -> dict:
