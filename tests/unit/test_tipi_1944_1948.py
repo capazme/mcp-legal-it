@@ -1,6 +1,7 @@
-"""The act types of 1944-1948 can be cited (G-440).
+"""The act types of the Luogotenenze and of the Capo provvisorio dello Stato can be cited (G-440).
 
-Decreti luogotenenziali, decreti and decreti legislativi del Capo provvisorio dello Stato:
+Decreti luogotenenziali (1915-1919 and 1944-1946), decreti and decreti legislativi del Capo
+provvisorio dello Stato (1946-1948):
 the library refused them once their headings were known (a «d.lgs. 1577/1947» is the
 D.Lgs.C.P.S. 14 dicembre 1947, n. 1577, the legge Basevi), but had no spelling to cite
 them. Each URN kind is the one Normattiva's own export gives the act (FRBRalias urn:nir,
@@ -60,15 +61,17 @@ def test_the_legge_basevi():
 @pytest.mark.parametrize("citazione", [
     "DCPS 5/2020", "D.C.P.S. 5/2020", "D.Lgs.C.P.S. 1/1949", "d.lgs.c.p.s. 1577/1945",
     "D.Lgt. 12/1990", "d.lgt. 1/1943", "decreto luogotenenziale 3 marzo 1950, n. 4",
+    "D.Lgt. 5/1914", "D.Lgt. 5/1920", "d.lgt. 1/1930",
     "decreto del capo provvisorio dello stato 1 gennaio 1949, n. 1",
 ])
 def test_a_year_the_type_cannot_bear_names_no_act(citazione):
-    # The Luogotenenza (1944-1946) and the Capo provvisorio dello Stato (1946-1948).
+    # The two Luogotenenze (1915-1919, 1944-1946) and the Capo provvisorio dello Stato (1946-1948).
     assert _resolve_act(citazione) is None
 
 
 @pytest.mark.parametrize("citazione", [
     "D.Lgt. 208/1944", "D.Lgt. 512/1946", "D.C.P.S. 659/1946", "D.Lgs.C.P.S. 3/1947", "D.Lgs.C.P.S. 1/1948",
+    "D.Lgt. 1000/1917", "d.lgt. 17 maggio 1917, n. 1000", "D.Lgt. 740/1915", "D.Lgt. 20/1919",
 ])
 def test_the_years_at_the_edges_still_resolve(citazione):
     assert _resolve_act(citazione) is not None

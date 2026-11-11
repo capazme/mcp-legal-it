@@ -266,20 +266,25 @@ _IT_SHORT_PATTERN = re.compile(
 )
 
 
-#: The years the act types of 1944-1948 can bear, inclusive: the Luogotenenza (1944-1946) and
-#: the Capo provvisorio dello Stato (1946-1948; G-440). A «DCPS 5/2020» or a «D.Lgt. 12/1990»
-#: names no act: unresolved, never a type the reader would then ask Normattiva about.
+#: The years the act types of the two Luogotenenze and of the Capo provvisorio dello Stato can
+#: bear, as inclusive intervals (G-440). Measured on Normattiva's headings, 11 November 2026:
+#: «DECRETO LUOGOTENENZIALE» in 1915-1919 (the Great War's, e.g. D.Lgt. 17 maggio 1917, n. 1000;
+#: none in 1914 nor in 1920-1921) and in 1944-1946; the Capo provvisorio dello Stato's in
+#: 1946-1948. A «DCPS 5/2020» or a «D.Lgt. 12/1990» names no act: unresolved, never a type the
+#: reader would then ask Normattiva about.
 _ANNI_DEL_TIPO = {
-    "decreto luogotenenziale": (1944, 1946),
-    "decreto del capo provvisorio dello stato": (1946, 1948),
-    "decreto legislativo del capo provvisorio dello stato": (1946, 1948),
+    "decreto luogotenenziale": ((1915, 1919), (1944, 1946)),
+    "decreto del capo provvisorio dello stato": ((1946, 1948),),
+    "decreto legislativo del capo provvisorio dello stato": ((1946, 1948),),
 }
 
 
 def _anno_possibile(tipo: str, anno: str) -> bool:
     """Whether an act of *tipo* can bear *anno* (any year for a type outside ``_ANNI_DEL_TIPO``)."""
-    limiti = _ANNI_DEL_TIPO.get(tipo)
-    return limiti is None or (anno.isdigit() and limiti[0] <= int(anno) <= limiti[1])
+    intervalli = _ANNI_DEL_TIPO.get(tipo)
+    if intervalli is None:
+        return True
+    return anno.isdigit() and any(dal <= int(anno) <= al for dal, al in intervalli)
 
 
 def _canonical_tipo(raw: str) -> str:
