@@ -145,13 +145,28 @@ def test_the_codice_di_giustizia_contabile_is_never_ambiguous(rif):
     assert nome_ambiguo(atto) is None
 
 
-def test_no_ambiguous_key_catches_a_name_the_tables_resolve():
-    from mcp_legal_it.lib.visualex.map import NOMI_AMBIGUI, nome_ambiguo, resolve_atto
+def _forme(chiave: str) -> set:
+    """The key as written, upper case, and dotted/undotted for a short sigla."""
+    nuda = chiave.replace(".", "").replace(" ", "")
+    forme = {chiave, chiave.upper()}
+    if nuda.isalpha() and len(nuda) <= 6:
+        forme |= {nuda, nuda.upper(), ".".join(nuda) + ".", ".".join(nuda)}
+    return forme
+
+
+def test_no_ambiguous_key_resolves_in_the_tables():
+    # Checks the tables, not nome_ambiguo: a key that also resolves is a contradiction.
+    from mcp_legal_it.lib.visualex.map import NOMI_AMBIGUI, resolve_atto
 
     for chiave in NOMI_AMBIGUI:
-        nuda = chiave.replace(".", "").replace(" ", "")
-        forme = {chiave, chiave.upper()}
-        if nuda.isalpha() and len(nuda) <= 6:
-            forme |= {".".join(nuda) + ".", ".".join(nuda)}
-        for forma in forme:
-            assert not (resolve_atto(forma) and nome_ambiguo(forma)), forma
+        for forma in _forme(chiave):
+            assert resolve_atto(forma) is None, (chiave, forma, resolve_atto(forma))
+
+
+def test_no_name_the_tables_know_collides_with_an_ambiguous_key():
+    # Every name the resolver knows, through the same keys it is looked up by.
+    from mcp_legal_it.lib.visualex.map import NOMI_AMBIGUI, _candidate_keys, known_act_names, resolve_atto
+
+    for nome in known_act_names():
+        if resolve_atto(nome):
+            assert not set(_candidate_keys(nome)) & set(NOMI_AMBIGUI), nome
