@@ -160,6 +160,10 @@ class TestIntestazioneNonVerificabile:
             "decreto.del.presidente.del.consiglio.dei.ministri": {"DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI"},
             "decreto.legislativo.luogotenenziale": {"DECRETO LEGISLATIVO LUOGOTENENZIALE",
                                                     "DECRETO-LEGGE LUOGOTENENZIALE"},
+            "decreto.luogotenenziale": {"DECRETO LUOGOTENENZIALE"},
+            "decreto.del.capo.provvisorio.dello.stato": {"DECRETO DEL CAPO PROVVISORIO DELLO STATO"},
+            "decreto.legislativo.del.capo.provvisorio.dello.stato": {
+                "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO"},
         }
         # Every type on the ELI path of risolvi_atto has its measured headings.
         from mcp_legal_it.api import _norme
@@ -458,24 +462,49 @@ class TestSottotipoSbagliato:
 
 
 class TestIntestazioniStoriche:
-    """A page headed by a historical type the library never cites is another act's (G-440).
+    """A page headed by a historical type is that type's act, never another type's (G-440).
 
     Asked a «r.d.lgs. 512/1946» (or a legge, r.d., r.d.l. n. 512 of 1946), Normattiva serves
     the page of D.Lgt. 30 marzo 1946, n. 512 (fixture captured 11 Nov 2026). «DECRETO
     LUOGOTENENZIALE» was in no table, so the heading said nothing and the article of that
-    decree was served as the asked act's. The three types measured live on 1923-1950 pages.
+    decree was served as the asked act's. The three types, measured live on 1923-1950 pages,
+    are now citable types of their own (``_INTESTAZIONI_ELI``), with the URN kind Normattiva's
+    export gives them: cited as a D.Lgt. the act is found, cited as any other type it is not.
     """
 
     DLGT512 = _pagina("landing_dlgt_512_1946_serve_rdlgs.html")
     INTESTAZIONE = "DECRETO LUOGOTENENZIALE 30 marzo 1946, n. 512"
 
+    DLGSCPS1577 = _pagina("landing_dlgscps_1577_1947.html")
+    DCPS659 = _pagina("landing_dcps_659_1946.html")
+
     def test_the_measured_historical_headings_are_known(self):
-        assert scraper._INTESTAZIONI_ALTRE == {
-            "DECRETO LUOGOTENENZIALE", "DECRETO DEL CAPO PROVVISORIO DELLO STATO",
-            "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO"}
-        assert scraper._INTESTAZIONI_ALTRE <= scraper._TIPI_INTESTAZIONE_NOTI
-        # Never the heading of a type the library cites: they only say «another act».
-        assert not scraper._INTESTAZIONI_ALTRE & set().union(*scraper._INTESTAZIONI.values())
+        storiche = {"DECRETO LUOGOTENENZIALE", "DECRETO DEL CAPO PROVVISORIO DELLO STATO",
+                    "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO"}
+        assert storiche <= scraper._TIPI_INTESTAZIONE_NOTI
+
+    @pytest.mark.parametrize("pagina, url, args, data", [
+        ("DLGT512", "decreto.luogotenenziale:1946-01-01;512", ("decreto luogotenenziale", "512", "1946"),
+         "1946-03-30"),
+        ("DLGSCPS1577", "decreto.legislativo.del.capo.provvisorio.dello.stato:1947-01-01;1577",
+         ("decreto legislativo del capo provvisorio dello stato", "1577", "1947"), "1947-12-14"),
+        ("DCPS659", "decreto.del.capo.provvisorio.dello.stato:1946-01-01;659",
+         ("decreto del capo provvisorio dello stato", "659", "1946"), "1946-09-06"),
+    ], ids=["dlgt-512-1946", "dlgscps-1577-1947", "dcps-659-1946"])
+    async def test_cited_as_its_own_type_the_act_is_found(self, pagina, url, args, data):
+        r, chieste = await _risolvi({url: getattr(self, pagina)}, *args)
+        assert r.esito == "trovato" and r.data == data, r
+        assert r.urn == f"urn:nir:stato:{url.split(':')[0]}:{data};{args[1]}"
+
+    @pytest.mark.parametrize("tipo, kind", [
+        ("decreto luogotenenziale", "decreto.luogotenenziale"),
+        ("decreto legislativo", "decreto.legislativo"),
+        ("decreto del capo provvisorio dello stato", "decreto.del.capo.provvisorio.dello.stato"),
+    ])
+    async def test_the_basevi_law_cited_as_another_type_is_not_found(self, tipo, kind):
+        r, _ = await _risolvi({f"{kind}:1947-01-01;1577": self.DLGSCPS1577}, tipo, "1577", "1947")
+        assert r.esito == "atto_non_trovato"
+        assert "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 14 dicembre 1947, n. 1577" in r.errore
 
     @pytest.mark.parametrize("tipo, kind", [
         ("regio decreto legislativo", "regio.decreto.legislativo"),
@@ -506,3 +535,6 @@ class TestIntestazioniStoriche:
     def test_the_asked_type_still_passes(self):
         page = self.DLGT512.replace(self.INTESTAZIONE, "REGIO DECRETO LEGISLATIVO 31 maggio 1946, n. 511")
         scraper.controlla_intestazione(f"{N2LS}regio.decreto.legislativo:1946-05-31;511~art2", page)
+
+    def test_with_the_full_date_the_dlgt_is_its_own(self):
+        scraper.controlla_intestazione(f"{N2LS}decreto.luogotenenziale:1946-03-30;512~art1", self.DLGT512)

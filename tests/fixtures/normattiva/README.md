@@ -51,6 +51,8 @@ reads (`id_local`, `type_document`, `date_document`, `title`) and the `<title>`,
 | `landing_dpcm_2020_03_08_senza_numero.html` | by ELI, `/eli/id/2020/03/08/20A01522/CONSOLIDATED` (a URN without a number answers the error page) | the D.P.C.M. 8 marzo 2020, an act without a number (title «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI 8 marzo 2020») |
 | `landing_rd_1825_1924_serve_rdl.html` | `regio.decreto:1924;1825` | the act headed «REGIO DECRETO-LEGGE 13 novembre 1924, n. 1825» (a wrong sub-type in the citation) |
 | `landing_dlgt_512_1946_serve_rdlgs.html` | `regio.decreto.legislativo:1946;512` | captured 2026-11-11: the page of D.Lgt. 30 marzo 1946, n. 512 (title «DECRETO LUOGOTENENZIALE 30 marzo 1946, n. 512»), another act |
+| `landing_dlgscps_1577_1947.html` | `decreto.legislativo.del.capo.provvisorio.dello.stato:1947;1577` | captured 2026-11-11: the page of D.Lgs.C.P.S. 14 dicembre 1947, n. 1577 (legge Basevi) |
+| `landing_dcps_659_1946.html` | `decreto.del.capo.provvisorio.dello.stato:1946;659` | captured 2026-11-11: the page of D.C.P.S. 6 settembre 1946, n. 659 |
 
 Used by `tests/unit/test_api_risolvi_atto.py` and `tests/unit/test_atto_per_anno_tipo.py`,
 together with `../akn/landing_legge_241_1990.html`.

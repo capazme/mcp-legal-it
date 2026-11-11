@@ -192,22 +192,21 @@ _INTESTAZIONI_ELI = {
     # cited under its other name.
     "decreto.legislativo.luogotenenziale": frozenset({
         "DECRETO LEGISLATIVO LUOGOTENENZIALE", "DECRETO-LEGGE LUOGOTENENZIALE"}),
+    # The other acts of 1944-1948, measured on 11 Nov 2026 by sampling year-only URNs of
+    # 1923-1950 (G-440); each kind is the one Normattiva's own export gives the act
+    # (FRBRalias urn:nir). D.Lgt. 30 marzo 1946, n. 512 and 10 agosto 1944, n. 208:
+    "decreto.luogotenenziale": frozenset({"DECRETO LUOGOTENENZIALE"}),
+    # D.C.P.S. 6 settembre 1946, n. 659:
+    "decreto.del.capo.provvisorio.dello.stato": frozenset({"DECRETO DEL CAPO PROVVISORIO DELLO STATO"}),
+    # D.Lgs.C.P.S. 14 dicembre 1947, n. 1577 (legge Basevi) and 10 gennaio 1947, n. 3:
+    "decreto.legislativo.del.capo.provvisorio.dello.stato": frozenset({
+        "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO"}),
 }
-#: Heading types of real Normattiva pages that no type of the library cites, measured on
-#: 11 November 2026 by sampling year-only URNs of 1923-1950 (G-440): «DECRETO LUOGOTENENZIALE
-#: 30 marzo 1946, n. 512», «DECRETO DEL CAPO PROVVISORIO DELLO STATO 6 settembre 1946, n. 659»,
-#: «DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 10 gennaio 1947, n. 3». They are never
-#: an act asked for, but a page headed by one of them is another act's: before they were known,
-#: «r.d.lgs. 512/1946» (or «legge 512/1946») served the decreto luogotenenziale n. 512 as its own.
-_INTESTAZIONI_ALTRE = frozenset({
-    "DECRETO LUOGOTENENZIALE",
-    "DECRETO DEL CAPO PROVVISORIO DELLO STATO",
-    "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO",
-})
 #: Every heading type the library knows: a page headed by one of these that is not the asked
-#: type's is another act's (L. 17 ottobre 2014, n. 158 served for a DPCM n. 158 of 2014).
-_TIPI_INTESTAZIONE_NOTI = (frozenset(act_dates._TITLES.values()).union(*_INTESTAZIONI_ELI.values())
-                           | _INTESTAZIONI_ALTRE)
+#: type's is another act's (L. 17 ottobre 2014, n. 158 served for a DPCM n. 158 of 2014; the
+#: D.Lgt. 30 marzo 1946, n. 512 served for a «r.d.lgs. 512/1946», G-440). A heading type in no
+#: table says nothing: measure it on a real page before adding it.
+_TIPI_INTESTAZIONE_NOTI = frozenset(act_dates._TITLES.values()).union(*_INTESTAZIONI_ELI.values())
 #: The heading each type's page opens with: the titles VisuaLex verifies (``act_dates._TITLES``)
 #: and the measured ones above. A titled type is dated by its title; its heading only says
 #: when the page is another act's (L. 241/1990 served for a d.lgs. n. 241 of 1990, #146).

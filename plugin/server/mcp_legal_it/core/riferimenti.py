@@ -175,7 +175,11 @@ def _parse_reference(reference: str) -> tuple[str, str]:
 # Act types as they appear in citations, spelled-out forms first so the
 # alternation never settles for the "L." inside "legge".
 _TIPO_ALT = (
-    r"decreto\s+del\s+presidente\s+della\s+repubblica"
+    # The acts of 1944-1948 (G-440): their URN kinds as Normattiva's own exports name them.
+    r"decreto\s+legislativo\s+del\s+capo\s+provvisorio\s+dello\s+stato"
+    r"|decreto\s+del\s+capo\s+provvisorio\s+dello\s+stato|decreto\s+luogotenenziale"
+    r"|D\.?\s?Lgs\.?\s?C\.?\s?P\.?\s?S\.?|D\.?\s?C\.?\s?P\.?\s?S\.?|D\.?\s?Lgt\.?"
+    r"|decreto\s+del\s+presidente\s+della\s+repubblica"
     r"|decreto\s+del\s+presidente\s+del\s+consiglio(?:\s+dei\s+ministri)?"
     r"|decreto\s+legislativo\s+luogotenenziale"
     r"|decreto\s+legislativo|decreto[-\s]legge|decreto\s+ministeriale"
@@ -217,6 +221,16 @@ _TIPO_CANONICO = {
     # regio.decreto.legislativo on Normattiva (r.d.lgs. 31 maggio 1946, n. 511, checked, G-440).
     "rdlgs": "regio decreto legislativo",
     "regiodecretolegislativo": "regio decreto legislativo",
+    # Measured on Normattiva's exports (11 Nov 2026): decreto.legislativo.del.capo.provvisorio
+    # .dello.stato (D.Lgs.C.P.S. 14 dicembre 1947, n. 1577), decreto.del.capo.provvisorio.dello
+    # .stato (D.C.P.S. 6 settembre 1946, n. 659), decreto.luogotenenziale (D.Lgt. 30 marzo 1946,
+    # n. 512).
+    "dlgscps": "decreto legislativo del capo provvisorio dello stato",
+    "decretolegislativodelcapoprovvisoriodellostato": "decreto legislativo del capo provvisorio dello stato",
+    "dcps": "decreto del capo provvisorio dello stato",
+    "decretodelcapoprovvisoriodellostato": "decreto del capo provvisorio dello stato",
+    "dlgt": "decreto luogotenenziale",
+    "decretoluogotenenziale": "decreto luogotenenziale",
     "dllgt": "decreto legislativo luogotenenziale",
     "dlgslgt": "decreto legislativo luogotenenziale",
     "decretolegislativoluogotenenziale": "decreto legislativo luogotenenziale",
