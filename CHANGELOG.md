@@ -25,7 +25,7 @@ described in those sections, not repeated here. Upgrading from 2.x:
   Names more than one act answers are refused on purpose with «nome ambiguo» and no near-miss
   suggestion (`NOMI_AMBIGUI`): «TUS», «TUIVA» and «T.U. registro» (the old acts and the fiscal
   reform's new testi unici, d.lgs. 10/2026 and 123/2025), «T.U. rinnovabili», «decreto FER» / «CER»,
-  «decreto trasparenza», «decreto Semplificazioni», «riforma Cartabia», «S.L.», «TUI», «CGC»,
+  «decreto trasparenza», «decreto Semplificazioni», «riforma Cartabia», «S.L.», «TUI»,
   «L.P.A.», «cod. app.» (three codes, 2006, 2016, 2023), the short «testo unico dei servizi di media
   audiovisivi» (2021 or 2005). «TUE» stays the Treaty on European Union.
 - **The act types of the Luogotenenze and of the Capo provvisorio dello Stato (G-440).** Decreti
@@ -968,6 +968,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **«c.g.c.» was refused as ambiguous.** The key «cgc» of `NOMI_AMBIGUI` caught «c.g.c.» through the
+  dotted-acronym collapse, so «art. 190 c.g.c.» (d.lgs. 174/2016) was refused by callers that ask
+  for ambiguity first. «cgc» is dropped (no second act was ever named for it) and a name the tables
+  resolve is never ambiguous.
 - **An EU consolidation CELLAR does not serve (#163).** For reg. (UE) 2022/858 (DLT) and 2025/1106
   (SAFE), CELLAR lists a consolidation that folds a corrigendum in but answers 404 for it in every
   language, and `cite_law` printed httpx's raw «Client error '404 '» line. A consolidation the reader

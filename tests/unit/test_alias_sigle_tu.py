@@ -92,7 +92,7 @@ def test_tue_stays_the_treaty():
 @pytest.mark.parametrize("nome", [
     "TUS", "T.U.S.", "decreto trasparenza", "decreto Semplificazioni", "riforma Cartabia",
     "TUIVA", "TU IVA", "T.U. registro", "testo unico registro", "T.U. rinnovabili", "testo unico rinnovabili",
-    "TUFER", "decreto FER", "decreto CER", "S.L.", "SL", "TUI", "CGC", "L.P.A.", "LPA", "cod. app.",
+    "TUFER", "decreto FER", "decreto CER", "S.L.", "SL", "TUI", "L.P.A.", "LPA", "cod. app.",
     "testo unico dei servizi di media audiovisivi", "testo unico servizi media audiovisivi",
 ])
 def test_ambiguous_names_are_refused_on_purpose(nome):
@@ -133,3 +133,25 @@ def test_the_ambiguous_fiscal_names_say_which_acts():
 def test_an_unknown_sigla_stays_unresolved():
     # «TUOG» names no testo unico that could be checked: unresolved, not guessed.
     assert _resolve_act("TUOG") is None
+
+
+@pytest.mark.parametrize("rif", ["art. 190 c.g.c.", "art. 190 c.g.c"])
+def test_the_codice_di_giustizia_contabile_is_never_ambiguous(rif):
+    from mcp_legal_it.lib.visualex.map import nome_ambiguo
+
+    articolo, atto = _parse_reference(rif)
+    info = _resolve_act(atto)
+    assert articolo == "190" and info["numero_atto"] == "174" and info["data"] == "2016-08-26"
+    assert nome_ambiguo(atto) is None
+
+
+def test_no_ambiguous_key_catches_a_name_the_tables_resolve():
+    from mcp_legal_it.lib.visualex.map import NOMI_AMBIGUI, nome_ambiguo, resolve_atto
+
+    for chiave in NOMI_AMBIGUI:
+        nuda = chiave.replace(".", "").replace(" ", "")
+        forme = {chiave, chiave.upper()}
+        if nuda.isalpha() and len(nuda) <= 6:
+            forme |= {".".join(nuda) + ".", ".".join(nuda)}
+        for forma in forme:
+            assert not (resolve_atto(forma) and nome_ambiguo(forma)), forma
