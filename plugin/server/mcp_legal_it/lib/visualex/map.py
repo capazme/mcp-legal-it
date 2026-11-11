@@ -497,6 +497,8 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     # Laws by their nickname (G-440; titles checked on Normattiva, 11 November 2026).
     ("legge", "2019-07-19", "69", ["codice rosso"]),
     ("legge", "2024-03-05", "21", ["legge capitali"]),
+    # «Provvedimenti per la cooperazione» (Normattiva's title, checked 11 November 2026).
+    ("decreto legislativo del capo provvisorio dello stato", "1947-12-14", "1577", ["legge basevi"]),
     ("decreto del presidente della repubblica", "2001-06-08", "327", [
         "testo unico sulle espropriazioni per pubblica utilità",
         "testo unico espropriazioni", "tu espropri", "tu espropriazioni"]),

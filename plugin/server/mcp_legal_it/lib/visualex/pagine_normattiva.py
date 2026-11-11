@@ -46,8 +46,8 @@ MAX_SU_DISCO = 2000
 #: 4: and the parts of an article Normattiva splits (``parti``, ``parte_servita``).
 #: 5: written only after the page's heading was checked against the URN asked
 #: (``scraper.controlla_intestazione``): a record kept before could be another act's page.
-#: 6: written by a heading check that knows the historical heading types (``scraper.
-#: _INTESTAZIONI_ALTRE``, G-440): the check before let the D.Lgt. 30 marzo 1946, n. 512 through
+#: 6: written by a heading check that knows the historical heading types (now in ``scraper.
+#: _INTESTAZIONI_ELI``, G-440): the check before let the D.Lgt. 30 marzo 1946, n. 512 through
 #: as a «r.d.lgs. 512/1946», so a record of 5 may be another act's article.
 SCHEMA = 6
 

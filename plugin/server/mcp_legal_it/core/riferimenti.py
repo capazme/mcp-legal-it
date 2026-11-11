@@ -175,7 +175,11 @@ def _parse_reference(reference: str) -> tuple[str, str]:
 # Act types as they appear in citations, spelled-out forms first so the
 # alternation never settles for the "L." inside "legge".
 _TIPO_ALT = (
-    r"decreto\s+del\s+presidente\s+della\s+repubblica"
+    # The acts of 1944-1948 (G-440): their URN kinds as Normattiva's own exports name them.
+    r"decreto\s+legislativo\s+del\s+capo\s+provvisorio\s+dello\s+stato"
+    r"|decreto\s+del\s+capo\s+provvisorio\s+dello\s+stato|decreto\s+luogotenenziale"
+    r"|D\.?\s?Lgs\.?\s?C\.?\s?P\.?\s?S\.?|D\.?\s?C\.?\s?P\.?\s?S\.?|D\.?\s?Lgt\.?"
+    r"|decreto\s+del\s+presidente\s+della\s+repubblica"
     r"|decreto\s+del\s+presidente\s+del\s+consiglio(?:\s+dei\s+ministri)?"
     r"|decreto\s+legislativo\s+luogotenenziale"
     r"|decreto\s+legislativo|decreto[-\s]legge|decreto\s+ministeriale"
@@ -217,6 +221,16 @@ _TIPO_CANONICO = {
     # regio.decreto.legislativo on Normattiva (r.d.lgs. 31 maggio 1946, n. 511, checked, G-440).
     "rdlgs": "regio decreto legislativo",
     "regiodecretolegislativo": "regio decreto legislativo",
+    # Measured on Normattiva's exports (11 Nov 2026): decreto.legislativo.del.capo.provvisorio
+    # .dello.stato (D.Lgs.C.P.S. 14 dicembre 1947, n. 1577), decreto.del.capo.provvisorio.dello
+    # .stato (D.C.P.S. 6 settembre 1946, n. 659), decreto.luogotenenziale (D.Lgt. 30 marzo 1946,
+    # n. 512).
+    "dlgscps": "decreto legislativo del capo provvisorio dello stato",
+    "decretolegislativodelcapoprovvisoriodellostato": "decreto legislativo del capo provvisorio dello stato",
+    "dcps": "decreto del capo provvisorio dello stato",
+    "decretodelcapoprovvisoriodellostato": "decreto del capo provvisorio dello stato",
+    "dlgt": "decreto luogotenenziale",
+    "decretoluogotenenziale": "decreto luogotenenziale",
     "dllgt": "decreto legislativo luogotenenziale",
     "dlgslgt": "decreto legislativo luogotenenziale",
     "decretolegislativoluogotenenziale": "decreto legislativo luogotenenziale",
@@ -250,6 +264,27 @@ _IT_SHORT_PATTERN = re.compile(
     rf"^({_TIPO_ALT})\s*(?:n\.?\s*)?(\d+)\s*(?:/|\s+del\s+)\s*(\d{{4}})",
     re.IGNORECASE,
 )
+
+
+#: The years the act types of the two Luogotenenze and of the Capo provvisorio dello Stato can
+#: bear, as inclusive intervals (G-440). Measured on Normattiva's headings, 11 November 2026:
+#: «DECRETO LUOGOTENENZIALE» in 1915-1919 (the Great War's, e.g. D.Lgt. 17 maggio 1917, n. 1000;
+#: none in 1914 nor in 1920-1921) and in 1944-1946; the Capo provvisorio dello Stato's in
+#: 1946-1948. A «DCPS 5/2020» or a «D.Lgt. 12/1990» names no act: unresolved, never a type the
+#: reader would then ask Normattiva about.
+_ANNI_DEL_TIPO = {
+    "decreto luogotenenziale": ((1915, 1919), (1944, 1946)),
+    "decreto del capo provvisorio dello stato": ((1946, 1948),),
+    "decreto legislativo del capo provvisorio dello stato": ((1946, 1948),),
+}
+
+
+def _anno_possibile(tipo: str, anno: str) -> bool:
+    """Whether an act of *tipo* can bear *anno* (any year for a type outside ``_ANNI_DEL_TIPO``)."""
+    intervalli = _ANNI_DEL_TIPO.get(tipo)
+    if intervalli is None:
+        return True
+    return anno.isdigit() and any(dal <= int(anno) <= al for dal, al in intervalli)
 
 
 def _canonical_tipo(raw: str) -> str:
@@ -310,12 +345,18 @@ def _resolve_act(act_name: str) -> dict | None:
     if long_match:
         tipo_raw, giorno, mese_it, anno, numero = long_match.groups()
         data = f"{anno}-{_MESI_IT[mese_it.lower()]}-{giorno.zfill(2)}"
-        return {"tipo_atto": _canonical_tipo(tipo_raw), "data": data, "numero_atto": numero}
+        tipo = _canonical_tipo(tipo_raw)
+        if not _anno_possibile(tipo, anno):
+            return None
+        return {"tipo_atto": tipo, "data": data, "numero_atto": numero}
 
     short_match = _IT_SHORT_PATTERN.match(candidate)
     if short_match:
         tipo_raw, numero, anno = short_match.groups()
-        return {"tipo_atto": _canonical_tipo(tipo_raw), "data": anno, "numero_atto": numero}
+        tipo = _canonical_tipo(tipo_raw)
+        if not _anno_possibile(tipo, anno):
+            return None
+        return {"tipo_atto": tipo, "data": anno, "numero_atto": numero}
 
     return None
 

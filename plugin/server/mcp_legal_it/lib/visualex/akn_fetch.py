@@ -96,7 +96,7 @@ def _hits_path() -> Path:
 # written before that check (two elements) is never read, since Normattiva's resolver
 # serves another act for some URLs (the D.M. 7 agosto 1990, n. 241 gets the law).
 # The marker names the check: «intestazione-2» is the one that knows the historical heading
-# types (``scraper._INTESTAZIONI_ALTRE``, G-440). An entry marked «intestazione» was written by
+# types (now in ``scraper._INTESTAZIONI_ELI``, G-440). An entry marked «intestazione» was written by
 # a check blind to them (a «r.d.lgs. 512/1946» got the D.Lgt. n. 512's export) and is not read.
 # The entries have no expiry: without the new marker such an entry would serve for ever.
 _VERIFICATA = "intestazione-2"

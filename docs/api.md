@@ -385,7 +385,8 @@ that page is Normattiva's error page (below; the check is shared per event loop)
     as `normalize_act_type`
     names them, so `"d.lgs."` and `"d.P.R."` count.
   - **INDICATIVO:** for the other types it accepts (DPCM, `decreto ministeriale`, d.lgs.
-    luogotenenziale), the page's heading must name the asked type, year and number, read
+    luogotenenziale, and the acts of 1944-1948: `decreto luogotenenziale`, `decreto del capo
+    provvisorio dello stato`, `decreto legislativo del capo provvisorio dello stato`), the page's heading must name the asked type, year and number, read
     through a table of headings measured on real pages («DECRETO» for a D.M.); the date is
     the heading's day, and an ELI date that disagrees with it makes the answer transient.
     Normattiva's resolver does not check the type: asked a DPCM n. 158 of 2014 by its
