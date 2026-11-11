@@ -171,6 +171,25 @@ def avviso_assente(articolo: str, consolidato: dict) -> str:
             "il testo pubblicato in GUUE è disponibile con versione=\"originale\"")
 
 
+def solo_rettifiche(modifiche: list) -> bool:
+    """Whether every entry of a consolidation's ``modificato_da`` is a corrigendum (``3YYYYRNNNNR(NN)``):
+    the text in force is then the Official Journal's, corrected; no other act amended it."""
+    return bool(modifiche) and all(
+        (m := _CELEX_ATTO.fullmatch(voce.get("celex") or "")) is not None and m.group(4) for voce in modifiche)
+
+
+def avviso_consolidato_non_pubblicato(consolidato: dict) -> str:
+    """A consolidation of corrigenda only that CELLAR lists but does not serve: the OJ text
+    instead, and the corrigenda it does not fold in (#163). Only for corrigenda: a consolidation
+    with a real amendment is never replaced by the OJ text (``scraper._html_ue``)."""
+    modifiche = consolidato.get("modificato_da") or []
+    elenco = "; ".join(f"{m['atto']} (CELEX {m['celex']})" for m in modifiche)
+    quale = "la rettifica pubblicata in GUUE" if len(modifiche) == 1 else "le rettifiche pubblicate in GUUE"
+    return (f"EUR-Lex elenca una versione consolidata al {consolidato['data']} (CELEX {consolidato['celex']}) "
+            f"che CELLAR non pubblica: il testo riportato è quello pubblicato in GUUE, che non incorpora "
+            f"{quale} ({elenco}); verificarla prima di citare il testo")
+
+
 def avviso_non_ancora_in_vigore(giorno: str, in_vigore_dal: str) -> str:
     return f"il {giorno} l'atto era pubblicato in GUUE ma non ancora in vigore (in vigore dal {in_vigore_dal})"
 
@@ -190,9 +209,7 @@ def avvisi(consolidato: "dict | None", verificato: "bool | None", giorno: "str |
     modifiche = consolidato.get("modificato_da") or []
     # A lawyer reads «rettifica» and «modifica» differently: a consolidation that only
     # folds corrigenda in says so.
-    solo_rettifiche = bool(modifiche) and all(_CELEX_ATTO.fullmatch(m["celex"] or "") and
-                                              _CELEX_ATTO.fullmatch(m["celex"]).group(4) for m in modifiche)
-    quale = ("testo consolidato EUR-Lex che incorpora le rettifiche pubblicate in GUUE" if solo_rettifiche
+    quale = ("testo consolidato EUR-Lex che incorpora le rettifiche pubblicate in GUUE" if solo_rettifiche(modifiche)
              else "testo consolidato EUR-Lex")
     righe = [f"{quale}, al {consolidato['data']} (CELEX {consolidato['celex']}): è "
              "documentazione, non fa fede; fa fede solo il testo pubblicato in GUUE"]

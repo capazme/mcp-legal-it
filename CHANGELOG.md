@@ -946,6 +946,16 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **An EU consolidation CELLAR does not serve (#163).** For reg. (UE) 2022/858 (DLT) and 2025/1106
+  (SAFE), CELLAR lists a consolidation that folds a corrigendum in but answers 404 for it in every
+  language, and `cite_law` printed httpx's raw «Client error '404 '» line. A consolidation the reader
+  chose that folds corrigenda only now falls back to the Official Journal text, with a notice naming
+  the corrigendum it lacks, `INDICATIVO`, and `consolidato_non_pubblicato` in the JSON. One that
+  folds a real amendment in is refused, readably, never replaced by the OJ text (which would be a
+  text no longer in force); the OJ text stays available with `versione="originale"`. A consolidation
+  the caller named is never replaced (a readable «not published» error). Any other CELLAR failure
+  (5xx, timeout) is a readable error with the CELEX and a «retry later», also for the act's tree and
+  recitals.
 - **Another act's article under a historical heading.** Asked «art. 1 r.d.lgs. 512/1946» (or a legge,
   r.d., r.d.l. n. 512 of 1946, with the year or the full date), Normattiva serves the page of the
   D.Lgt. 30 marzo 1946, n. 512, and its art. 1 was served as the asked act's: «DECRETO
