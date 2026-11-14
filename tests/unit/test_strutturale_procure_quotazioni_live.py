@@ -17,8 +17,9 @@ genera_procura_liti_docx (docstring ``Vigenza: art. 83 c.p.c.; art. 18, co. 5, D
 * art. 18, co. 5, D.M. 44/2011 "come sostituito dal D.M. 48/2013": the vigente comma (after
   D.M. 217/2023 and its avviso di rettifica, GU 15-01-2024 n. 11) is the text of D.M. 48/2013;
 * the references cited in the text, extracted with a regex and passed to verifica_citazioni;
-* the privacy clause: the GDPR citation form and the legacy lexicon ("dati sensibili",
-  bridged by art. 22, co. 2, D.Lgs. 101/2018).
+* the privacy clause: the GDPR citation form and the lawful bases it names (art. 6(1)(b),
+  art. 9(2)(f): no consent asked for);
+* the agreement of the text with the number and gender of the defenders.
 
 genera_quotazione_docx (docstring ``Vigenza: D.M. 55/2014 agg. D.M. 147/2022; CU ex DPR 115/2002``)
 
@@ -452,12 +453,16 @@ def test_procura_difensore_unico_con_fax_piano(out_dir):
     paragrafi = [p.text for p in doc.paragraphs]
 
     assert "congiuntamente e disgiuntamente" not in testo
+    assert "conferendo loro" not in testo and "il loro operato" not in testo
     mancanti = contiene(
         testo,
         "nella sua qualità di presidente del consiglio di amministrazione e legale rappresentante di Esempio S.r.l.",
         "all’avv. Giulia Bianchi (Cod. Fisc. BNCGLI80A41F205Y), per rappresentare e difendere",
-        "Elegge domicilio presso il nominato difensore con studio in corso Esempio n. 10, 20100 Milano (MI), "
+        # Giulia Bianchi's codice fiscale (day 41) marks a woman: the text agrees with her
+        "conferendole all’uopo ogni più ampia facoltà di legge",
+        "Elegge domicilio presso la nominata difensora con studio in corso Esempio n. 10, 20100 Milano (MI), "
         "fax 02 1234567, PEC g.bianchi@pec.esempio.it.",
+        "della polizza assicurativa professionale della propria difensora",
         "Torino, 1 agosto 2026",
         "art. 4, co. 3, D.Lgs. n. 28/2010",
         "art. 2, co. 7, D.L. n. 132/2014",
@@ -629,26 +634,40 @@ def test_procura_privacy_regolamento_ue_citato_nella_forma_ufficiale(out_dir):
     )
 
 
-def test_procura_privacy_lessico_dati_sensibili_ponte_art_22_dlgs_101_2018(out_dir):
-    """"Dati sensibili" is pre-GDPR lexicon, still readable through art. 22, co. 2, D.Lgs. 101/2018.
+def test_procura_privacy_basi_giuridiche_gdpr_senza_consenso(out_dir):
+    """The privacy clause is an art. 13 GDPR notice resting on art. 6(1)(b) and art. 9(2)(f).
 
-    The comma maps "dati sensibili" onto the categorie particolari of art. 9 GDPR, so the clause
-    is not void; but art. 9(2)(f) GDPR (defence of legal claims) makes the lawyer's processing
-    lawful without the client's "autorizzazione", which the clause still asks for. Kept as a
-    documented finding (no failing assertion): the wording is outdated, not unlawful.
+    The lawyer processes the client's data to perform the mandate (art. 6, par. 1, lett. b)) and
+    any categorie particolari to defend a right in court (art. 9, par. 2, lett. f)): neither needs
+    the client's consent, so the clause asks for none. The pre-GDPR "dati sensibili" lexicon
+    (bridged by art. 22, co. 2, D.Lgs. 101/2018) gives way to the art. 9 wording.
     """
-    assert_parole(
-        "art. 22 D.Lgs. 101/2018",
-        "le espressioni «dati sensibili» e «dati giudiziari»|le espressioni \"dati sensibili\" e \"dati giudiziari\"",
-        "si intendono riferite, rispettivamente, alle categorie particolari di dati di cui all'articolo 9",
-    )
+    art_6 = cite_law_json("art. 6 Regolamento (UE) 2016/679")
+    assert not art_6.get("errore"), art_6
+    assert contiene(art_6["testo"], "necessario all'esecuzione di un contratto di cui l'interessato è parte") == []
     art_9 = cite_law_json("art. 9 Regolamento (UE) 2016/679")
     assert not art_9.get("errore"), art_9
-    assert contiene(art_9["testo"], "categorie particolari di dati personali", "sede giudiziaria") == []
+    assert contiene(
+        art_9["testo"], "categorie particolari di dati personali",
+        "accertare, esercitare o difendere un diritto in sede giudiziaria",
+    ) == []
+    esiti = _verifica_citazioni([
+        "art. 13 Regolamento (UE) 2016/679", "art. 6 Regolamento (UE) 2016/679",
+        "art. 9 Regolamento (UE) 2016/679", "art. 22 D.Lgs. n. 101/2018",
+    ])
+    assert [e["verdetto"] for e in esiti] == ["verificata"] * 4, esiti
 
     testo = _testo(_apri(PROCURA(**PROCURA_DUE_DIFENSORI))[1])
-    assert "i dati personali, anche sensibili" in testo
-    assert "autorizzando sin d’ora il rispettivo trattamento" in testo
+    mancanti = contiene(
+        testo,
+        "ai sensi dell’art. 13 del Regolamento (UE) 2016/679",
+        "categorie particolari di dati di cui all’art. 9 del Regolamento",
+        "sulla base dell’art. 6, par. 1, lett. b)",
+        "dell’art. 9, par. 2, lett. f), del Regolamento medesimo",
+        "D.Lgs. n. 196/2003, come modificato dal D.Lgs. n. 101/2018",
+    )
+    assert not mancanti, mancanti
+    assert "sensibili" not in testo and "autorizzando" not in testo
 
 
 # ===========================================================================
