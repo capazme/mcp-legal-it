@@ -89,10 +89,97 @@ class TestGeneraProcuraLitiDocx:
 
     def test_difensore_singolo(self):
         kwargs = dict(_PROCURA_KWARGS)
-        kwargs["difensori"] = [{"nome": "Giulia Bianchi", "cf": "BNCGLI80A41F205Y"}]
+        kwargs["difensori"] = [{"nome": "Paolo Verdi", "cf": "VRDPLA75B02F205Z"}]
         testo = _leggi_docx(_call("genera_procura_liti_docx", **kwargs))
         assert "congiuntamente e disgiuntamente" not in testo
-        assert "il nominato difensore" in testo
+        assert "conferendogli all’uopo" in testo
+        assert "per rato e valido il suo operato" in testo
+        assert "Elegge domicilio presso il nominato difensore con studio" in testo
+        assert "polizza assicurativa professionale del proprio difensore" in testo
+        for plurale in ("conferendo loro", "il loro operato", "difensori"):
+            assert plurale not in testo, plurale
+
+    def test_difensore_singolo_donna_dal_codice_fiscale(self):
+        # BNCGLI80A41F205Y: birth day 41 = 1 + 40, a woman
+        kwargs = dict(_PROCURA_KWARGS)
+        kwargs["difensori"] = [{"nome": "Giulia Bianchi", "cf": "BNCGLI80A41F205Y"}]
+        testo = _leggi_docx(_call("genera_procura_liti_docx", **kwargs))
+        assert "conferendole all’uopo" in testo
+        assert "per rato e valido il suo operato" in testo
+        assert "Elegge domicilio presso la nominata difensora con studio" in testo
+        assert "polizza assicurativa professionale della propria difensora" in testo
+        assert "il nominato difensore" not in testo
+        assert "difensori" not in testo
+
+    def test_due_difensori_plurale(self):
+        testo = _leggi_docx(_call("genera_procura_liti_docx", **_PROCURA_KWARGS))
+        assert "congiuntamente e disgiuntamente tra loro" in testo
+        assert "conferendo loro all’uopo" in testo
+        assert "per rato e valido il loro operato" in testo
+        # one woman and one man: masculine plural
+        assert "Elegge domicilio presso i nominati difensori con studio" in testo
+        assert "polizza assicurativa professionale dei propri difensori" in testo
+        assert "dei suoi difensori" not in testo
+
+    def test_due_difensore_donne_plurale_femminile(self):
+        kwargs = dict(_PROCURA_KWARGS)
+        kwargs["difensori"] = [
+            {"nome": "Giulia Bianchi", "cf": "BNCGLI80A41F205Y"},
+            {"nome": "Laura Neri", "genere": "F"},
+        ]
+        testo = _leggi_docx(_call("genera_procura_liti_docx", **kwargs))
+        assert "conferendo loro all’uopo" in testo
+        assert "Elegge domicilio presso le nominate difensore con studio" in testo
+        assert "polizza assicurativa professionale delle proprie difensore" in testo
+
+    def test_firmatario_maschile_e_femminile(self):
+        testo = _leggi_docx(_call("genera_procura_liti_docx", **_PROCURA_KWARGS))
+        assert testo.count("Il sottoscritto Mario Rossi") == 1
+        assert "di essere stato informato" in testo
+        assert "stata informata" not in testo
+
+        kwargs = dict(_PROCURA_KWARGS)
+        kwargs["firmatario_nome"] = "Anna Rossi"
+        kwargs["firmatario_cf"] = "RSSNNA70A41F205X"
+        testo = _leggi_docx(_call("genera_procura_liti_docx", **kwargs))
+        assert "La sottoscritta Anna Rossi" in testo
+        assert testo.count("di essere stata informata") == 3
+        assert testo.count("di essere stata resa edotta") == 2
+        assert "stato informato" not in testo and "reso edotto" not in testo
+
+    def test_privacy_gdpr_senza_consenso(self):
+        testo = _leggi_docx(_call("genera_procura_liti_docx", **_PROCURA_KWARGS))
+        assert "ai sensi dell’art. 13 del Regolamento (UE) 2016/679" in testo
+        assert "categorie particolari di dati di cui all’art. 9 del Regolamento" in testo
+        assert "art. 6, par. 1, lett. b)" in testo
+        assert "art. 9, par. 2, lett. f)" in testo
+        assert "D.Lgs. n. 196/2003, come modificato dal D.Lgs. n. 101/2018" in testo
+        for vecchio in ("sensibili", "autorizzando", "consenso"):
+            assert vecchio not in testo, vecchio
+
+    def test_dichiarazioni_mediazione_e_negoziazione_mantenute(self):
+        testo = _leggi_docx(_call("genera_procura_liti_docx", **_PROCURA_KWARGS))
+        assert "art. 4, co. 3, D.Lgs. n. 28/2010" in testo
+        assert "art. 2, co. 7, D.L. n. 132/2014" in testo
+
+
+class TestGenere:
+
+    def test_codice_fiscale(self):
+        assert _mod._genere("VRDPLA75B02F205Z") == "M"
+        assert _mod._genere("BNCGLI80A41F205Y") == "F"
+        assert _mod._genere("bncgli80a41f205y ") == "F"
+
+    def test_omocodia(self):
+        # day digits replaced by omocodia letters: Q = 4, M = 1 -> 41
+        assert _mod._genere("BNCGLI80AQMF205Y") == "F"
+        assert _mod._genere("VRDPLA75BLNF205Z") == "M"
+
+    def test_esplicito_e_fallback(self):
+        assert _mod._genere("VRDPLA75B02F205Z", "F") == "F"
+        assert _mod._genere("", "femminile") == "F"
+        assert _mod._genere("") == "M"
+        assert _mod._genere("01234567890") == "M"
 
     def test_errore_senza_difensori(self):
         kwargs = dict(_PROCURA_KWARGS)

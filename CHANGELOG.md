@@ -968,6 +968,17 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`genera_procura_liti_docx` agrees with its defenders and drops the pre-GDPR privacy clause.**
+  With one defender the text was still plural («conferendo loro», «il loro operato», «dei suoi
+  difensori»): pronoun, possessive, «il nominato difensore» and the polizza declaration now agree in
+  number and gender with the `difensori` list, and «Il sottoscritto … stato informato» with the
+  firmatario. The sex is read from the codice fiscale (day of birth + 40, omocodia handled) or from
+  an optional `"genere"` key of the defender; without either the masculine stays. The privacy
+  declaration no longer cites «dati personali, anche sensibili» with an «autorizzando» consent: it is
+  an art. 13 GDPR notice resting on art. 6, par. 1, lett. b) and, for the categorie particolari,
+  art. 9, par. 2, lett. f), with the D.Lgs. 196/2003 as amended by the D.Lgs. 101/2018. The
+  mediation and negoziazione assistita notices stay: art. 4, co. 3, D.Lgs. 28/2010 and art. 2, co. 7,
+  D.L. 132/2014 bind every conferimento, and the procura also covers the opposizione.
 - **«c.g.c.» was refused as ambiguous.** The key «cgc» of `NOMI_AMBIGUI` caught «c.g.c.» through the
   dotted-acronym collapse, so «art. 190 c.g.c.» (d.lgs. 174/2016) was refused by callers that ask
   for ambiguity first. «cgc» is dropped (no second act was ever named for it) and a name the tables
