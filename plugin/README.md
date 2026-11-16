@@ -204,7 +204,7 @@ Calcola gli interessi di mora su un credito commerciale di 15.000 scaduto il 01/
 ## Requisiti
 
 - Claude Code (terminale, IDE o scheda Code di Claude Desktop)
-- [`uv`](https://docs.astral.sh/uv/): installa da solo Python 3.12 e le librerie
+- [`uv`](https://docs.astral.sh/uv/) 0.4.16 o successivo (`uv --version`): installa da solo Python 3.12 e le librerie. Le versioni precedenti non conoscono l'opzione `--project` con cui il plugin avvia il server
 
 ## In English
 
