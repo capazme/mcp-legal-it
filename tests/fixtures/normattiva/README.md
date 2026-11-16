@@ -103,3 +103,12 @@ tree. Used by `tests/unit/test_atto_intero_parti.py`.
 | `dm_241_1990_art3_serve_legge.html` | `decreto.ministeriale:1990-08-07;241~art3` | art. 3 of L. 7 agosto 1990, n. 241 (title «LEGGE 7 agosto 1990, n. 241»), 2026-11-02; trimmed to the head |
 
 Used by `tests/unit/test_atto_data_completa.py`.
+
+## Deferred entry into force (#172)
+
+Captured on 2026-11-16 from `https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1940-10-28;1443:1~artN!vig=2026-11-16`: `div.vigore`, the update link, the act line and `div.bodyTesto` (with the update notes), as in `tests/fixtures/visualex/normattiva`.
+
+| File | Article | What Normattiva served |
+|------|---------|------------------------|
+| `cpc_art7_vig_2026-11-16_rinvio_2027_trimmed.html` | art. 7 c.p.c. | version 10, «Testo in vigore dal 31-10-2025», carrying art. 27 d.lgs. 116/2017; notes (179) and (183) defer it to 31/10/2026 and 31/10/2027 |
+| `cpc_art543_vig_2026-11-16_rinvio_2027_trimmed.html` | art. 543 c.p.c. | version 9 (26-11-2024), laid on the deferred «giudice competente» of version 7 (31-10-2021); notes (160), (179), (183) defer co. 2 n. 3 and co. 4 to 31/10/2027 |
