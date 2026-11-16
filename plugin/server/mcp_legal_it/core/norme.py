@@ -269,15 +269,19 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
         # the text in force: INDICATIVO, and said first.
         base["not_in_force"] = True
         act_info = futura_datata(act_info, result["upcoming"])
+    if result.get("rinvio") and base["testo"]:
+        from mcp_legal_it.lib.visualex import vigenza_differita
+
+        # Before the quality: a deferred repeal shapes its successione (#177).
+        base["rinvio"] = vigenza_differita.sintesi(result["rinvio"])
     q = qualita_testo(base, act_info, article)
     if base.get("not_in_force"):
         q = {**q, "precisione": "INDICATIVO", "avvisi": [avviso_non_in_vigore(result["upcoming"])] + q["avvisi"]}
-    if result.get("rinvio") and base["testo"]:
+    if base.get("rinvio"):
         # Amendments whose entry into force a later act deferred (#172): never ESATTO, said.
         from mcp_legal_it.lib.visualex import vigenza_differita
 
         q = {**q, "precisione": "INDICATIVO", "avvisi": [vigenza_differita.avviso(result["rinvio"])] + q["avvisi"]}
-        base["rinvio"] = vigenza_differita.sintesi(result["rinvio"])
     # An EU text's own notices (a consolidation not applicable yet, a day before the act
     # was in force) come from the lookup, after the notice of what the text is.
     base["avvisi"] = q["avvisi"] + (list(result.get("avvisi_ue") or []) if base["testo"] else [])
@@ -547,13 +551,21 @@ def qualita_testo(base: dict, act_info: "dict | None" = None, article: str = "")
                           f"{aggiornato}: i due testi possono non coincidere")
         pagina_abrogata = None if validita_letta is None else validita_letta["state"] == "abrogated"
         export_abrogato = is_abrogato(testo)
-    if pagina_abrogata is not None and export_abrogato is not None and pagina_abrogata != export_abrogato:
+    rinvio = base.get("rinvio") or {}
+    if (pagina_abrogata is not None and export_abrogato is not None and pagina_abrogata != export_abrogato
+            and not rinvio.get("abrogazione")):
+        # A deferred repeal (#177) is the reason the two disagree, and its notice says so.
         avvisi.append("i due canali di Normattiva non concordano sull'abrogazione: "
                       + ("la pagina dà l'articolo come abrogato, l'export Akoma Ntoso no"
                          if pagina_abrogata else "l'export Akoma Ntoso dà l'articolo come abrogato, la pagina no"))
     successione = None
     if (atto := _abrogato_da(testo)) is not None:
         successione = {"abrogato_da": atto, "precisione": "INDICATIVO", "fonte": "avviso di abrogazione nel testo"}
+    elif rinvio.get("caso") == "A" and rinvio.get("abrogato_da") and rinvio.get("data"):
+        # A repeal deferred past today (#177): the article is in force, and will be repealed.
+        successione = {"abrogato_da": rinvio["abrogato_da"], "dal": rinvio["data"], "precisione": "INDICATIVO",
+                       "fonte": ("abrogazione rinviata (disposizione che la rinvia)" if rinvio.get("data_nota")
+                                 else "abrogazione rinviata (note di Normattiva)")}
     futura = versione_futura(url) if not data_rich else None
     upcoming = ({"change": futura["change"], "valid_from": futura["valid_from"],
                  "version_number": futura["version_number"]} if futura else None)

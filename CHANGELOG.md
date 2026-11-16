@@ -994,6 +994,36 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `api.modifiche_articolo` name the version Normattiva wrongly gives as in force, `INDICATIVO`, from
   the notes of the page the walk already reads (no request more). Checked live on the 20 articles of
   the c.p.c. and c.c. that carry the note.
+- **Two more provisions of art. 27 d.lgs. 116/2017 served as in force, and a case B notice that
+  said too much (#177).** A scan of all 32 provisions art. 27 amends found:
+  - art. 765 c.p.c. served `ESATTO` with «cancelliere del giudice di pace». Normattiva's notes on that
+    page stop at 31/10/2026, never updated to 2027. A chain of notes whose date was moved later and
+    has now passed is checked against the provision that sets it: art. 32, comma 3 of d.lgs.
+    116/2017, read live as in force today (the page is kept a day). Never a date written in the
+    code.
+    - One date in that comma still to come: the deferral. The chain also takes the acts of the
+      provision's latest table of updates (d.l. 100/2026).
+    - All its dates passed, or the comma repealed: nothing is deferred.
+    - The provision not readable, or its date not known: a notice without a date, `INDICATIVO`,
+      whenever a version read carries the deferred act. The date is not known when the comma has
+      no date or more than one future date, or when it may not be the date of what the chain
+      defers: an exception («salvo», «ad eccezione», «in deroga» …), only part of an article, or
+      another article than the one the notes name.
+
+    Case A now also covers the versions after the deferred one when they carry only the acts that
+    deferred it: version 4 (art. 27), then version 5 (d.l. 162/2019), so version 3 («cancelliere del
+    tribunale») is served. The deferred act in more than one version stays a case B.
+  - art. 73-bis disp. att. c.c. served as repealed, `ESATTO`. Its notes word the deferral «la proroga
+    al 31 ottobre 2027 dell'entrata in vigore della presente abrogazione», with or without «che»,
+    and that wording is now read. A repealed page goes through case A: version 2 is served with the
+    notice, `upcoming` {abrogated, 2027-10-31} and `successione` dated 2027-10-31, `INDICATIVO`.
+  - case B notice: it no longer says the text «already contains» the deferred amendments.
+    Normattiva may have rewritten them since (art. 518 and 521-bis c.p.c., d.lgs. 164/2024) or never
+    applied them (art. 17 l. 108/1996). It now says Normattiva applied later amendments on top, so
+    the text may hold them in whole or in part and is not verified as the text in force.
+
+  `storia_norma` and `api.modifiche_articolo` give the same answers. The AKN channel is unchanged
+  (#177, point 2).
 - **«c.g.c.» was refused as ambiguous.** The key «cgc» of `NOMI_AMBIGUI` caught «c.g.c.» through the
   dotted-acronym collapse, so «art. 190 c.g.c.» (d.lgs. 174/2016) was refused by callers that ask
   for ambiguity first. «cgc» is dropped (no second act was ever named for it) and a name the tables

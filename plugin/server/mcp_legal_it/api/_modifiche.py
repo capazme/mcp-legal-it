@@ -62,20 +62,32 @@ def _modifiche(versioni: dict, righe: dict) -> list[Modifica]:
     return out
 
 
-def _rinvio(letta: dict, oggi: str, dal: "str | None") -> "tuple[dict, str | None, dict] | None":
+async def _rinvio(letta: dict, oggi: str, dal: "str | None") -> "tuple[dict, str | None, dict] | None":
     """``(rinvio, caso, info)`` when the article page's notes defer an entry into force past
     *oggi* (``vigenza_differita``), else None, from the notes of the article page the walk read
-    (``note_pagina``): no request.
-    *caso* None when the tables read cannot tell: read in part (a ceiling, a failure), or *dal*
-    left out the versions the deferred act may have entered. No version carrying the deferred
-    act, all of them read: None, nothing to say."""
+    (``note_pagina``). Notes that stopped at a date already past, of a date moved later before:
+    the provision that sets it is read live (``scraper.rinvio_dalla_disposizione``, #177).
+    *caso* None when the tables read cannot tell: read in part (a ceiling, a failure), *dal*
+    left out the versions the deferred act may have entered, or the provision's date could not
+    be read. No version carrying the deferred act, all of them read: None, nothing to say."""
     note = letta.get("note_pagina")
-    r = vigenza_differita.rinvio(note if isinstance(note, list) else None, oggi)
+    note = note if isinstance(note, list) else None
+    r = vigenza_differita.rinvio(note, oggi)
     if r is None:
-        return None
+        from mcp_legal_it.lib.visualex import scraper
+
+        r = await scraper.rinvio_dalla_disposizione(vigenza_differita.rinvio_scaduto(note, oggi), oggi)
+        if r is None:
+            return None
     if letta.get("mancanti") or letta.get("oltre_tetto"):
         return r, None, {}
-    caso, info = vigenza_differita.caso(r, letta.get("versioni") or {}, letta.get("righe") or {})
+    versioni, righe = letta.get("versioni") or {}, letta.get("righe") or {}
+    if r.get("data") is None:
+        # Date not known: said when a version read carries the deferred act, or when *dal* left
+        # out the versions it may have entered (as with the date known, below).
+        noto = vigenza_differita.porta_atto_rinviato(r, righe) or (dal and dal > r["atto"][1])
+        return (r, None, {}) if noto else None
+    caso, info = vigenza_differita.caso(r, versioni, righe)
     if caso is not None:
         return r, caso, info
     return (r, None, {}) if dal and dal > r["atto"][1] else None
@@ -209,7 +221,7 @@ async def modifiche_articolo(
             avvisi.append(f"versioni non lette per un errore della fonte: {', '.join(map(str, sorted(mancanti)))} "
                           f"({letta['errore']}); è un problema transitorio: riprovare")
         completa = not mancanti and not oltre and letta["storia_certa"]
-        rinvio = _rinvio(letta, oggi, dal)
+        rinvio = await _rinvio(letta, oggi, dal)
         if rinvio is not None:
             # An entry into force the notes defer past today (#172): the versions carrying the
             # deferred act are not in force, whatever date Normattiva gives them.
