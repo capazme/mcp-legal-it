@@ -42,7 +42,7 @@ writes a document is listed as a writer of the document, not of the cache.
 | `leggi_pronuncia_costituzionale` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `mappa_orientamento` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |
 | `pronunce_cost_su_norma` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
-| `storia_norma` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_aggiornamenti` |
+| `storia_norma` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_aggiornamenti` |
 | `ultime_pronunce_cost` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `verifica_citazioni` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/akn_acts`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/eurlex_pagine`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/cnf_codice_deontologico`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/normattiva_aggiornamenti`<br>`${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}/corte_cost` |
 | `verifica_dpa_fornitore` | `${MCP_CACHE_DIR:-~/.cache/mcp-legal-it}` |

@@ -116,3 +116,15 @@ Captured on 2026-11-16 from `https://www.normattiva.it/uri-res/N2Ls?urn:nir:stat
 | `cpc_art543_vig_2026-11-16_rinvio_2027_trimmed.html` | art. 543 c.p.c. | version 9 (26-11-2024), laid on the deferred «giudice competente» of version 7 (31-10-2021); notes (160), (179), (183) defer co. 2 n. 3 and co. 4 to 31/10/2027 |
 
 `cpc_aggiornamenti_rinvio_2027.json`: `aggiornamenti.leggi_aggiornamenti(dal=2017-07-13)` on 2026-11-16 for artt. 7, 15-bis and 543 c.p.c., reduced to versions, windows and the acts of each version. Used by `tests/unit/test_vigenza_differita.py`.
+
+The other provisions art. 27 amends (#177), captured on 2026-11-16 the same way, the URL ending in `!vig=2026-11-16` unless stated otherwise:
+
+| File | Article | What Normattiva served |
+|------|---------|------------------------|
+| `cpc_art765_vig_2026-11-16_note_ferme_al_2026_trimmed.html` | art. 765 c.p.c. | version 5 (31-10-2025), «cancelliere del giudice di pace», second period suppressed; notes (160) and (179) give 31/10/2025 and 31/10/2026, no 2027 note |
+| `cpc_art765_vig_2021-10-30_versione_3_trimmed.html` | art. 765 c.p.c. | `!vig=2021-10-30`: version 3 (04-07-1998 to 30-10-2021), «cancelliere del tribunale», the text in force |
+| `dispattcc_art73bis_vig_2026-11-16_rinvio_2027_trimmed.html` | art. 73-bis disp. att. c.c. | version 3 (31-10-2021), «ARTICOLO ABROGATO DAL D.LGS. 13 LUGLIO 2017, N. 116»; notes (37), (55), (58) defer the repeal to 31/10/2025, 2026 and 2027 («la proroga al … dell'entrata in vigore della presente abrogazione») |
+| `dispattcc_art73bis_vig_2021-10-30_versione_2_trimmed.html` | art. 73-bis disp. att. c.c. | `!vig=2021-10-30`: version 2 (04-07-1998 to 30-10-2021), the text in force |
+| `dlgs116_2017_art32_vig_2026-11-16_trimmed.html` | art. 32 d.lgs. 116/2017 | version 9 (12-6-2026): comma 3 «Le disposizioni dell'articolo 27 entrano in vigore il ((31 ottobre 2027))» |
+
+`rinvio_art27_aggiornamenti.json`: `aggiornamenti.leggi_aggiornamenti` on 2026-11-16, unreduced (rows keep their dispositions), for art. 765 c.p.c. and art. 73-bis disp. att. c.c. (`dal=2017-07-13`) and for art. 32 d.lgs. 116/2017 (`dal=2026-06-12`, `max_versioni=1`: its latest version, d.l. 100/2026 on comma 3).
