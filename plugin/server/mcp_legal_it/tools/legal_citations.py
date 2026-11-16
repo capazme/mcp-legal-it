@@ -1127,6 +1127,12 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
         return "metadati discordanti", nota
 
     nota = f"Fonte: {fonte}" if fonte else "Testo ufficiale reperito."
+    if r := data.get("rinvio"):
+        # An entry into force the notes defer past today (#172): said in every case, also when
+        # the table of updates could not be read to tell which text is in force.
+        from mcp_legal_it.lib.visualex.vigenza_differita import nota_verifica
+
+        nota += f" Attenzione: {nota_verifica(r)}."
     if (prossima := data.get("upcoming")) and prossima.get("valid_from"):
         # In force today, with a later version already published: still verified, and said.
         cambio = "abrogato" if prossima.get("change") == "abrogated" else "modificato"

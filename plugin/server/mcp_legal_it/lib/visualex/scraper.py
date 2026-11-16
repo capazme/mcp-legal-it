@@ -1521,7 +1521,9 @@ async def _rinvio_differito(nv: NormaVisitata, result: dict) -> dict:
                                                         max_versioni=20, oggi=oggi)
     except (httpx.HTTPError, AttoNonVerificato):
         letta = {"esito": "errore_fonte"}
-    if letta.get("esito") != "trovato":
+    if letta.get("esito") != "trovato" or letta.get("mancanti") or letta.get("oltre_tetto"):
+        # Not read, or read only in part (a walk that stopped, a ceiling): a missing table of the
+        # latest version would hide the deferral, a missing previous one would fake a case B.
         return {**result, "rinvio": {**r, "caso": None}}
     caso, info = vigenza_differita.caso(r, letta.get("versioni") or {}, letta.get("righe") or {})
     if caso is None:
@@ -1532,8 +1534,8 @@ async def _rinvio_differito(nv: NormaVisitata, result: dict) -> dict:
         vig = f"{url}!vig={info['precedente'][2]}"
         try:
             testo, servito = await _normattiva_page(vig, nv.numero_articolo)
-        except httpx.HTTPError:
-            testo, servito = "", None
+        except (httpx.HTTPError, AttoNonVerificato):
+            testo, servito = "", None  # case B below: never the whole article refused for it
         requested = _article_identity(normalize_article_key(nv.numero_articolo))
         if testo and servito is not None and _article_identity(servito) == requested:
             result = {**result, "text": testo, "url": vig}

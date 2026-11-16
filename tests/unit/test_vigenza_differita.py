@@ -242,3 +242,85 @@ class TestSenzaRinvio:
         righe = {k: [riga for riga in v if all(x["atto"]["numero_atto"] != "116" for x in riga["atti"])]
                  for k, v in tabella["righe"].items()}
         assert vd.caso(r, tabella["versioni"], righe) == (None, {})
+
+
+class TestTabellaParziale:
+    """Review of #173: a walk that stopped (``mancanti``) is a table not readable, never a case."""
+
+    @pytest.mark.parametrize("manca", [10, 9], ids=["without-v10", "without-v9"])
+    async def test_a_truncated_table_is_not_readable(self, monkeypatch, manca):
+        tabella = _tabella("7")
+        tabella["righe"].pop(manca, None)
+        tabella["mancanti"] = [manca]
+        richieste, _ = _serve(monkeypatch, {CPC + "7": ART7}, tabella)
+        t = await api.testo_articolo(_cpc("7"), canale="html")
+        assert t.precisione == "INDICATIVO" and "3-ter)" in t.article_text  # today's page, never a guess
+        assert "non è stato possibile verificare se il testo riportato le contiene già" in t.avvisi[0]
+        assert not any("!vig=" in r for r in richieste)  # no case A, no false case B
+
+    async def test_a_previous_page_of_another_act_is_case_b(self, monkeypatch):
+        _serve(monkeypatch, {CPC + "7": ART7, CPC + "7!vig=2025-10-30": ART7_V9}, _tabella("7"))
+        originale = scraper._normattiva_page
+
+        async def altro_atto(url, articolo=None):
+            if "!vig=2025-10-30" in url:
+                raise scraper.AttoNonVerificato("la pagina restituita è un altro atto", altro_atto=True)
+            return await originale(url, articolo)
+
+        monkeypatch.setattr(scraper, "_normattiva_page", altro_atto)
+        t = await api.testo_articolo(_cpc("7"), canale="html")
+        assert t.esito == "trovato" and "3-ter)" in t.article_text
+        assert "nessuna versione di Normattiva corrisponde" in t.avvisi[0]
+
+    async def test_verifica_citazioni_says_a_deferral_it_could_not_verify(self, monkeypatch):
+        from mcp_legal_it.tools import legal_citations as lc
+
+        _serve(monkeypatch, {CPC + "7": ART7}, {"esito": "verifica_non_disponibile"})
+        verdetto, nota = await lc._verifica_norma("art. 7 c.p.c.")
+        assert verdetto == "verificata"
+        assert "rinvia al 2027-10-31" in nota and "non è stato possibile verificare se il testo le contiene già" in nota
+
+
+class TestStoria:
+    """storia_norma and api.modifiche_articolo: the version carrying the deferred act is said."""
+
+    async def test_case_a_names_the_version_and_the_one_in_force(self, monkeypatch):
+        _serve(monkeypatch, {CPC + "7": ART7}, _tabella("7"))
+        m = await api.modifiche_articolo("art. 7 c.p.c.")
+        assert m.esito == "trovato" and m.precisione == "INDICATIVO"
+        assert ("Normattiva dà la versione 10 come vigente dal 2025-10-31, ma non è in vigore; il testo in vigore "
+                "è la versione 9, dal 2023-01-01") in m.avvisi[0]
+        catena = {"116", "117", "148", "100"}
+        assert all(x.precisione == "INDICATIVO" for x in m.modifiche if x.atto.numero_atto in catena)
+        assert any(x.precisione == "ESATTO" for x in m.modifiche if x.atto.numero_atto not in catena)
+
+    async def test_case_b_and_the_inserted_article(self, monkeypatch):
+        _serve(monkeypatch, {CPC + "543": ART543}, _tabella("543"))
+        m = await api.modifiche_articolo("art. 543 c.p.c.")
+        assert "le dà come vigenti dal 2021-10-31" in m.avvisi[0] and "nessuna versione è il testo in vigore" in m.avvisi[0]
+        _serve(monkeypatch, {CPC + "15bis": ART15BIS}, _tabella("15-bis"))
+        m = await api.modifiche_articolo("art. 15-bis c.p.c.")
+        assert m.precisione == "INDICATIVO" and "non è ancora in vigore" in m.avvisi[0]
+
+    async def test_a_truncated_walk_is_said_as_not_verifiable(self, monkeypatch):
+        tabella = _tabella("7")
+        tabella["righe"].pop(10)
+        tabella["mancanti"], tabella["errore"] = [10], "errore di rete"
+        _serve(monkeypatch, {CPC + "7": ART7}, tabella)
+        m = await api.modifiche_articolo("art. 7 c.p.c.")
+        assert "non è stato possibile verificare quali versioni le contengono" in m.avvisi[0]
+        assert m.precisione == "INDICATIVO"
+
+    async def test_storia_norma_prints_it(self, monkeypatch):
+        from mcp_legal_it.tools import vigenza
+
+        _serve(monkeypatch, {CPC + "7": ART7}, _tabella("7"))
+        out = await vigenza._storia_norma_impl("art. 7 c.p.c.")
+        assert "(INDICATIVO)" in out.splitlines()[0]
+        assert "⚠ la nota (183) di Normattiva rinvia al 31/10/2027" in out
+
+    async def test_no_deferral_no_notice(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_TODAY", "2027-11-01")
+        _serve(monkeypatch, {CPC + "7": ART7}, _tabella("7"))
+        m = await api.modifiche_articolo("art. 7 c.p.c.")
+        assert not any("rinvia al" in a for a in m.avvisi)

@@ -17,7 +17,7 @@ from mcp_legal_it.api.tipi import (
 )
 from mcp_legal_it.core import norme
 from mcp_legal_it.lib import _clock
-from mcp_legal_it.lib.visualex import aggiornamenti, scraper
+from mcp_legal_it.lib.visualex import aggiornamenti, scraper, vigenza_differita
 from mcp_legal_it.lib.visualex.models import Norma, split_annex
 
 _AVVISO_VERSIONE_1 = ("la versione 1 non ha un atto che l'abbia prodotta nella tabella degli aggiornamenti: è il "
@@ -60,6 +60,25 @@ def _modifiche(versioni: dict, righe: dict) -> list[Modifica]:
                         precisione="ESATTO" if letto and inizio else "INDICATIVO", testo=d["testo"],
                     ))
     return out
+
+
+def _rinvio(letta: dict, oggi: str, dal: "str | None") -> "tuple[dict, str | None, dict] | None":
+    """``(rinvio, caso, info)`` when the article page's notes defer an entry into force past
+    *oggi* (``vigenza_differita``), else None, from the notes of the article page the walk read
+    (``note_pagina``): no request.
+    *caso* None when the tables read cannot tell: read in part (a ceiling, a failure), or *dal*
+    left out the versions the deferred act may have entered. No version carrying the deferred
+    act, all of them read: None, nothing to say."""
+    note = letta.get("note_pagina")
+    r = vigenza_differita.rinvio(note if isinstance(note, list) else None, oggi)
+    if r is None:
+        return None
+    if letta.get("mancanti") or letta.get("oltre_tetto"):
+        return r, None, {}
+    caso, info = vigenza_differita.caso(r, letta.get("versioni") or {}, letta.get("righe") or {})
+    if caso is not None:
+        return r, caso, info
+    return (r, None, {}) if dal and dal > r["atto"][1] else None
 
 
 def _nel_periodo(m: Modifica, dal: str | None, al: str | None) -> bool:
@@ -190,10 +209,18 @@ async def modifiche_articolo(
             avvisi.append(f"versioni non lette per un errore della fonte: {', '.join(map(str, sorted(mancanti)))} "
                           f"({letta['errore']}); è un problema transitorio: riprovare")
         completa = not mancanti and not oltre and letta["storia_certa"]
+        rinvio = _rinvio(letta, oggi, dal)
+        if rinvio is not None:
+            # An entry into force the notes defer past today (#172): the versions carrying the
+            # deferred act are not in force, whatever date Normattiva gives them.
+            r, caso, info = rinvio
+            avvisi.insert(0, vigenza_differita.avviso_storia(r, caso, info))
+            scelte = [dataclasses.replace(m, precisione="INDICATIVO")
+                      if (m.atto.tipo_atto, m.atto.data, m.atto.numero_atto) in r["catena"] else m for m in scelte]
         # A Modifica is ESATTO only with its version's window read: an unread window shows there.
         # Version 1 without its act for want of certainty (two introductions, an unread window)
         # is a gap in what is said: INDICATIVO, like an empty table.
-        precisione = "ESATTO" if (completa and not letta["vuote"] and not letta["nota_v1"]
+        precisione = "ESATTO" if (completa and not letta["vuote"] and not letta["nota_v1"] and rinvio is None
                                   and all(m.precisione == "ESATTO" for m in scelte)) else "INDICATIVO"
         return ModificheArticolo(
             esito="trovato", norma_data=nd, versioni=tuple(tutte), modifiche=tuple(scelte), url=url,

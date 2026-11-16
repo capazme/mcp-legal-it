@@ -979,8 +979,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
   article itself was inserted by the deferred act, so it is not in force yet (art. 15-bis c.p.c.);
   otherwise no version is the text in force and it is said (case B, art. 543 c.p.c.). Always
   `INDICATIVO`, with a notice naming the note and the date, and `upcoming` {amended, 2027-10-31};
-  `cite_law` JSON carries `rinvio`. Checked live on the 20 articles of the c.p.c. and c.c. that carry
-  the note.
+  `cite_law` JSON carries `rinvio`, and `verifica_citazioni` says it, also when the table of updates
+  could not be read (or was read only in part) to tell which text is in force. `storia_norma` and
+  `api.modifiche_articolo` name the version Normattiva wrongly gives as in force, `INDICATIVO`, from
+  the notes of the page the walk already reads (no request more). Checked live on the 20 articles of
+  the c.p.c. and c.c. that carry the note.
 - **«c.g.c.» was refused as ambiguous.** The key «cgc» of `NOMI_AMBIGUI` caught «c.g.c.» through the
   dotted-acronym collapse, so «art. 190 c.g.c.» (d.lgs. 174/2016) was refused by callers that ask
   for ambiguity first. «cgc» is dropped (no second act was ever named for it) and a name the tables

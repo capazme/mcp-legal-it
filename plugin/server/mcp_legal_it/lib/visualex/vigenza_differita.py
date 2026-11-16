@@ -173,3 +173,30 @@ def sintesi(r: dict) -> dict:
     """What an answer carries of *r*, JSON-ready: ``{data, nota, atto, articolo, caso}``."""
     return {"data": r["data"], "nota": r["nota"], "atto": r["atto_testo"], "articolo": r.get("articolo"),
             "caso": r.get("caso")}
+
+
+def nota_verifica(s: dict) -> str:
+    """What ``verifica_citazioni`` says of a deferral, from :func:`sintesi`."""
+    base = f"la nota ({s['nota']}) di Normattiva rinvia al {s['data']} l'entrata in vigore di modifiche del {s['atto']}"
+    return base + {
+        "A": ": il testo in vigore è la versione precedente a quella che Normattiva dà come vigente",
+        "B": ": il testo di Normattiva le contiene già e nessuna sua versione è il testo in vigore",
+        "non_in_vigore": ": l'articolo, inserito da quelle modifiche, non è ancora in vigore",
+    }.get(s.get("caso"), ": non è stato possibile verificare se il testo le contiene già")
+
+
+def avviso_storia(r: dict, caso: "str | None", info: dict) -> str:
+    """The notice of a deferral on an article's history (``api.modifiche_articolo``)."""
+    atto = r["atto_testo"] + (f", art. {r['articolo']}" if r.get("articolo") else "")
+    nota = f"la nota ({r['nota']}) di Normattiva rinvia al {r['data']} l'entrata in vigore delle modifiche del {atto}"
+    servita = info.get("servita") or (None, None)
+    if caso == "A":
+        k, dal, _al = info["precedente"]
+        return (f"{nota}: Normattiva dà la versione {servita[0]} come vigente dal {servita[1]}, ma non è in vigore; "
+                f"il testo in vigore è la versione {k}, dal {dal}")
+    if caso == "non_in_vigore":
+        return f"{nota}, che hanno inserito l'articolo: non è ancora in vigore (Normattiva lo dà come vigente dal {servita[1]})"
+    if caso == "B":
+        return (f"{nota}: Normattiva le dà come vigenti dal {info.get('rinviate_dal')} e vi ha applicato le versioni "
+                f"successive, fino alla {servita[0]}; nessuna versione è il testo in vigore")
+    return f"{nota}: non è stato possibile verificare quali versioni le contengono"
