@@ -44,8 +44,8 @@ Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, rica
 
 > **Prima volta?** La [guida passo passo](https://capazme.github.io/mcp-legal-it/) porta da zero a Legal IT funzionante in Claude Desktop, su Mac e Windows, anche senza Python installato.
 
-> **Prerequisito unico: [`uv`](https://docs.astral.sh/uv/).** Gestisce automaticamente
-> Python 3.12 e le dipendenze, identico su Windows/macOS/Linux.
+> **Prerequisito unico: [`uv`](https://docs.astral.sh/uv/), versione 0.4.16 o successiva** (`uv --version`).
+> Gestisce automaticamente Python 3.12 e le dipendenze, identico su Windows/macOS/Linux.
 > macOS/Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh` ·
 > Windows (PowerShell): `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`.
 > Dopo l'installazione di `uv` **chiudi Claude del tutto** (⌘Q su macOS, non basta chiudere la finestra) e riaprilo: un'app già aperta non vede il nuovo `PATH`. Il primo avvio scarica Python 3.12 + dipendenze (~1 min).
