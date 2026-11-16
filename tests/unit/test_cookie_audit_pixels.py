@@ -458,6 +458,50 @@ def test_probe_1_resets_a_stale_consent_marker(cookie, reset):
     assert r["reset"] is reset and (r["left"] == []) is reset
 
 
+FORM_HARNESS = r"""
+const fs = require('fs');
+const code = fs.readFileSync(0, 'utf8');
+const input = (attrs) => ({ ...attrs, getAttribute: k => attrs[k] ?? null });
+const form = (actionAttr, children) => {
+  const email = input({ type: 'email', name: 'email', placeholder: 'La tua email' });
+  const box = input({ type: 'checkbox', name: 'privacy', id: '', defaultChecked: false, checked: false, required: true });
+  box.closest = () => ({ innerText: 'Ho letto l\'informativa privacy' });
+  const f = {
+    innerText: 'Iscriviti alla newsletter Ho letto l\'informativa privacy',
+    parentElement: { innerText: 'footer', parentElement: null },
+    getAttribute: k => (k === 'action' ? actionAttr : null),
+    getBoundingClientRect: () => ({ width: 300, height: 40 }),
+    querySelector: sel => (sel.includes('email') ? email : null),
+    querySelectorAll: sel => (sel.includes('checkbox') ? [box] : sel.startsWith('button') ? [{ innerText: 'Iscriviti' }] : []),
+    ...children,
+  };
+  return f;
+};
+// DOM clobbering: a child <input name="action"> makes form.action return the element, not the URL
+const wp = form('/wp-admin/admin-ajax.php', { action: input({ name: 'action', value: 'newsletter_subscribe' }) });
+const mc = form('https://example.us1.list-manage.com/subscribe/post?u=abc', {});
+const bare = form(null, {});
+globalThis.window = globalThis;
+globalThis.location = { href: 'https://www.shop.example.com/contatti/' };
+globalThis.CSS = { escape: s => s };
+globalThis.getComputedStyle = () => ({ visibility: 'visible', display: 'block' });
+globalThis.document = { querySelectorAll: sel => (sel === 'form' ? [wp, mc, bare] : []) };
+process.stdout.write(JSON.stringify(eval('(' + code + ')')()));
+"""
+
+
+@pytest.mark.skipif(NODE is None, reason="node non disponibile")
+def test_newsletter_form_probe_survives_an_input_named_action():
+    out = subprocess.run([NODE, "-e", FORM_HARNESS], input=_probe_block("§7"), capture_output=True, text=True)
+    assert out.returncode == 0, out.stderr[:500]
+    wp, mc, bare = json.loads(out.stdout)["moduli"]
+    assert wp["action"] == "https://www.shop.example.com/wp-admin/admin-ajax.php"
+    assert wp["piattaforma"] == "" and wp["caselle"][0]["obbligatoria"] is True
+    assert mc["action"].startswith("https://example.us1.list-manage.com/subscribe/post")
+    assert mc["piattaforma"] == "list-manage.com"
+    assert bare["action"] == "https://www.shop.example.com/contatti/"  # no attribute: submits to the page itself
+
+
 # ---------------------------------------------------------------------------
 # generate_report.js
 # ---------------------------------------------------------------------------
