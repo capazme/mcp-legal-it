@@ -1004,8 +1004,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
     - One date in that comma still to come: the deferral. The chain also takes the acts of the
       provision's latest table of updates (d.l. 100/2026).
     - All its dates passed, or the comma repealed: nothing is deferred.
-    - The provision not readable, or its date not known (no date, more than one future date):
-      a notice without a date, `INDICATIVO`, whenever a version read carries the deferred act.
+    - The provision not readable, or its date not known: a notice without a date, `INDICATIVO`,
+      whenever a version read carries the deferred act. The date is not known when the comma has
+      no date or more than one future date, or when it may not be the date of what the chain
+      defers: an exception («salvo», «ad eccezione», «in deroga» …), only part of an article, or
+      another article than the one the notes name.
 
     Case A now also covers the versions after the deferred one when they carry only the acts that
     deferred it: version 4 (art. 27), then version 5 (d.l. 162/2019), so version 3 («cancelliere del

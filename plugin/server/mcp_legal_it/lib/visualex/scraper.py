@@ -1522,7 +1522,7 @@ async def rinvio_dalla_disposizione(s: "dict | None", oggi: str) -> "dict | None
             testo, servito = "", None
         voluto = _article_identity(normalize_article_key(articolo))
         if testo and servito is not None and _article_identity(servito) == voluto:
-            stato, data = vigenza_differita.stato_disposizione(testo, comma, oggi)
+            stato, data = vigenza_differita.stato_disposizione(testo, comma, oggi, s.get("articolo"))
         if stato == "in_vigore":
             return None  # its dates have passed, or the comma is spent: the amendments are in force
         dal = ((pagine_normattiva.leggi(f"{url}!vig={oggi}") or {}).get("validita") or {}).get("valid_from")

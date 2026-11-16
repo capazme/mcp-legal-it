@@ -595,7 +595,8 @@ class TestRevisione:
         rif = api.leggi_riferimento("art. 73-bis disp. att. c.c.").norma_data[0]
         t = await api.testo_articolo(rif, canale="html")
         assert t.precisione == "INDICATIVO" and "ABROGATO" in t.article_text  # the page, never a guess
-        assert "Normattiva dà l'articolo come abrogato: non è stato possibile leggere il testo in vigore" in t.avvisi[0]
+        assert "Normattiva dà già l'articolo come abrogato e il testo in vigore fino a quella data non è stato letto" \
+            in t.avvisi[0]
         assert "le contiene" not in t.avvisi[0]
 
     def test_case_a_over_versions_only_with_the_deferred_act_in_one(self):
@@ -617,3 +618,41 @@ class TestRevisione:
         # The same without the 2017 version: case A over versions 4 and 5, version 3 served.
         caso, info = vd.caso(r, versioni, {5: righe[5], 4: righe[4]})
         assert caso == "A" and info["precedente"][0] == 3
+
+    def test_a_comma_that_defers_something_else_is_not_known(self):
+        """Review of #179 (M3): the date must be what the comma defers, whole."""
+        def stato(frase, articolo=None):
+            return vd.stato_disposizione(f"3. {frase}", "3", OGGI, articolo)
+
+        base = "Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2027"
+        assert stato(base + ".", "27") == ("rinvio", "2027-10-31")
+        for eccezione in ("salvo quanto previsto dal comma 4", "ad eccezione del comma 2", "eccetto il comma 2",
+                          "limitatamente al comma 1", "tranne il comma 2", "in deroga all'articolo 30"):
+            assert stato(f"{base}, {eccezione}.") == ("ignoto", None), eccezione
+        assert stato("Le disposizioni dell'articolo 27, comma 1, entrano in vigore il 31 ottobre 2027.") == \
+            ("ignoto", None)
+        assert stato("Le disposizioni dei commi 1 e 2 dell'articolo 27 entrano in vigore il 31 ottobre 2027.") == \
+            ("ignoto", None)
+        # The chain names art. 27: a comma about art. 28 is not its date.
+        assert stato("Le disposizioni dell'articolo 28 entrano in vigore il 31 ottobre 2027.", "27") == ("ignoto", None)
+
+    def test_a_date_brought_forward_last_is_no_stale_deferral(self):
+        """Review of #179 (m2): 2020, then 2025, then 2023 is a date brought forward."""
+        def nota(numero, data):
+            return {"numero": numero, "testo": "Il D.Lgs. 13 luglio 2017, n. 116 ha disposto (con l'art. 32, comma 3) "
+                                               f"che \"Le disposizioni dell'articolo 27 entrano in vigore il {data}\"."}
+
+        assert vd.rinvio_scaduto([nota("10", "1 gennaio 2020"), nota("20", "1 gennaio 2025"),
+                                  nota("30", "1 gennaio 2023")], OGGI) is None
+        assert vd.rinvio_scaduto([nota("10", "1 gennaio 2020"), nota("20", "1 gennaio 2023"),
+                                  nota("30", "1 gennaio 2025")], OGGI)["data"] == "2025-01-01"
+
+    def test_a_repeal_whose_date_is_not_known_is_worded_once(self):
+        """Review of #179 (m3): one «ma», and the repeal is not presumed not in force."""
+        s = vd.rinvio_scaduto(_note("73-bis"), "2028-01-01")
+        r = {**vd.riaperto(s, None, set()), "caso": None}
+        avviso = vd.avviso(r)
+        assert avviso.count(", ma ") == 1 and "non è verificato se l'abrogazione sia già in vigore" in avviso
+        nota = vd.nota_verifica(vd.sintesi(r))
+        assert nota.count(", ma ") == 1 and "non è verificato se l'abrogazione sia già in vigore" in nota
+        assert "non è verificato se l'abrogazione sia già in vigore" in vd.avviso_storia(r, None, {})

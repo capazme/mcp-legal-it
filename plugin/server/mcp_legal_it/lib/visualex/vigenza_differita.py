@@ -64,6 +64,12 @@ _ARTICOLO_COMMA = re.compile(r"^\s*(?P<art>\d+(?:-[a-z]+)?)\b(?:\s*,\s*comma\s+(
 _INIZIO_COMMA = re.compile(r"^\s*\d+(?:-[a-z]+)?\s*\.(?:\s|$)")
 #: A comma (or article) Normattiva gives as repealed: «3. COMMA ABROGATO DAL …».
 _ABROGATO = re.compile(r"^(?:\d+(?:-[a-z]+)?\s*\.\s*)?(?:COMMA|ARTICOLO)\s+(?:ABROGAT|SOPPRESS)[OA]\b")
+#: A comma whose date may not be the whole provision's: an exception or a derogation.
+_ECCEZIONE = re.compile(r"\b(?:salvo|ad\s+eccezione|eccetto|limitatamente|tranne|in\s+deroga)\b", re.IGNORECASE)
+#: A comma that defers only part of an article: «articolo 27, comma 1», «dei commi 1 e 2».
+_PARTE_DI_ARTICOLO = re.compile(
+    r"\barticol[oi]\s+\d+(?:-[a-z]+)?\s*,\s*(?:comm[ai]|letter[ae]|numer[oi])\b"
+    r"|\b(?:del|dei|della|delle|al|ai|alla|alle)\s+(?:comm[ai]|letter[ae]|numer[oi])\b", re.IGNORECASE)
 #: The list of commi a row's parts name: «comma 3», «commi 1, 2 e 3-bis».
 _COMMI = re.compile(r"\bcomm[ai]\s+(\d+(?:-[a-z]+)?(?:(?:\s*,\s*|\s+e\s+)\d+(?:-[a-z]+)?)*)(?![\w-])",
                     re.IGNORECASE)
@@ -153,8 +159,8 @@ def rinvio(note: "list[dict] | None", oggi: str) -> "dict | None":
 def rinvio_scaduto(note: "list[dict] | None", oggi: str) -> "dict | None":
     """A deferral the notes may have stopped telling (#177), else None.
 
-    A chain whose date was already moved later at least once (an earlier note gives an earlier
-    date) and whose latest date has passed: the provision that sets it may have moved it again
+    A chain whose latest note moved the date later (the closest earlier note with another date
+    gives an earlier one) and whose latest date has passed: the provision that sets it may have moved it again
     without Normattiva adding the note (art. 765 c.p.c.: notes up to 31/10/2026, art. 32,
     comma 3 of d.lgs. 116/2017 at 31/10/2027). A date brought forward, or never moved, is not
     one. Of several, the latest. Shaped as :func:`rinvio`; the provision is read by the caller.
@@ -162,7 +168,10 @@ def rinvio_scaduto(note: "list[dict] | None", oggi: str) -> "dict | None":
     trovati = []
     for clausole in _catene(note):
         r = _riassunto(clausole)
-        if r["data"] <= oggi and any(c["data"] < r["data"] for c in clausole):
+        # Moved later by the latest note: the closest earlier note giving another date gave an
+        # earlier one (2020, 2025, 2023 is a date brought forward, review of #179).
+        prima = [c["data"] for c in sorted(clausole, key=_ordine)[:-1] if c["data"] != r["data"]]
+        if r["data"] <= oggi and prima and prima[-1] < r["data"]:
             trovati.append(r)
     return max(trovati, key=lambda r: r["data"]) if trovati else None
 
@@ -193,7 +202,8 @@ def _blocco_comma(testo: str, comma: "str | None") -> "str | None":
     return " ".join(" ".join(righe).split())
 
 
-def stato_disposizione(testo: str, comma: "str | None", oggi: str) -> "tuple[str, str | None]":
+def stato_disposizione(testo: str, comma: "str | None", oggi: str,
+                       articolo: "str | None" = None) -> "tuple[str, str | None]":
     """What the provision that sets the date says today, in *comma* of its article.
 
     *testo* is the article as Normattiva serves it («3. Le disposizioni dell'articolo 27
@@ -203,13 +213,20 @@ def stato_disposizione(testo: str, comma: "str | None", oggi: str) -> "tuple[str
     - ``("in_vigore", None)``: every date it states has passed, or the comma is repealed
       (spent): nothing is deferred any more;
     - ``("ignoto", None)``: the comma is not found, states no date, or more than one date
-      after *oggi*. Never a guess.
+      after *oggi*; or its date may not be the one of what the chain defers: an exception
+      («salvo», «ad eccezione», «in deroga» …), only part of an article («articolo 27, comma
+      1», «dei commi 1 e 2»), or another article than *articolo* (the one the chain names).
+      Never a guess.
     """
     blocco = _blocco_comma(testo, comma)
     if blocco is None:
         return "ignoto", None
     if _ABROGATO.match(blocco):
         return "in_vigore", None
+    if _ECCEZIONE.search(blocco) or _PARTE_DI_ARTICOLO.search(blocco):
+        return "ignoto", None
+    if articolo and not re.search(rf"\barticol[oi]\s+{re.escape(articolo)}(?![\w-])", blocco, re.IGNORECASE):
+        return "ignoto", None
     date = {_iso(m["g"], m["m"], m["a"]) for m in _ENTRATA.finditer(blocco)}
     future = {d for d in date if d > oggi}
     if not date or len(future) > 1:
@@ -370,9 +387,12 @@ def avviso(r: dict) -> str:
         return f"{premessa}, che hanno inserito l'articolo: Normattiva lo dà come vigente dal {servita}"
     if r.get("abrogazione") and r.get("caso") in ("B", None):
         # A deferred repeal not resolved (table or previous version unread): the text served is
-        # Normattiva's repeal notice, not the article in force.
-        return (f"{premessa}, ma Normattiva dà l'articolo come abrogato: non è stato possibile leggere il testo in "
-                "vigore oggi; verificarlo prima di citarlo")
+        # Normattiva's repeal notice. Its date not known: whether the repeal is in force is not.
+        if r.get("data") is None:
+            return (f"{premessa}: Normattiva dà l'articolo come abrogato, e non è verificato se l'abrogazione sia già "
+                    "in vigore; verificarlo prima di citarlo")
+        return (f"{premessa}, ma Normattiva dà già l'articolo come abrogato e il testo in vigore fino a quella data non "
+                "è stato letto: verificarlo prima di citarlo")
     if r.get("caso") == "B":
         if r.get("precedente_non_letta"):
             return (f"{premessa}, ma Normattiva dà come vigente dal {servita} la versione che le contiene e la "
@@ -420,8 +440,11 @@ def nota_verifica(s: dict) -> str:
         base = (f"l'{s['disposizione']} del {s['atto']} rinvia al {s['data']} {proprio} (la nota ({s['nota']}) di "
                 f"Normattiva dà ancora il {s['data_nota']})")
     if s.get("abrogazione"):
-        return base + (": l'articolo è ancora in vigore, nella versione precedente all'abrogazione"
-                       if s.get("caso") == "A" else ": l'articolo è ancora in vigore, ma il suo testo non è stato letto")
+        if s.get("caso") == "A":
+            return base + ": l'articolo è ancora in vigore, nella versione precedente all'abrogazione"
+        if s.get("data") is None:
+            return base + ": non è verificato se l'abrogazione sia già in vigore"
+        return base + ": l'articolo è in vigore fino a quella data, e il suo testo non è stato letto"
     return base + {
         "A": ": il testo in vigore è la versione precedente a quella che Normattiva dà come vigente",
         "B": (": Normattiva le dà come vigenti e vi ha applicato modifiche successive, e non è verificato che il "
@@ -450,6 +473,8 @@ def avviso_storia(r: dict, caso: "str | None", info: dict) -> str:
         return (f"{premessa}, che hanno inserito l'articolo: non è ancora in vigore (Normattiva lo dà come vigente "
                 f"dal {servita[1]})")
     if r.get("abrogazione"):
+        if r.get("data") is None:
+            return f"{premessa}: non è verificato se l'abrogazione sia già in vigore"
         return f"{premessa}: non è stato possibile verificare quale versione dell'articolo è in vigore"
     if caso == "B":
         return (f"{premessa}: Normattiva le dà come vigenti dal {info.get('rinviate_dal')} e vi ha applicato le "
