@@ -83,7 +83,7 @@ async def _rinvio(letta: dict, oggi: str, dal: "str | None") -> "tuple[dict, str
         return r, None, {}
     versioni, righe = letta.get("versioni") or {}, letta.get("righe") or {}
     if r.get("data") is None:
-        return (r, None, {}) if vigenza_differita.ultima_della_catena(r, versioni, righe) else None
+        return (r, None, {}) if vigenza_differita.porta_atto_rinviato(r, righe) else None
     caso, info = vigenza_differita.caso(r, versioni, righe)
     if caso is not None:
         return r, caso, info

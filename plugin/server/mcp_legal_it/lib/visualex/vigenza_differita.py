@@ -12,7 +12,7 @@ clause, the latest one of each provision, that falls after today. A deferred rep
 too: «la proroga al 31 ottobre 2027 dell'entrata in vigore della presente abrogazione» (art.
 73-bis disp. att. c.c.). The notes can stop behind the provision: art. 765 c.p.c.'s last note
 gives 31/10/2026, never updated to 2027. :func:`rinvio_scaduto` finds such a chain (a date
-moved later, now past), and the caller reads the provision itself (:func:`data_nel_testo` on
+moved later, now past), and the caller reads the provision itself (:func:`stato_disposizione` on
 the page of art. 32 d.lgs. 116/2017, ``scraper.rinvio_dalla_disposizione``). :func:`caso`
 then reads, from the article's table of updates, whether the deferred amendments are already
 in the text and which version is in force:
@@ -62,6 +62,8 @@ _ARTICOLO_COMMA = re.compile(r"^\s*(?P<art>\d+(?:-[a-z]+)?)\b(?:\s*,\s*comma\s+(
                              re.IGNORECASE)
 #: A line opening a comma: «3. », «3-bis. », or «3.» alone on its line.
 _INIZIO_COMMA = re.compile(r"^\s*\d+(?:-[a-z]+)?\s*\.(?:\s|$)")
+#: A comma (or article) Normattiva gives as repealed: «3. COMMA ABROGATO DAL …».
+_ABROGATO = re.compile(r"^(?:\d+(?:-[a-z]+)?\s*\.\s*)?(?:COMMA|ARTICOLO)\s+(?:ABROGAT|SOPPRESS)[OA]\b")
 #: The list of commi a row's parts name: «comma 3», «commi 1, 2 e 3-bis».
 _COMMI = re.compile(r"\bcomm[ai]\s+(\d+(?:-[a-z]+)?(?:(?:\s*,\s*|\s+e\s+)\d+(?:-[a-z]+)?)*)(?![\w-])",
                     re.IGNORECASE)
@@ -171,13 +173,9 @@ def articolo_e_comma(disposizione: str) -> "tuple[str | None, str | None]":
     return (m["art"], m["comma"]) if m else (None, None)
 
 
-def data_nel_testo(testo: str, comma: "str | None") -> "str | None":
-    """The one dated entry into force a provision states today, in *comma* of its text.
-
-    *testo* is the provision's article as Normattiva serves it («3. Le disposizioni
-    dell'articolo 27 entrano in vigore il ((31 ottobre 2027)).»); without *comma*, the whole
-    article. None when the comma is not found or states no date or more than one: never a guess.
-    """
+def _blocco_comma(testo: str, comma: "str | None") -> "str | None":
+    """The text of *comma* in the provision's article (the whole article without *comma*), on
+    one line, amendment markers dropped; None when the comma is not found."""
     righe = (testo or "").replace("((", "").replace("))", "").splitlines()
     if comma:
         inizio = re.compile(rf"^\s*{re.escape(comma)}\s*\.(?:\s|$)")
@@ -189,9 +187,36 @@ def data_nel_testo(testo: str, comma: "str | None") -> "str | None":
                 break
             if dentro:
                 blocco.append(riga)
+        if not blocco:
+            return None
         righe = blocco
-    date = {_iso(m["g"], m["m"], m["a"]) for m in _ENTRATA.finditer(" ".join(" ".join(righe).split()))}
-    return date.pop() if len(date) == 1 else None
+    return " ".join(" ".join(righe).split())
+
+
+def stato_disposizione(testo: str, comma: "str | None", oggi: str) -> "tuple[str, str | None]":
+    """What the provision that sets the date says today, in *comma* of its article.
+
+    *testo* is the article as Normattiva serves it («3. Le disposizioni dell'articolo 27
+    entrano in vigore il ((31 ottobre 2027)).»); without *comma*, the whole article.
+
+    - ``("rinvio", data)``: it states one date after *oggi*;
+    - ``("in_vigore", None)``: every date it states has passed, or the comma is repealed
+      (spent): nothing is deferred any more;
+    - ``("ignoto", None)``: the comma is not found, states no date, or more than one date
+      after *oggi*. Never a guess.
+    """
+    blocco = _blocco_comma(testo, comma)
+    if blocco is None:
+        return "ignoto", None
+    if _ABROGATO.match(blocco):
+        return "in_vigore", None
+    date = {_iso(m["g"], m["m"], m["a"]) for m in _ENTRATA.finditer(blocco)}
+    future = {d for d in date if d > oggi}
+    if not date or len(future) > 1:
+        return "ignoto", None
+    if not future:
+        return "in_vigore", None
+    return "rinvio", future.pop()
 
 
 def atti_del_comma(righe: "list[dict] | None", comma: "str | None") -> set[tuple[str, str, str]]:
@@ -218,7 +243,8 @@ def _commi_nominati(parti: str) -> set[str]:
 def riaperto(s: dict, data: "str | None", atti: "set[tuple[str, str, str]]") -> dict:
     """*s* (:func:`rinvio_scaduto`) with the date its provision states today, read live.
 
-    *data* None: the provision could not be read, or states no single date. *atti*: the acts
+    *data* None: the provision could not be read, or its date is not known (``stato_disposizione``
+    «ignoto»). *atti*: the acts
     that gave the provision its current wording, added to the chain. ``data_nota`` keeps the
     date the latest note gives.
     """
@@ -238,10 +264,10 @@ def _atti_della_versione(righe: "list[dict] | None") -> set[tuple[str, str, str]
     return atti
 
 
-def ultima_della_catena(r: dict, versioni: dict, righe: dict) -> bool:
-    """True when the latest version's table names an act of *r*'s chain: the text served was
-    produced by the deferred amendments or by the acts that deferred them."""
-    return bool(versioni) and bool(_atti_della_versione(righe.get(max(versioni))) & r["catena"])
+def porta_atto_rinviato(r: dict, righe: dict) -> bool:
+    """True when any version read carries the deferred act (``r["atto"]``): the text served may
+    hold the deferred amendments, under later ones or not (review of #179)."""
+    return any(r["atto"] in _atti_della_versione(rr) for rr in righe.values())
 
 
 def caso(r: dict, versioni: dict, righe: dict) -> "tuple[str | None, dict]":

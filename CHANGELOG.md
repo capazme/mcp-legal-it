@@ -999,11 +999,16 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - art. 765 c.p.c. served `ESATTO` with «cancelliere del giudice di pace». Normattiva's notes on that
     page stop at 31/10/2026, never updated to 2027. A chain of notes whose date was moved later and
     has now passed is checked against the provision that sets it: art. 32, comma 3 of d.lgs.
-    116/2017, read live as in force today (the page is kept a day), its one date in that comma,
-    never a date written in the code. When that date is still to come, the chain also takes the acts
-    of the provision's latest table of updates (d.l. 100/2026). Case A now walks back over every
-    version of the chain: versions 4 and 5 both are, so version 3 («cancelliere del tribunale») is
-    served. When the provision cannot be read, a notice without a date is given, `INDICATIVO`.
+    116/2017, read live as in force today (the page is kept a day). Never a date written in the
+    code.
+    - One date in that comma still to come: the deferral. The chain also takes the acts of the
+      provision's latest table of updates (d.l. 100/2026).
+    - All its dates passed, or the comma repealed: nothing is deferred.
+    - The provision not readable, or its date not known (no date, more than one future date):
+      a notice without a date, `INDICATIVO`, whenever a version read carries the deferred act.
+
+    Case A now walks back over every version of the chain: versions 4 and 5 both are, so version
+    3 («cancelliere del tribunale») is served.
   - art. 73-bis disp. att. c.c. served as repealed, `ESATTO`. Its notes word the deferral «la proroga
     al 31 ottobre 2027 dell'entrata in vigore della presente abrogazione», with or without «che»,
     and that wording is now read. A repealed page goes through case A: version 2 is served with the

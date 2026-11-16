@@ -1500,18 +1500,19 @@ async def rinvio_dalla_disposizione(s: "dict | None", oggi: str) -> "dict | None
     *s* is ``vigenza_differita.rinvio_scaduto``: a chain whose date was moved later and has
     passed (art. 765 c.p.c.: notes up to 31/10/2026). The provision the chain names (art. 32,
     comma 3 of d.lgs. 116/2017) is read live, as in force today (the page is kept a day,
-    ``pagine_normattiva``): the one date its comma states. A date already reached: None, the
-    amendments are in force. A date still to come: the deferral, its chain widened with the
-    acts that gave the provision its current wording (its latest table of updates: d.l.
-    100/2026). The provision not readable, or not stating one date: the deferral with ``data``
-    None, so the notice is still given. Never a date written in the code.
+    ``pagine_normattiva``), by ``vigenza_differita.stato_disposizione``. Its dates all passed,
+    or the comma spent: None, the amendments are in force. One date still to come: the
+    deferral, its chain widened with the acts that gave the provision its current wording (its
+    latest table of updates: d.l. 100/2026). The provision not readable, or its date not
+    known: the deferral with ``data`` None, so the notice is still given. Never a date written
+    in the code.
     """
     from . import aggiornamenti, vigenza_differita
 
     if s is None:
         return None
     articolo, comma = vigenza_differita.articolo_e_comma(s["disposizione"])
-    data, atti = None, set()
+    stato, data, atti = "ignoto", None, set()
     if articolo:
         tipo, giorno, numero = s["atto"]
         url = Norma(tipo_atto=tipo, data=giorno, numero_atto=numero).url(articolo)
@@ -1521,11 +1522,11 @@ async def rinvio_dalla_disposizione(s: "dict | None", oggi: str) -> "dict | None
             testo, servito = "", None
         voluto = _article_identity(normalize_article_key(articolo))
         if testo and servito is not None and _article_identity(servito) == voluto:
-            data = vigenza_differita.data_nel_testo(testo, comma)
-        if data is not None and data <= oggi:
-            return None
+            stato, data = vigenza_differita.stato_disposizione(testo, comma, oggi)
+        if stato == "in_vigore":
+            return None  # its dates have passed, or the comma is spent: the amendments are in force
         dal = ((pagine_normattiva.leggi(f"{url}!vig={oggi}") or {}).get("validita") or {}).get("valid_from")
-        if data is not None and dal:
+        if stato == "rinvio" and dal:
             try:
                 letta = await aggiornamenti.leggi_aggiornamenti(url, articolo, dal=dal, al=None, max_versioni=1,
                                                                 oggi=oggi)
@@ -1575,8 +1576,8 @@ async def _rinvio_differito(nv: NormaVisitata, result: dict) -> dict:
         return {**result, "rinvio": {**r, "caso": None}}
     versioni, righe = letta.get("versioni") or {}, letta.get("righe") or {}
     if r.get("data") is None:
-        # The provision's date not readable: said only when the text served is the chain's.
-        if not vigenza_differita.ultima_della_catena(r, versioni, righe):
+        # The provision's date not known: said whenever a version carries the deferred act.
+        if not vigenza_differita.porta_atto_rinviato(r, righe):
             return result
         return {**result, "rinvio": {**r, "caso": None}}
     caso, info = vigenza_differita.caso(r, versioni, righe)

@@ -380,10 +380,18 @@ class TestNoteFerme:
         testo = ("Art. 32\nDisposizioni transitorie e abrogazioni\n\n1. COMMA ABROGATO.\n\n"
                  "3. Le disposizioni dell'articolo 27 entrano in vigore il ((31 ottobre 2027)).\n\n"
                  "4. Le disposizioni dell'articolo 28 entrano in vigore il 1° gennaio 2019.")
-        assert vd.data_nel_testo(testo, "3") == "2027-10-31"
-        assert vd.data_nel_testo(testo, "4") == "2019-01-01"
-        assert vd.data_nel_testo(testo, "2") is None
-        assert vd.data_nel_testo(testo, None) is None  # two dates in the article: never a guess
+        assert vd.stato_disposizione(testo, "3", OGGI) == ("rinvio", "2027-10-31")
+        assert vd.stato_disposizione(testo, "4", OGGI) == ("in_vigore", None)  # its only date has passed
+        assert vd.stato_disposizione(testo, "1", OGGI) == ("in_vigore", None)  # repealed: nothing deferred
+        assert vd.stato_disposizione(testo, "2", OGGI) == ("ignoto", None)  # not found
+        assert vd.stato_disposizione(testo, None, OGGI) == ("rinvio", "2027-10-31")  # one future date
+        # Review of #179 (M1): a comma read whose dates have all passed defers nothing, for ever.
+        assert vd.stato_disposizione(testo, "3", "2027-11-01") == ("in_vigore", None)
+        due = "3. Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2027 e quelle dell'articolo 28 " \
+              "entrano in vigore il 1° gennaio 2028."
+        assert vd.stato_disposizione(due, "3", OGGI) == ("ignoto", None)  # two future dates: never a guess
+        assert vd.stato_disposizione(due, "3", "2028-02-01") == ("in_vigore", None)
+        assert vd.stato_disposizione("3. Le disposizioni dell'articolo 27 si applicano.", "3", OGGI) == ("ignoto", None)
 
     async def test_version_3_is_served_with_the_provision_date(self, monkeypatch):
         richieste, tabelle = _serve(monkeypatch, {CPC + "765": ART765, CPC + "765!vig=2021-10-30": ART765_V3,
@@ -511,17 +519,12 @@ class TestRevisione:
         assert not vd.atti_del_comma(riga("comma 30"), "3") and not vd.atti_del_comma(riga("comma 3-bis"), "3")
 
     def test_a_comma_number_alone_on_its_line(self):
-        assert vd.data_nel_testo("2.\nAltro.\n3.\nLe disposizioni dell'articolo 27 entrano in vigore il 31 ottobre "
-                                 "2027.\n4.\nLe disposizioni entrano in vigore il 1° gennaio 2019.", "3") == "2027-10-31"
+        assert vd.stato_disposizione("2.\nAltro.\n3.\nLe disposizioni dell'articolo 27 entrano in vigore il 31 "
+                                     "ottobre 2027.\n4.\nLe disposizioni entrano in vigore il 1° gennaio 2019.", "3",
+                                     OGGI) == ("rinvio", "2027-10-31")
 
-    async def test_a_stale_chain_on_a_text_of_other_acts_says_nothing(self, monkeypatch):
-        """Provision not readable, and the latest version made by an act outside the chain: the
-        text served is not the chain's, so nothing is said and the page stands (ESATTO)."""
-        tabella = _tabella("765", TABELLE_ART27)
-        tabella["righe"][5] = [{"progressivo": 1, "data_gu": "2024-11-11", "atti": [
-            {"atto": {"tipo_atto": "decreto legislativo", "data": "2024-10-31", "numero_atto": "164"},
-             "disposizioni": [{"parti": "comma 2"}]}]}]
-        _serve(monkeypatch, {CPC + "765": ART765}, {"765": tabella})
+    @staticmethod
+    def _art32_giu(monkeypatch):
         originale = scraper._normattiva_page
 
         async def art32_giu(url, articolo=None):
@@ -530,8 +533,62 @@ class TestRevisione:
             return await originale(url, articolo)
 
         monkeypatch.setattr(scraper, "_normattiva_page", art32_giu)
+
+    @staticmethod
+    def _sopra_la_v4():
+        """Art. 765's table with version 5 made by an act outside the chain (d.lgs. 164/2024)
+        over version 4, which carries the deferred act."""
+        tabella = _tabella("765", TABELLE_ART27)
+        tabella["righe"][5] = [{"progressivo": 1, "data_gu": "2024-11-11", "atti": [
+            {"atto": {"tipo_atto": "decreto legislativo", "data": "2024-10-31", "numero_atto": "164",
+                      "gazzetta": "G.U. 11/11/2024, n.264", "data_gu": "2024-11-11",
+                      "descrizione": "Il DECRETO LEGISLATIVO 31 ottobre 2024, n. 164"},
+             "disposizioni": [{"disposizione": "art. 3, comma 1", "tipo": "modifica", "parti": "comma 2",
+                               "testo": "ha disposto (con l'art. 3, comma 1) la modifica dell'art. 765, comma 2"}]}]}]
+        return tabella
+
+    async def test_a_date_not_read_over_a_later_act_is_still_said(self, monkeypatch):
+        """Review of #179 (B1): provision not readable, version 5 by another act over the deferred
+        version 4. With the date read this is a case B; without it, never ESATTO either."""
+        _serve(monkeypatch, {CPC + "765": ART765}, {"765": self._sopra_la_v4()})
+        self._art32_giu(monkeypatch)
         t = await api.testo_articolo(_cpc("765"), canale="html")
-        assert t.precisione == "ESATTO" and not any("2026-10-31" in a for a in t.avvisi)
+        assert t.precisione == "INDICATIVO"
+        assert "non è stato possibile leggere sull'art. 32, comma 3" in t.avvisi[0]
+
+    async def test_a_date_not_read_over_a_later_act_in_the_history(self, monkeypatch):
+        _serve(monkeypatch, {CPC + "765": ART765}, {"765": self._sopra_la_v4()})
+        self._art32_giu(monkeypatch)
+        m = await api.modifiche_articolo("art. 765 c.p.c.")
+        assert m.precisione == "INDICATIVO" and "art. 32, comma 3" in m.avvisi[0]
+
+    async def test_a_stale_chain_with_no_version_of_the_deferred_act_says_nothing(self, monkeypatch):
+        """No version read carries the deferred act: the text holds none of it, nothing is said."""
+        tabella = _tabella("765", TABELLE_ART27)
+        tabella["righe"] = {k: [r for r in v if all(a["atto"]["numero_atto"] != "116" for a in r["atti"])]
+                            for k, v in tabella["righe"].items()}
+        _serve(monkeypatch, {CPC + "765": ART765}, {"765": tabella})
+        self._art32_giu(monkeypatch)
+        t = await api.testo_articolo(_cpc("765"), canale="html")
+        assert t.esito == "trovato" and t.precisione == "ESATTO" and not any("2026-10-31" in a for a in t.avvisi)
+
+    @pytest.mark.parametrize("comma3", [
+        "COMMA ABROGATO DAL D.L. 1 FEBBRAIO 2027, N. 1.",
+        "Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2027 e quelle dell'articolo 28 entrano "
+        "in vigore il 1° gennaio 2027.",
+    ], ids=["comma-abrogato", "due-date-passate"])
+    async def test_a_provision_read_with_no_future_date_defers_nothing(self, monkeypatch, comma3):
+        """Review of #179 (M1): after 31/10/2027, a comma repealed (spent) or stating only dates
+        already past is no deferral: art. 7 stays ESATTO, never INDICATIVO for ever."""
+        monkeypatch.setenv("LEGAL_TODAY", "2027-11-01")
+        art32 = ART32_116.replace(
+            "Le disposizioni dell'articolo 27 entrano in vigore il <div class=\"ins-akn\" eid=\"ins_1\">((31 ottobre "
+            "2027))</div>.", comma3)
+        assert art32 != ART32_116
+        _, tabelle = _serve(monkeypatch, {CPC + "7": ART7, DLGS_116 + "32": art32}, None)
+        t = await api.testo_articolo(_cpc("7"), canale="html")
+        assert t.esito == "trovato" and t.precisione == "ESATTO" and tabelle == []
+        assert not any("2027-10-31" in a or "2026-10-31" in a for a in t.avvisi)
 
     async def test_a_deferred_repeal_with_the_table_unread_never_says_amendments(self, monkeypatch):
         _serve(monkeypatch, {DISP_ATT_CC + "73bis": ART73BIS}, {"esito": "verifica_non_disponibile"})
