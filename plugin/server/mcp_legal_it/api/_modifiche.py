@@ -83,7 +83,10 @@ async def _rinvio(letta: dict, oggi: str, dal: "str | None") -> "tuple[dict, str
         return r, None, {}
     versioni, righe = letta.get("versioni") or {}, letta.get("righe") or {}
     if r.get("data") is None:
-        return (r, None, {}) if vigenza_differita.porta_atto_rinviato(r, righe) else None
+        # Date not known: said when a version read carries the deferred act, or when *dal* left
+        # out the versions it may have entered (as with the date known, below).
+        noto = vigenza_differita.porta_atto_rinviato(r, righe) or (dal and dal > r["atto"][1])
+        return (r, None, {}) if noto else None
     caso, info = vigenza_differita.caso(r, versioni, righe)
     if caso is not None:
         return r, caso, info

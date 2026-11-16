@@ -656,3 +656,15 @@ class TestRevisione:
         nota = vd.nota_verifica(vd.sintesi(r))
         assert nota.count(", ma ") == 1 and "non è verificato se l'abrogazione sia già in vigore" in nota
         assert "non è verificato se l'abrogazione sia già in vigore" in vd.avviso_storia(r, None, {})
+
+    async def test_a_history_from_a_later_day_with_the_date_not_read_is_said(self, monkeypatch):
+        """Review of #179 (N1): with ``dal`` after the deferred act only version 5 is read, and
+        art. 32 unreachable. The versions the deferred act may have entered were left out: said,
+        as with the date read, never ESATTO."""
+        tabella = _tabella("765", TABELLE_ART27)
+        tabella["righe"] = {5: tabella["righe"][5]}
+        _serve(monkeypatch, {CPC + "765": ART765}, {"765": tabella})
+        self._art32_giu(monkeypatch)
+        m = await api.modifiche_articolo("art. 765 c.p.c.", dal="2025-10-01")
+        assert m.esito == "trovato" and m.precisione == "INDICATIVO"
+        assert "art. 32, comma 3" in m.avvisi[0]
