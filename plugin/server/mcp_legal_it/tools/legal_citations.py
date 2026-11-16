@@ -122,6 +122,11 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
         elif source.startswith("normattiva") and (futura := versione_futura(url)):
             # The undated page showed tomorrow's text: today's is below, and the reader is told.
             parts.append(f"**Attenzione**: {avviso_versione_futura(futura)}.\n")
+        if article_result.get("rinvio"):
+            # Amendments whose entry into force a later act deferred (#172): said before the text.
+            from mcp_legal_it.lib.visualex.vigenza_differita import avviso as avviso_rinvio
+
+            parts.append(f"**Attenzione**: {avviso_rinvio(article_result['rinvio'])}.\n")
         if article_result.get("allegato"):
             parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
         from mcp_legal_it.core.norme import AVVISO_NOTE_NON_LETTE, note_della_pagina

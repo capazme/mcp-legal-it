@@ -203,6 +203,9 @@ def _lookup_base(reference: str) -> dict:
         # The consolidation of corrigenda CELLAR lists but does not publish, whose OJ text was
         # served instead (#163); None otherwise.
         "consolidato_non_pubblicato": None,
+        # An entry into force the article's notes defer past today (#172): {data, nota, atto,
+        # articolo, caso}, None otherwise.
+        "rinvio": None,
     }
 
 
@@ -269,6 +272,12 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
     q = qualita_testo(base, act_info, article)
     if base.get("not_in_force"):
         q = {**q, "precisione": "INDICATIVO", "avvisi": [avviso_non_in_vigore(result["upcoming"])] + q["avvisi"]}
+    if result.get("rinvio") and base["testo"]:
+        # Amendments whose entry into force a later act deferred (#172): never ESATTO, said.
+        from mcp_legal_it.lib.visualex import vigenza_differita
+
+        q = {**q, "precisione": "INDICATIVO", "avvisi": [vigenza_differita.avviso(result["rinvio"])] + q["avvisi"]}
+        base["rinvio"] = vigenza_differita.sintesi(result["rinvio"])
     # An EU text's own notices (a consolidation not applicable yet, a day before the act
     # was in force) come from the lookup, after the notice of what the text is.
     base["avvisi"] = q["avvisi"] + (list(result.get("avvisi_ue") or []) if base["testo"] else [])

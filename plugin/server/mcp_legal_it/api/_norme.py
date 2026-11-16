@@ -708,7 +708,8 @@ async def _testo_articolo(riferimento: str | NormaDati, *, canale: Canale,
         validita, precisione, avvisi, successione, upcoming = _qualita(base, act_info, article)
         # The lookup already joined the source's own notices (an EU consolidation to come).
         avvisi, upcoming = tuple(base.get("avvisi") or avvisi), base.get("upcoming") or upcoming
-        if base.get("not_in_force"):
+        if base.get("not_in_force") or base.get("rinvio"):
+            # A text not in force yet, or one an entry into force deferred past today concerns (#172).
             precisione = "INDICATIVO"
         if validita is not None and validita.state == "not_yet":
             # «NON ANCORA ESISTENTE O VIGENTE»: the article did not exist on the day asked

@@ -111,4 +111,8 @@ Captured on 2026-11-16 from `https://www.normattiva.it/uri-res/N2Ls?urn:nir:stat
 | File | Article | What Normattiva served |
 |------|---------|------------------------|
 | `cpc_art7_vig_2026-11-16_rinvio_2027_trimmed.html` | art. 7 c.p.c. | version 10, «Testo in vigore dal 31-10-2025», carrying art. 27 d.lgs. 116/2017; notes (179) and (183) defer it to 31/10/2026 and 31/10/2027 |
+| `cpc_art7_vig_2025-10-30_versione_9_trimmed.html` | art. 7 c.p.c. | version 9 (01-01-2023 to 30-10-2025), the text in force (case A) |
+| `cpc_art15bis_vig_2026-11-16_rinvio_2027_trimmed.html` | art. 15-bis c.p.c. | version 1 (31-10-2021), the article inserted by the deferred art. 27 |
 | `cpc_art543_vig_2026-11-16_rinvio_2027_trimmed.html` | art. 543 c.p.c. | version 9 (26-11-2024), laid on the deferred «giudice competente» of version 7 (31-10-2021); notes (160), (179), (183) defer co. 2 n. 3 and co. 4 to 31/10/2027 |
+
+`cpc_aggiornamenti_rinvio_2027.json`: `aggiornamenti.leggi_aggiornamenti(dal=2017-07-13)` on 2026-11-16 for artt. 7, 15-bis and 543 c.p.c., reduced to versions, windows and the acts of each version. Used by `tests/unit/test_vigenza_differita.py`.
