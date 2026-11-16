@@ -911,6 +911,14 @@ described in those sections, not repeated here. Upgrading from 2.x:
   Sunday 15/03/2026 instead of Monday 16/03/2026. The result carries a `nota`.
 
 ### Security
+- **Three dependencies of the plugin lock past advisories published on 16 November 2026.**
+  dnspython 2.9.0 → 2.9.2 (CVE-2026-128089), opentelemetry-api 1.45.1 → 1.45.2
+  (CVE-2026-126360), soupsieve 3.0.3 → 4.1.1 (CVE-2026-126190, fixed in 4.0). All three are
+  transitive (email-validator, fastmcp-slim, beautifulsoup4), so only `plugin/server/uv.lock`
+  moves. soupsieve 4 is a major: its breaking changes concern `<template>` contents and
+  `iframe` documents, which none of the scraped pages and none of our selectors rely on; every
+  scraping test passes with it. The lock is now written in uv's format revision 5, which uv 0.7
+  to 0.13 all read.
 - **The citation hook and the local server no longer use the opened folder's Python
   environment.** The hook and the server's launchers (the `.mcpb`, the Codex
   configuration of the OpenAI bundle, the documented examples) started `uv` from the
