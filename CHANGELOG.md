@@ -978,6 +978,22 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **Amendments whose entry into force was deferred, served as in force (#172).** Normattiva dated the
+  versions carrying art. 27 of d.lgs. 116/2017 (giudice di pace reform) by superseded dates of its
+  entry-into-force chain (31/10/2021, 2025) and served them as the text in force, `ESATTO`, although
+  the articles' own update notes defer them to 31/10/2027 (d.l. 100/2026). The notes' dated
+  entry-into-force clauses are now read (`lib/visualex/vigenza_differita.py`; the latest note of each
+  provision wins). When one falls after today, the article's table of updates decides: the latest
+  version carries only the deferred act and the acts that deferred it, so the previous version is
+  served as the text in force (case A, e.g. art. 7 c.p.c., version 01/01/2023-30/10/2025); the
+  article itself was inserted by the deferred act, so it is not in force yet (art. 15-bis c.p.c.);
+  otherwise no version is the text in force and it is said (case B, art. 543 c.p.c.). Always
+  `INDICATIVO`, with a notice naming the note and the date, and `upcoming` {amended, 2027-10-31};
+  `cite_law` JSON carries `rinvio`, and `verifica_citazioni` says it, also when the table of updates
+  could not be read (or was read only in part) to tell which text is in force. `storia_norma` and
+  `api.modifiche_articolo` name the version Normattiva wrongly gives as in force, `INDICATIVO`, from
+  the notes of the page the walk already reads (no request more). Checked live on the 20 articles of
+  the c.p.c. and c.c. that carry the note.
 - **«c.g.c.» was refused as ambiguous.** The key «cgc» of `NOMI_AMBIGUI` caught «c.g.c.» through the
   dotted-acronym collapse, so «art. 190 c.g.c.» (d.lgs. 174/2016) was refused by callers that ask
   for ambiguity first. «cgc» is dropped (no second act was ever named for it) and a name the tables

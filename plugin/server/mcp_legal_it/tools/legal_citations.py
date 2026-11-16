@@ -122,6 +122,11 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
         elif source.startswith("normattiva") and (futura := versione_futura(url)):
             # The undated page showed tomorrow's text: today's is below, and the reader is told.
             parts.append(f"**Attenzione**: {avviso_versione_futura(futura)}.\n")
+        if article_result.get("rinvio"):
+            # Amendments whose entry into force a later act deferred (#172): said before the text.
+            from mcp_legal_it.lib.visualex.vigenza_differita import avviso as avviso_rinvio
+
+            parts.append(f"**Attenzione**: {avviso_rinvio(article_result['rinvio'])}.\n")
         if article_result.get("allegato"):
             parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
         from mcp_legal_it.core.norme import AVVISO_NOTE_NON_LETTE, note_della_pagina
@@ -1122,6 +1127,12 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
         return "metadati discordanti", nota
 
     nota = f"Fonte: {fonte}" if fonte else "Testo ufficiale reperito."
+    if r := data.get("rinvio"):
+        # An entry into force the notes defer past today (#172): said in every case, also when
+        # the table of updates could not be read to tell which text is in force.
+        from mcp_legal_it.lib.visualex.vigenza_differita import nota_verifica
+
+        nota += f" Attenzione: {nota_verifica(r)}."
     if (prossima := data.get("upcoming")) and prossima.get("valid_from"):
         # In force today, with a later version already published: still verified, and said.
         cambio = "abrogato" if prossima.get("change") == "abrogated" else "modificato"

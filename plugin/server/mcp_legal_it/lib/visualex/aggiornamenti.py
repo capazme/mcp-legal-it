@@ -405,7 +405,9 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
     - ``oltre_tetto``: versions the ceiling left unread; ``errore``;
     - ``vuote``: versions after the first whose table lists nothing (never kept);
     - ``storia_certa``: False when a page without the article's update link also lacks the
-      act's update link or a window (markup that changed: «never amended» is not said).
+      act's update link or a window (markup that changed: «never amended» is not said);
+    - ``note_pagina``: the article page's update notes (``note_normattiva.leggi_note``), None
+      when unread.
 
     Version 1's table is the whole history: of it, only the article's own introduction is
     kept (:func:`inserimento_articolo`). Every version page must name the article and be
@@ -419,7 +421,7 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
     voluto = scraper._article_identity(scraper.normalize_article_key(articolo))
     urn = url.split("?", 1)[1] if "?" in url else url
     out = {"esito": "trovato", "versioni": {}, "righe": {}, "mancanti": [], "oltre_tetto": [], "vuote": [],
-           "storia_certa": True, "nota_v1": None, "errore": None, "corrente": None}
+           "storia_certa": True, "nota_v1": None, "errore": None, "corrente": None, "note_pagina": None}
 
     def _servito(html: str) -> "str | None":
         # A version's page opens with «<?xml»: VisuaLex's HTML parser reads it, and says so.
@@ -465,6 +467,14 @@ async def leggi_aggiornamenti(url: str, articolo: str, *, dal: Optional[str], al
                 out["errore"] = ("Normattiva non ha servito la pagina dell'articolo"
                                  + (f" ({problema})" if problema else ": la pagina non dice quale articolo è"))
             return out
+
+        try:
+            # The article page's update notes, read from the page already fetched: a deferred
+            # entry into force is told by them (vigenza_differita, #172). None when unread.
+            letta_note = scraper._lettura_pagina(pagina)[2]
+            out["note_pagina"] = (letta_note or {}).get("note")
+        except Exception:  # noqa: BLE001 - best effort: notes unread, never a failed history
+            out["note_pagina"] = None
 
         def stesso_articolo(numero: str) -> bool:
             return scraper._article_identity(scraper.normalize_article_key(numero)) == voluto
