@@ -70,6 +70,68 @@ _MESI = [
     "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre",
 ]
 
+# ---------------------------------------------------------------------------
+# Grammatical agreement of the procura. The sex of a natural person is read from
+# the codice fiscale (birth day + 40 for women, D.M. 23 dicembre 1976), with the
+# omocodia letters mapped back to digits; an explicit "genere" ("M"/"F") wins.
+# When neither is usable the masculine form is kept, as the template always did.
+# ---------------------------------------------------------------------------
+_CF_PERSONA_FISICA = re.compile(
+    r"^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$"
+)
+_OMOCODIA = str.maketrans("LMNPQRSTUV", "0123456789")
+
+# Wording that depends on the number and gender of the defenders: one table, so the
+# owner can amend a form in a single place. A mixed group takes the masculine plural.
+_FORME_DIFENSORI = {
+    (1, "M"): {
+        "conferendo": "conferendogli",
+        "operato": "il suo operato",
+        "domicilio": "il nominato difensore",
+        "polizza": "del proprio difensore",
+    },
+    (1, "F"): {
+        "conferendo": "conferendole",
+        "operato": "il suo operato",
+        "domicilio": "la nominata difensora",
+        "polizza": "della propria difensora",
+    },
+    (2, "M"): {
+        "conferendo": "conferendo loro",
+        "operato": "il loro operato",
+        "domicilio": "i nominati difensori",
+        "polizza": "dei propri difensori",
+    },
+    (2, "F"): {
+        "conferendo": "conferendo loro",
+        "operato": "il loro operato",
+        "domicilio": "le nominate difensore",
+        "polizza": "delle proprie difensore",
+    },
+}
+
+_FORME_FIRMATARIO = {
+    "M": {"sottoscritto": "Il sottoscritto", "informato": "stato informato", "edotto": "stato reso edotto"},
+    "F": {"sottoscritto": "La sottoscritta", "informato": "stata informata", "edotto": "stata resa edotta"},
+}
+
+
+def _genere(cf: str = "", genere: str = "") -> str:
+    """Return "M" or "F": the explicit value if given, else the codice fiscale, else "M"."""
+    esplicito = (genere or "").strip().upper()[:1]
+    if esplicito in ("M", "F"):
+        return esplicito
+    codice = (cf or "").strip().upper()
+    if _CF_PERSONA_FISICA.match(codice):
+        return "F" if int(codice[9:11].translate(_OMOCODIA)) > 40 else "M"
+    return "M"
+
+
+def _forme_difensori(difensori: list[dict]) -> dict:
+    generi = {_genere(d.get("cf", ""), d.get("genere", "")) for d in difensori}
+    genere = "F" if generi == {"F"} else "M"
+    return _FORME_DIFENSORI[(1 if len(difensori) == 1 else 2, genere)]
+
 
 def _d2(value) -> Decimal:
     return Decimal(str(value)).quantize(Decimal("0.01"), ROUND_HALF_UP)
@@ -181,8 +243,12 @@ def genera_procura_liti_docx(
     Produce il modello completo usato nel recupero crediti seriale: conferimento a uno o
     piu' difensori (congiuntamente e disgiuntamente), elezione di domicilio, dichiarazioni
     su mediazione (art. 4 D.Lgs. 28/2010), negoziazione assistita (D.L. 132/2014),
-    preventivo e polizza, consenso privacy, apposizione in calce ex art. 18 D.M. 44/2011,
-    blocco firma del mandante e autentica dei difensori. Formattazione: Times New Roman 11,
+    preventivo e polizza, informativa privacy (art. 13 GDPR; basi art. 6, par. 1, lett. b), e
+    art. 9, par. 2, lett. f): nessun consenso), apposizione in calce ex art. 18 D.M. 44/2011,
+    blocco firma del mandante e autentica dei difensori. Il testo concorda in numero e genere
+    con i difensori e con il firmatario: il genere si ricava dal codice fiscale (giorno di
+    nascita + 40 per le donne), oppure dalla chiave "genere" ("M"/"F") del difensore;
+    in mancanza resta il maschile. Formattazione: Times New Roman 11,
     impaginata su una sola pagina. Usare quando serve la procura in Word da far firmare;
     per un semplice testo base usare invece procura_alle_liti().
     Vigenza: art. 83 c.p.c.; art. 18, co. 5, D.M. 44/2011. Precisione: ESATTO (testo modello).
@@ -194,7 +260,7 @@ def genera_procura_liti_docx(
         firmatario_nome: Nome e cognome della persona fisica che firma
         firmatario_cf: Codice fiscale del firmatario
         controparte: Clausola identificativa della controparte, VERBATIM come da atti (denominazione, legale rappr., sede, C.F./P.IVA)
-        difensori: Lista di difensori, ciascuno come oggetto {"nome": "Giulia Bianchi", "cf": "BNCGLI80A41F205Y"}
+        difensori: Lista di difensori, ciascuno come oggetto {"nome": "Giulia Bianchi", "cf": "BNCGLI80A41F205Y"}; chiave facoltativa "genere" ("M"/"F") se il codice fiscale manca
         domicilio_studio: Indirizzo dello studio per l'elezione di domicilio (es. "corso Esempio n. 10 – 20100 Milano (MI)")
         pec: PEC del/dei difensori come da testo (es. "g.bianchi@pec.esempio.it e p.verdi@pec.esempio.it")
         firmatario_qualifica: Qualifica del firmatario (es. "presidente del consiglio di amministrazione e legale rappresentante")
@@ -247,8 +313,11 @@ def genera_procura_liti_docx(
     par("PROCURA ALLE LITI", bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
     par("RILASCIATA AI SENSI DELL’ART. 83, COMMA 3, C.P.C.", bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
 
+    forme = _forme_difensori(difensori)
+    firmatario = _FORME_FIRMATARIO[_genere(firmatario_cf)]
+
     par(
-        f"Il sottoscritto {firmatario_nome} (Cod. Fisc. {firmatario_cf}), nella sua qualità di "
+        f"{firmatario['sottoscritto']} {firmatario_nome} (Cod. Fisc. {firmatario_cf}), nella sua qualità di "
         f"{firmatario_qualifica} di {mandante_denominazione}, con sede legale in {mandante_sede}, "
         f"Cod. Fisc. e Partita IVA {mandante_cf_piva},"
     )
@@ -262,27 +331,34 @@ def genera_procura_liti_docx(
     par(
         f"{elenco}, {congiunzione}per rappresentare e difendere la predetta parte nel procedimento "
         f"nei confronti di {controparte}, ed in ogni successiva fase e grado, compresa quella di appello, "
-        "reclamo, opposizione ed esecuzione, conferendo loro all’uopo ogni più ampia facoltà di legge, "
+        f"reclamo, opposizione ed esecuzione, {forme['conferendo']} all’uopo ogni più ampia facoltà di legge, "
         "ivi comprese, a titolo meramente esemplificativo e non esaustivo, la facoltà di transigere, "
         "conciliare, incassare, rinunciare agli atti, farsi rappresentare, assistere e sostituire, "
         "indicare domiciliatari, riassumere la causa, proseguirla, chiamare terzi in causa, deferire "
         "giuramento, proporre domande riconvenzionali ed azioni cautelari di qualsiasi genere, dando "
-        "sin d’ora per rato e valido il loro operato senza bisogno di alcuna ratifica espressa, e con "
+        f"sin d’ora per rato e valido {forme['operato']} senza bisogno di alcuna ratifica espressa, e con "
         "espresso potere di dichiararsi antistatari."
     )
     recapiti = f"fax {fax}, PEC {pec}" if fax else f"PEC {pec}"
-    plurale = "i nominati difensori" if len(difensori) > 1 else "il nominato difensore"
-    par(f"Elegge domicilio presso {plurale} con studio in {domicilio_studio}, {recapiti}.")
+    par(f"Elegge domicilio presso {forme['domicilio']} con studio in {domicilio_studio}, {recapiti}.")
 
     par("DICHIARA", bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
+    informato, edotto = firmatario["informato"], firmatario["edotto"]
+    # The mediation and negoziazione assistita notices stay even for a procedimento
+    # monitorio: the duty of art. 4, co. 3, D.Lgs. 28/2010 and art. 2, co. 7, D.L. 132/2014
+    # arises at the conferimento of every incarico (the contract is annullabile without it),
+    # whatever the procedibilità of the first phase, and the procura also covers the
+    # opposizione, where art. 5, co. 6, lett. a), D.Lgs. 28/2010 lifts the exclusion.
     dichiarazioni = [
         "di voler ricevere le comunicazioni, le notifiche e gli avvisi relativi al presente procedimento al domicilio eletto;",
-        "di essere stato informato, ai sensi dell’art. 4, co. 3, D.Lgs. n. 28/2010 e ss.mm.ii., della possibilità di ricorrere al procedimento di mediazione ivi previsto e dei benefici fiscali di cui agli artt. 17 e 20 del medesimo decreto, nonché dei casi in cui l’esperimento del procedimento di mediazione è condizione di procedibilità della domanda giudiziale;",
-        "di essere stato informato, ai sensi dell’art. 2, co. 7, D.L. n. 132/2014, convertito in L. n. 162/2014, della possibilità di ricorrere alla convenzione di negoziazione assistita da uno o più avvocati disciplinata dagli artt. 2 e ss. del suddetto decreto legge, nonché dei casi di cui all’art. 3 del suddetto decreto in cui l’esperimento di tale procedimento è condizione di procedibilità della domanda giudiziale;",
-        "di essere stato reso edotto circa i rischi del contenzioso e il grado di complessità dell’incarico che con la presente conferisce, delle caratteristiche e dell’importanza dell’incarico, delle attività da espletare, delle iniziative da intraprendere, delle ipotesi di soluzione e della prevedibile durata del processo;",
+        f"di essere {informato}, ai sensi dell’art. 4, co. 3, D.Lgs. n. 28/2010 e ss.mm.ii., della possibilità di ricorrere al procedimento di mediazione ivi previsto e dei benefici fiscali di cui agli artt. 17 e 20 del medesimo decreto, nonché dei casi in cui l’esperimento del procedimento di mediazione è condizione di procedibilità della domanda giudiziale;",
+        f"di essere {informato}, ai sensi dell’art. 2, co. 7, D.L. n. 132/2014, convertito in L. n. 162/2014, della possibilità di ricorrere alla convenzione di negoziazione assistita da uno o più avvocati disciplinata dagli artt. 2 e ss. del suddetto decreto legge, nonché dei casi di cui all’art. 3 del suddetto decreto in cui l’esperimento di tale procedimento è condizione di procedibilità della domanda giudiziale;",
+        f"di essere {edotto} circa i rischi del contenzioso e il grado di complessità dell’incarico che con la presente conferisce, delle caratteristiche e dell’importanza dell’incarico, delle attività da espletare, delle iniziative da intraprendere, delle ipotesi di soluzione e della prevedibile durata del processo;",
         "di avere ricevuto tutte le informazioni utili circa gli oneri ipotizzabili dal momento del conferimento sino alla conclusione dell’incarico, nonché di aver ricevuto ed accettato un preventivo scritto relativo alla prevedibile misura dei costi della prestazione, con distinzione analitica delle voci di costo tra oneri, anche fiscali e previdenziali, spese, anche forfettarie, e compenso professionale;",
-        "di essere stato reso edotto degli estremi della polizza assicurativa professionale dei suoi difensori e della facoltà di recedere dall’incarico professionale costituendo giusta causa il mancato pagamento degli oneri così come convenuti e formalizzati nelle proforma da trasmettersi;",
-        "ai sensi e per gli effetti di cui al D.Lgs. n. 196/2003 e del Regolamento (UE) 2016/679 e ss.mm.ii., di essere stato informato che i dati personali, anche sensibili, verranno utilizzati per le finalità inerenti al presente mandato, autorizzando sin d’ora il rispettivo trattamento.",
+        f"di essere {edotto} degli estremi della polizza assicurativa professionale {forme['polizza']} e della facoltà di recedere dall’incarico professionale costituendo giusta causa il mancato pagamento degli oneri così come convenuti e formalizzati nelle proforma da trasmettersi;",
+        # GDPR wording: the lawyer's processing rests on art. 6(1)(b) and, for the
+        # categorie particolari, art. 9(2)(f): no consent is asked for or given.
+        f"di essere {informato}, ai sensi dell’art. 13 del Regolamento (UE) 2016/679, che i dati personali conferiti, ivi comprese le eventuali categorie particolari di dati di cui all’art. 9 del Regolamento, saranno trattati per le sole finalità inerenti al presente mandato, sulla base dell’art. 6, par. 1, lett. b), e, per le categorie particolari, dell’art. 9, par. 2, lett. f), del Regolamento medesimo, nel rispetto del D.Lgs. n. 196/2003, come modificato dal D.Lgs. n. 101/2018.",
     ]
     for voce in dichiarazioni:
         par("-  " + voce, hang=True)
