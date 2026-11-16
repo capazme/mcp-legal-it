@@ -1007,8 +1007,9 @@ described in those sections, not repeated here. Upgrading from 2.x:
     - The provision not readable, or its date not known (no date, more than one future date):
       a notice without a date, `INDICATIVO`, whenever a version read carries the deferred act.
 
-    Case A now walks back over every version of the chain: versions 4 and 5 both are, so version
-    3 («cancelliere del tribunale») is served.
+    Case A now also covers the versions after the deferred one when they carry only the acts that
+    deferred it: version 4 (art. 27), then version 5 (d.l. 162/2019), so version 3 («cancelliere del
+    tribunale») is served. The deferred act in more than one version stays a case B.
   - art. 73-bis disp. att. c.c. served as repealed, `ESATTO`. Its notes word the deferral «la proroga
     al 31 ottobre 2027 dell'entrata in vigore della presente abrogazione», with or without «che»,
     and that wording is now read. A repealed page goes through case A: version 2 is served with the

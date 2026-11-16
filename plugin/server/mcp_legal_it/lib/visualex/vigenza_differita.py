@@ -281,27 +281,32 @@ def caso(r: dict, versioni: dict, righe: dict) -> "tuple[str | None, dict]":
     ``("non_in_vigore", {...})`` or ``("B", {...})``, *prima* the version Normattiva gave the
     deferred amendments to first.
 
-    A case A is never assumed: every version from *prima* to the latest must carry only acts
-    of the chain (art. 765 c.p.c.: versions 4 and 5, so version 3 is in force), and the window
-    of the version before *prima* must be known.
+    A case A is never assumed: the deferred act must be in one version only (*prima*), which
+    carries only acts of the chain, every later version must carry only the acts that deferred
+    it (art. 765 c.p.c.: version 4, then version 5 by d.l. 162/2019, so version 3 is in force),
+    and the window of the version before *prima* must be known.
     """
     if not r.get("data"):
         return None, {}
     finestre = {k: v for k, v in versioni.items() if v}
-    con_atto = [k for k, rr in righe.items()
-                if r["atto"] in _atti_della_versione(rr) and finestre.get(k) and finestre[k][0] < r["data"]]
+    tutte_con_atto = [k for k, rr in righe.items() if r["atto"] in _atti_della_versione(rr)]
+    con_atto = [k for k in tutte_con_atto if finestre.get(k) and finestre[k][0] < r["data"]]
     if not con_atto:
         return None, {}
     ultima = max(versioni)
     servita = (ultima, finestre[ultima][0]) if finestre.get(ultima) else (ultima, None)
     prima = min(con_atto)  # the version Normattiva gave the deferred amendments to first
     info = {"servita": servita, "rinviate_dal": finestre[prima][0], "prima": prima}
+    rinviano = r["catena"] - {r["atto"]}
 
-    def della_catena(k: int) -> bool:
+    def solo(k: int, ammessi: set) -> bool:
         atti = _atti_della_versione(righe.get(k))
-        return bool(atti) and atti <= r["catena"]
+        return bool(atti) and atti <= ammessi
 
-    solo_catena = all(della_catena(k) for k in range(prima, ultima + 1))
+    # The deferred act in one version only (review of #179: a version it made by a provision
+    # already in force must not be dropped), and after it only the acts that deferred it.
+    solo_catena = (len(tutte_con_atto) == 1 and solo(prima, r["catena"])
+                   and all(solo(k, rinviano) for k in range(prima + 1, ultima + 1)))
     if solo_catena and prima == 1:
         return "non_in_vigore", info
     precedente = finestre.get(prima - 1)

@@ -597,3 +597,23 @@ class TestRevisione:
         assert t.precisione == "INDICATIVO" and "ABROGATO" in t.article_text  # the page, never a guess
         assert "Normattiva dà l'articolo come abrogato: non è stato possibile leggere il testo in vigore" in t.avvisi[0]
         assert "le contiene" not in t.avvisi[0]
+
+    def test_case_a_over_versions_only_with_the_deferred_act_in_one(self):
+        """Review of #179 (M2): the deferred act also made version 3 in 2017 by a provision
+        already in force, then the deferred version 4. Serving version 2 would drop the 2017
+        amendment: case B, as before #179."""
+        def riga(tipo, data, numero):
+            return [{"atti": [{"atto": {"tipo_atto": tipo, "data": data, "numero_atto": numero}}]}]
+
+        r = vd.rinvio([{"numero": "183", "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 30 "
+                                                  "dicembre 2019, n. 162, ha disposto (con l'art. 32, comma 3) che "
+                                                  "\"Le disposizioni dell'articolo 27 entrano in vigore il 31 "
+                                                  "ottobre 2027\"."}], OGGI)
+        versioni = {5: ("2025-10-31", None), 4: ("2021-10-31", "2025-10-30"), 3: ("2017-08-15", "2021-10-30"),
+                    2: ("1998-07-04", "2017-08-14")}
+        righe = {5: riga("decreto legge", "2019-12-30", "162"), 4: riga("decreto legislativo", "2017-07-13", "116"),
+                 3: riga("decreto legislativo", "2017-07-13", "116")}
+        assert vd.caso(r, versioni, righe)[0] == "B"
+        # The same without the 2017 version: case A over versions 4 and 5, version 3 served.
+        caso, info = vd.caso(r, versioni, {5: righe[5], 4: righe[4]})
+        assert caso == "A" and info["precedente"][0] == 3
