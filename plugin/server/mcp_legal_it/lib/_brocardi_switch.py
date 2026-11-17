@@ -195,6 +195,11 @@ def disabled() -> Iterator[None]:
         _context.reset(token)
 
 
+def context_value() -> bool | None:
+    """The override set for the current context (``None``: none)."""
+    return _context.get()
+
+
 def set_for_context(value: bool | None) -> object:
     """Low-level: set the override for the current context; returns the token for ``reset``.
 

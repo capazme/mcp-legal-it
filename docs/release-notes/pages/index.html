@@ -234,7 +234,7 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
   <section style="display:grid;gap:1rem" aria-labelledby="opt-h">
     <h2 id="opt-h">Brocardi (spento per default)</h2>
     <p>Brocardi.it è l'unica fonte privata di Legal IT: note di dottrina e massime, mai il testo delle norme. Da questa versione è <strong>spenta per impostazione predefinita</strong>: nessuna richiesta parte verso Brocardi.it, due strumenti (<code>cerca_brocardi</code>, <code>fetch_law_annotations</code>) non compaiono e la giurisprudenza arriva dall'archivio della Cassazione. Tutte le altre fonti restano accese.</p>
-    <p>Se hai titolo a usarne i contenuti e vuoi riaccenderla, avvia Claude Code così:</p>
+    <p>Per riaccenderla, avvia Claude Code così:</p>
     <div class="only-mac"><div class="cmd"><pre>LEGAL_BROCARDI=on claude</pre><button type="button">Copia</button></div></div>
     <div class="only-win"><div class="cmd"><pre>$env:LEGAL_BROCARDI="on"; claude</pre><button type="button">Copia</button></div></div>
     <p>Se usi la scheda Code dell'app Claude, che non parte dal Terminale, aggiungi la riga <code>"LEGAL_BROCARDI": "on"</code> nel blocco <code>"env"</code> del file <code>settings.json</code> della cartella <code>.claude</code> nella tua cartella utente, poi riapri l'app. Per controllare, chiedi a Claude: <em>«Brocardi è attivo in Legal IT?»</em> (risponde lo strumento <code>stato_server</code>).</p>

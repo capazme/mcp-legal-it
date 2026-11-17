@@ -35,21 +35,23 @@ CACHE_DIR = Path.home() / ".cache" / "mcp-legal-it"
 
 MIN_PYTHON = (3, 11)
 
+# Tool counts with Brocardi off, as by default (LI-079); LEGAL_BROCARDI=on adds two
+# to every profile that contains `normativa` (full: 235).
 PROFILES = {
     "sinistro": {
         "desc": "Sinistri e risarcimento danni",
         "detail": "danno biologico, rivalutazione, interessi, normativa, giurisprudenza",
-        "tools": 83,
+        "tools": 81,
     },
     "credito": {
         "desc": "Recupero crediti",
         "detail": "interessi mora, rivalutazione, decreto ingiuntivo, parcella avvocato",
-        "tools": 93,
+        "tools": 91,
     },
     "penale": {
         "desc": "Diritto penale",
         "detail": "prescrizione, calcolo pena, patteggiamento, giurisprudenza",
-        "tools": 55,
+        "tools": 53,
     },
     "fiscale": {
         "desc": "Fiscale e immobiliare",
@@ -59,12 +61,12 @@ PROFILES = {
     "normativa": {
         "desc": "Ricerca normativa e giurisprudenziale",
         "detail": "testo leggi, sentenze Cassazione, provvedimenti Garante Privacy",
-        "tools": 77,
+        "tools": 75,
     },
     "privacy": {
         "desc": "Privacy e GDPR",
         "detail": "informative, DPIA, registro trattamenti, data breach, normativa, giurisprudenza",
-        "tools": 68,
+        "tools": 66,
     },
     "studio": {
         "desc": "Gestione studio legale",
@@ -74,12 +76,12 @@ PROFILES = {
     "redattore": {
         "desc": "Redazione atti giudiziari",
         "detail": "modelli di atti, atti giudiziari, parcelle, scadenze, normativa",
-        "tools": 77,
+        "tools": 75,
     },
     "cowork": {
         "desc": "Set ridotto per host con contesto limitato",
         "detail": "normativa, giurisprudenza, privacy, parcelle avvocato",
-        "tools": 81,
+        "tools": 79,
     },
     "calcoli": {
         "desc": "Solo strumenti di calcolo, senza rete",
@@ -89,7 +91,7 @@ PROFILES = {
     "full": {
         "desc": "Tutti gli strumenti",
         "detail": "consigliato per Claude Code (usa Tool Search per caricarli on-demand)",
-        "tools": 235,
+        "tools": 233,
     },
 }
 

@@ -60,8 +60,8 @@ questo documento. Le due liste non possono divergere.
 conoscere. Fornisce annotazioni dottrinali e massime; **non fornisce mai il
 testo di una norma**, che arriva sempre da Normattiva o da EUR-Lex (per il codice
 deontologico forense, dal Consiglio nazionale forense). **È spenta per default**
-(decisione LI-079): un'installazione standard non la contatta mai. Chi ha titolo
-a usarne i contenuti la accende in modo esplicito:
+(decisione LI-079): un'installazione standard non la contatta mai. Si accende
+solo in modo esplicito:
 
 ```bash
 LEGAL_BROCARDI=on mcp-legal-it         # oppure crea_server(brocardi=True) in codice

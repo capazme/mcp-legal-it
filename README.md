@@ -607,7 +607,7 @@ norma) ed è **spenta per impostazione predefinita**: nessuna richiesta parte ve
 `giurisprudenza_articolo` e `mappa_orientamento` rispondono senza Brocardi e lo dichiarano in una riga.
 La giurisprudenza arriva comunque da Italgiure (`giurisprudenza_su_norma`, `cerca_giurisprudenza` → `leggi_sentenza`).
 
-Per accenderla, con il diritto di usarne i contenuti:
+Per accenderla:
 
 ```bash
 LEGAL_BROCARDI=on mcp-legal-it                      # server da terminale

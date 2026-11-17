@@ -383,6 +383,65 @@ def test_crea_server_true_lists_and_calls_the_solo_tools_with_the_environment_un
     assert not listed(mcp) & SOLO
 
 
+@pytest.mark.parametrize("outer", ["disabled", "configurazione"])
+def test_crea_server_true_never_undoes_an_off_set_for_the_request(outer, network, unset):
+    # An off wins: a block switched off around a call to a brocardi=True server stays off.
+    from mcp_legal_it.core._config import configurazione
+    from mcp_legal_it.server import crea_server
+
+    server = crea_server(brocardi=True)
+
+    async def session():
+        async with Client(server) as client:
+            names = {t.name for t in await client.list_tools()}
+            report = json.loads(_text(await client.call_tool("stato_server", {})))
+            cite = _text(await client.call_tool("cite_law", CALLS["cite_law"], raise_on_error=False))
+            return names, report, cite
+
+    block = switch.disabled() if outer == "disabled" else configurazione(brocardi=False)
+    with block:
+        names, report, cite = asyncio.run(session())
+    assert not names & SOLO
+    assert report["brocardi"]["attivo"] is False
+    assert switch.DISABLED_NOTE in cite
+    assert network.brocardi == []
+
+
+def test_a_brocardi_off_host_keeps_a_mounted_brocardi_on_server_off(network, unset):
+    from fastmcp import FastMCP
+
+    from mcp_legal_it.server import crea_server
+
+    host = crea_server(brocardi=False, name="host")
+    host.mount(crea_server(brocardi=True, name="sub"), namespace="x")
+
+    async def session():
+        async with Client(host) as client:
+            names = {t.name for t in await client.list_tools()}
+            report = json.loads(_text(await client.call_tool("x_stato_server", {})))
+            cite = _text(await client.call_tool("x_cite_law", CALLS["cite_law"], raise_on_error=False))
+            return names, report, cite
+
+    names, report, cite = asyncio.run(session())
+    assert not {f"x_{n}" for n in SOLO} & names
+    assert report["brocardi"]["attivo"] is False
+    assert switch.DISABLED_NOTE in cite
+    assert network.brocardi == []
+    assert isinstance(host, FastMCP)
+
+
+def test_release_counts_the_default_surface(unset):
+    # The manifests show the count of a default install: release.py must agree with the server.
+    import importlib.util
+
+    from mcp_legal_it.server import mcp
+
+    spec = importlib.util.spec_from_file_location("release_under_test", REPO / "release.py")
+    release = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(release)
+    assert release.count_tools() == len(listed(mcp)) == 233
+
+
 def test_crea_server_follows_the_process_by_default(unset, monkeypatch):
     from mcp_legal_it.server import crea_server
 

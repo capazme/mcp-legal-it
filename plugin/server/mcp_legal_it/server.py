@@ -298,12 +298,19 @@ if not _brocardi_switch.enabled():
 # none of the calculators, or a commercial deployment that must leave Brocardi out.
 # ---------------------------------------------------------------------------
 class _BrocardiMiddleware(Middleware):
-    """Run every listing and tool call of one server with Brocardi switched on or off."""
+    """Run every listing and tool call of one server with Brocardi switched on or off.
+
+    On never undoes an off already set for the request (an enclosing ``disabled()``,
+    ``configurazione(brocardi=False)``, a host built with ``brocardi=False`` that mounts
+    this server): an off wins, as everywhere else.
+    """
 
     def __init__(self, value: bool) -> None:
         self.value = value
 
     async def _with_switch(self, context, call_next):
+        if self.value and _brocardi_switch.context_value() is False:
+            return await call_next(context)
         token = _brocardi_switch.set_for_context(self.value)
         try:
             return await call_next(context)

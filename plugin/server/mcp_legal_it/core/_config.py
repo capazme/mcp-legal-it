@@ -118,7 +118,7 @@ def configurazione(
         # set_default(True)), nor one set for this context (crea_server(brocardi=False),
         # _brocardi_switch.disabled(), an enclosing configurazione(brocardi=False)).
         _brocardi_switch.check_can_switch_on()
-        if _brocardi_switch._context.get() is False:
+        if _brocardi_switch.context_value() is False:
             raise ValueError("Brocardi is off for this context: it cannot be switched back on inside it")
     token = _context.set(nuovo)
     # Only a field the caller passed touches the switch: an inherited value (the
