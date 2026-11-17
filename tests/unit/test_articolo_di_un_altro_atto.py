@@ -184,3 +184,32 @@ class TestIntestazioniStoriche:
         }), encoding="utf-8")
         assert akn_fetch._get_url_params(vecchia) is None
         assert akn_fetch._get_url_params(nuova) == ("090G0294", "1990-08-18")
+
+
+# --- Review of 358a3e4f ------------------------------------------------------------------------
+
+DLGSCPS1577 = _pagina("landing_dlgscps_1577_1947.html")
+
+
+class TestRevisione:
+    async def test_the_legge_basevi_cited_as_a_dlgs_is_read(self, monkeypatch):
+        """D.Lgs.C.P.S. 14 dicembre 1947, n. 1577 (legge Basevi, in force) is cited as «d.lgs.
+        1577/1947»: its heading names a decreto legislativo of the Capo provvisorio, never
+        another act."""
+        _normattiva(monkeypatch, {"decreto.legislativo:1947-01-01;1577": DLGSCPS1577})
+        assert (await with_full_date(Norma("decreto legislativo", "1947", "1577"))).data == "1947-12-14"
+        scraper.controlla_intestazione(f"{N2LS}decreto.legislativo:1947-12-14;1577~art26", DLGSCPS1577)
+
+    async def test_a_decree_cited_without_an_article_is_the_decree(self, monkeypatch):
+        """«d.lgs. 175/2024» with no article: the act's page, never «verifica non disponibile»."""
+        _export(monkeypatch, "Allegato", TU)
+        _normattiva(monkeypatch, {"decreto.legislativo:2024-11-14;175": DLGS175_ART1})
+        r = await scraper.fetch_article(NormaVisitata(norma=DLGS175, numero_articolo=""))
+        assert not r.get("error") and not r.get("esito") and r["text"]
+
+    async def test_cite_law_names_the_annex_neutrally(self, monkeypatch):
+        """«Testo tratto dall'CODICE CIVILE» read wrong: the label is «Testo tratto da: …»."""
+        from src.tools.legal_citations import _format_result
+
+        out = _format_result({"text": "Art. 3.", "url": "u", "source": "normattiva-akn", "allegato": "CODICE CIVILE"})
+        assert "Testo tratto da: CODICE CIVILE" in out and "dall'CODICE" not in out

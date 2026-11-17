@@ -300,9 +300,13 @@ class TestCatalogoNormeVigenti:
             assert "40 giorni dalla notifica" not in avv and "fissato nel decreto" in avv, tipo
             assert "art. 641 c.p.c." in _CATALOGO[tipo]["riferimenti_normativi"], tipo
         assert "termine_fissato_nel_decreto" in _CATALOGO["opposizione_decreto_ingiuntivo"]["campi_obbligatori"]
+        for tipo in ("opposizione_decreto_ingiuntivo", "relata_pec_opposizione_di"):
+            assert "C. Cost. 120/1976" in " ".join(_CATALOGO[tipo]["avvertenze"]), tipo  # art. 650, nota (26)
+        assert "art. 316 co. 1" in " ".join(_CATALOGO["opposizione_decreto_ingiuntivo"]["avvertenze"])
         avviso = _CATALOGO["avviso_543_5_cpc"]
         assert "debitore pignorato" not in avviso["descrizione"] and "terzo pignorato" in avviso["descrizione"]
         assert {"numero_ruolo", "data_udienza_comparizione"} <= set(avviso["campi_obbligatori"])
+        assert "solo verso quelli non avvisati" not in " ".join(avviso["avvertenze"])
         vendita = _CATALOGO["vendita_immobili"]
         assert "stima" not in vendita["campi_opzionali"] and "calcolo_valore_catastale" not in vendita["tool_calcolo"]
         assert not any(a.lower().startswith("allegare relazione di stima") for a in vendita["avvertenze"])

@@ -358,7 +358,7 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
     if text:
         parts.append(f"**Fonte**: {source.title()} — {url}\n")
         if article_result.get("allegato"):
-            parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
+            parts.append(f"**Testo tratto da: {article_result['allegato']}** dell'atto, non dal suo articolato.\n")
         parts.append(text)
     else:
         parts.append(f"**Nessun testo trovato** — URL: {url}")
@@ -579,7 +579,7 @@ async def cite_law(
     l'errore dice "verifica non disponibile" e il testo non viene presentato.
 
     Senza "allegato" si ottiene sempre l'articolo del corpo dell'atto. Se il testo
-    proviene da un allegato, l'output lo dichiara ("Testo tratto dall'Allegato ...").
+    proviene da un allegato, l'output lo dichiara ("Testo tratto da: Allegato ...").
 
     I numeri di paragrafo (n. N, co. N, comma N) vengono automaticamente
     ignorati: "art. 4 n. 11 GDPR" equivale a "art. 4 GDPR".

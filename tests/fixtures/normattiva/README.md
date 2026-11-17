@@ -57,4 +57,5 @@ landing page on 2026-11-11.
 | `rd262_1942_decreto_art1.html` | `regio.decreto:1942-03-16;262~art1` | the decree's own art. 1, «È approvato il testo del Codice civile …» |
 | `rd262_1942_decreto_art3_serve_art1.html` | `regio.decreto:1942-03-16;262~art3` | the decree's art. 1 again: the decree has no art. 3 (the codice civile has) |
 | `landing_dlgt_512_1946_serve_rdlgs.html` | `regio.decreto.legislativo:1946;512` | the page of D.Lgt. 30 marzo 1946, n. 512 (title «DECRETO LUOGOTENENZIALE 30 marzo 1946, n. 512»), another act |
+| `landing_dlgscps_1577_1947.html` | `decreto.legislativo.del.capo.provvisorio.dello.stato:1947;1577` | captured 2026-11-11: the page of D.Lgs.C.P.S. 14 dicembre 1947, n. 1577 (legge Basevi), the act a «d.lgs. 1577/1947» cites |
 | `dlgs104_2010_decreto_art3_serve_art1.html` | `decreto.legislativo:2010-07-02;104~art3` | the decree's art. 1: the decree has no art. 3 (the codice del processo amministrativo in its annex has); used by `tests/unit/test_allegati.py` |

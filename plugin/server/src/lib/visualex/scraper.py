@@ -131,7 +131,9 @@ _MESI = {
 #: on real pages, kept in ``tests/fixtures/normattiva`` (2 Nov 2026).
 _INTESTAZIONI = {
     "legge": frozenset({"LEGGE"}),
-    "decreto.legislativo": frozenset({"DECRETO LEGISLATIVO"}),
+    # The D.Lgs.C.P.S. are decreti legislativi of the Capo provvisorio dello Stato, cited as «d.lgs.»
+    # (legge Basevi, d.lgs. 1577/1947): its heading is the act cited, never another (G-493 review).
+    "decreto.legislativo": frozenset({"DECRETO LEGISLATIVO", "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO"}),
     "decreto.legge": frozenset({"DECRETO-LEGGE"}),
     "decreto.del.presidente.della.repubblica": frozenset({"DECRETO DEL PRESIDENTE DELLA REPUBBLICA"}),
     "regio.decreto": frozenset({"REGIO DECRETO"}),
@@ -403,9 +405,9 @@ def _nomina_il_decreto(act, nv: NormaVisitata, url: str, part: "str | None") -> 
     giustizia tributaria; R.D. 262/1942: the codice civile), while the decree, cited by its
     type and number with no part in its URN (``;175~art1``), has articles of its own («È
     approvato l'allegato testo unico …»). A code cited by its name is not: its URN names the
-    part (``;262:2``), or the name is a code's.
+    part (``;262:2``), or the name is a code's. Nor is the act cited without an article.
     """
-    return (bool(act.main_part) and not part and not _URL_NOMINA_PARTE.search(url)
+    return (bool(nv.numero_articolo) and bool(act.main_part) and not part and not _URL_NOMINA_PARTE.search(url)
             and not codice_urn(nv.norma.tipo_atto_normalized.lower()))
 
 

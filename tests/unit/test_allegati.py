@@ -264,7 +264,7 @@ class TestNormattivaAnnexes:
         out = await lc._cite_law_impl("art. 30 dell'allegato I.7 al D.Lgs. 36/2023")
         assert "Cronoprogramma" in out
         header = out.split("###")[0]
-        assert "Testo tratto dall'Allegato I.7" in header
+        assert "Testo tratto da: Allegato I.7" in header
 
     @pytest.mark.asyncio
     async def test_cite_law_json_carries_the_annex(self, monkeypatch, codice_appalti):
