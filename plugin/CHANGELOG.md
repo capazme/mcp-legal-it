@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be matched in many ways, and some long references held the server for seconds or
   minutes. Well-formed references read as before; a malformed suffix is refused
   instead of being folded into the act's name.
+- **Three vulnerable libraries in the plugin's lock** (published 16/11/2026), all pulled in
+  indirectly: dnspython 2.9.0 → 2.9.2 (CVE-2026-128089), opentelemetry-api 1.45.1 → 1.45.2
+  (CVE-2026-126360), soupsieve 3.0.3 → 4.0.1 (CVE-2026-126190). No declared requirement
+  changes; the lock keeps its format (revision 3). pip-audit on the lock finds none.
 
 ### Fixed
 - **An act cited by its year is never read as another act Normattiva serves in its place**
