@@ -152,10 +152,13 @@ def test_every_binding_key_names_a_module_that_imports():
                 )
 
 
-def test_every_tool_named_by_the_bindings_is_registered():
+def test_every_tool_named_by_the_bindings_is_registered(monkeypatch):
     """The tool-keyed halves of the bindings name tools the server really lists."""
     # TOOL_ALTERNATIVES maps a tool to a parameter name: only its keys are tools.
     from mcp_legal_it.server import mcp
+
+    # Every registered tool: Brocardi's are listed only with Brocardi on (off by default, LI-079).
+    monkeypatch.setenv("LEGAL_BROCARDI", "on")
     from mcp_legal_it.source_bindings import TOOL_SOURCES
     from mcp_legal_it.table_bindings import TOOL_ALTERNATIVES, TOOL_TABLES
 
