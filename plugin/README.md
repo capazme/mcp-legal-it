@@ -208,7 +208,7 @@ Calcola gli interessi di mora su un credito commerciale di 15.000 scaduto il 01/
 
 ## In English
 
-legal-it is a Claude Code plugin for Italian law: a local MCP server with 235 tools (statutes from Normattiva and EUR-Lex, case law from the Italian Supreme Court, administrative courts, Constitutional Court and CJEU, legal calculations, GDPR documents), 23 skills, 9 commands and 6 agents. The server runs on the user's machine through `uv run --frozen` with the versions pinned in `server/uv.lock`, sends no telemetry, and contacts only the public sources listed under «Rete e dati», with the parameters of each query.
+legal-it is a Claude Code plugin for Italian law: a local MCP server with 235 tools (statutes from Normattiva and EUR-Lex, case law from the Italian Supreme Court, administrative courts, Constitutional Court and CJEU, legal calculations, GDPR documents), 30 skills, 9 commands and 6 agents. The server runs on the user's machine through `uv run --frozen` with the versions pinned in `server/uv.lock`, sends no telemetry, and contacts only the public sources listed under «Rete e dati», with the parameters of each query.
 
 ## Licenza
 
