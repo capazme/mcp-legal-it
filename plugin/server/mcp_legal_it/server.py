@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import NotFoundError
 from fastmcp.server.middleware import Middleware
 from fastmcp.server.transforms import Transform
 
@@ -219,21 +220,45 @@ if _previgenti_nascosti(os.environ.get(_PREVIGENTE_SWITCH)):
 # Applied last, like the regime switch, so no profile can bring the group back.
 # ---------------------------------------------------------------------------
 class _BrocardiVisibility(Transform):
-    """Hide the ``solo_brocardi`` tools whenever Brocardi is off for the request in progress."""
+    """Leave the ``solo_brocardi`` tools out of the listing while Brocardi is off for the request.
+
+    Only the listing: a lookup by name through a mount does not run the mounted server's
+    middleware (FastMCP's provider calls ``get_tool`` directly), so a filter here would
+    hide the tools from a host that mounts ``crea_server(brocardi=True)`` while that
+    server lists them. The call is refused by ``_BrocardiCallGate`` instead.
+    """
 
     async def list_tools(self, tools):
         if _brocardi_switch.enabled():
             return tools
         return [t for t in tools if _brocardi_switch.TAG_SOLO not in (t.tags or set())]
 
-    async def get_tool(self, name, call_next, *, version=None):
-        tool = await call_next(name, version=version)
-        if tool is not None and _brocardi_switch.TAG_SOLO in (tool.tags or set()) and not _brocardi_switch.enabled():
-            return None
-        return tool
+
+def _registered_with_tag(tag: str) -> frozenset[str]:
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        tools = pool.submit(asyncio.run, mcp.local_provider.list_tools()).result()
+    return frozenset(t.name for t in tools if tag in (t.tags or set()))
+
+
+class _BrocardiCallGate(Middleware):
+    """Refuse a call to a ``solo_brocardi`` tool while Brocardi is off, as an unknown tool.
+
+    It runs inside the stock server's own ``call_tool``, so after the middleware of a
+    ``crea_server`` that mounts it has set the switch for the request.
+    """
+
+    def __init__(self, names: frozenset[str]) -> None:
+        self.names = names
+
+    async def on_call_tool(self, context, call_next):
+        name = context.message.name
+        if name in self.names and not _brocardi_switch.enabled():
+            raise NotFoundError(f"Unknown tool: {name!r}")
+        return await call_next(context)
 
 
 mcp.add_transform(_BrocardiVisibility())
+mcp.add_middleware(_BrocardiCallGate(_registered_with_tag(_brocardi_switch.TAG_SOLO)))
 
 if _brocardi_switch.unrecognised_value() is not None:
     # stderr only: stdout carries the protocol, and tools never say how to switch Brocardi on.
@@ -288,6 +313,9 @@ def _instructions_for(available: set[str], text: str = _STOCK_INSTRUCTIONS) -> s
     return "\n".join(lines)
 
 
+# Taken once, at import: the stock server's instructions follow the environment (and a
+# set_default() made before the import), not a later set_default(), so the «DOTTRINA (se
+# disponibile)» line stays as the import found it. crea_server() computes its own.
 if not _brocardi_switch.enabled():
     mcp.instructions = _instructions_for(_visible_tool_names(mcp))
 

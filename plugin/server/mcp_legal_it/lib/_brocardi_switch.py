@@ -37,10 +37,12 @@ environment's on; off.
 What *off* means, and where each part is enforced:
 
 * the tools tagged ``solo_brocardi`` (their answer is nothing but Brocardi content)
-  are not listed and cannot be called. The stock server carries a visibility
-  transform (``server.py``) that hides them whenever Brocardi is off for the
-  listing or the call in progress, so ``crea_server(brocardi=True)``, which mounts
-  the stock server and switches Brocardi on for its own requests, lists them again;
+  are not listed and cannot be called. The stock server (``server.py``) carries a
+  visibility transform that leaves them out of the listing, and a middleware that
+  refuses a call to them as an unknown tool, whenever Brocardi is off for the
+  request in progress; so ``crea_server(brocardi=True)``, which mounts the stock
+  server and switches Brocardi on for its own requests, lists and calls them again,
+  also when it is mounted in turn by another server;
 * the tools tagged ``brocardi`` that have other content (``cite_law`` with
   annotations, ``giurisprudenza_articolo``, ``mappa_orientamento``) answer without
   it and say so in one line, ``DISABLED_NOTE``, where the Brocardi part would have been;

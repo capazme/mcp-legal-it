@@ -137,12 +137,16 @@ if _profile != "full":
 Dopo il profilo agiscono gli interruttori: `LEGAL_PREVIGENTE=off` nasconde il tag
 `previgente`; Brocardi, spento per default (LI-079), nasconde il tag `solo_brocardi`
 finché `LEGAL_BROCARDI=on` non lo accende (e gli scraper rifiutano ogni richiesta a
-brocardi.it). Il primo è un `disable()` statico all'import; Brocardi invece è una
-trasformazione di visibilità (`_BrocardiVisibility` in `server.py`) che decide **a ogni
-richiesta**, leggendo `_brocardi_switch.enabled()`: un `disable()` statico sul server
-standard non si potrebbe annullare da un server che lo monta, mentre
-`crea_server(brocardi=True)` deve poter rimostrare i `solo_brocardi` per le proprie
-richieste (un middleware imposta l'interruttore su `list_tools` e `call_tool`).
+brocardi.it). Il primo è un `disable()` statico all'import; Brocardi invece decide **a
+ogni richiesta**, leggendo `_brocardi_switch.enabled()`: una trasformazione di visibilità
+(`_BrocardiVisibility` in `server.py`) toglie i `solo_brocardi` dall'elenco e un middleware
+(`_BrocardiCallGate`) rifiuta la loro chiamata come tool sconosciuto. Un `disable()` statico
+sul server standard non si potrebbe annullare da un server che lo monta, mentre
+`crea_server(brocardi=True)` deve poter rimostrare e chiamare i `solo_brocardi` per le
+proprie richieste (un suo middleware imposta l'interruttore su `list_tools` e `call_tool`).
+Il blocco sta sulla chiamata e non sulla ricerca per nome perché FastMCP, attraverso un
+montaggio, cerca un tool senza eseguire il middleware del server montato: un filtro lì
+nasconderebbe i tool a un host che monta `crea_server(brocardi=True)`.
 `crea_server(include_tags, exclude_tags, brocardi)` costruisce un server nuovo che monta
 quello standard con gli stessi filtri, senza modificarlo.
 

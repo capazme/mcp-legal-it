@@ -430,6 +430,66 @@ def test_a_brocardi_off_host_keeps_a_mounted_brocardi_on_server_off(network, uns
     assert isinstance(host, FastMCP)
 
 
+@pytest.mark.parametrize("host_kind", ["plain", "crea_server"])
+def test_a_host_mounting_a_brocardi_on_server_lists_and_calls_the_solo_tools(host_kind, network, unset):
+    # A lookup by name through a mount skips the mounted server's middleware: the solo
+    # tools must still be callable there, not only listed.
+    from fastmcp import FastMCP
+
+    from mcp_legal_it.server import crea_server
+
+    host = FastMCP("host") if host_kind == "plain" else crea_server(name="host")
+    host.mount(crea_server(brocardi=True), namespace="legal")
+
+    async def session():
+        async with Client(host) as client:
+            names = {t.name for t in await client.list_tools()}
+            result = await client.call_tool("legal_cerca_brocardi", CALLS["cerca_brocardi"], raise_on_error=False)
+            return names, result
+
+    names, result = asyncio.run(session())
+    assert {f"legal_{n}" for n in SOLO} <= names
+    assert "Unknown tool" not in _text(result), _text(result)[:200]
+    assert network.brocardi  # the call ran and tried brocardi.it (the mocked network is down)
+
+
+def test_a_hidden_solo_tool_found_by_name_still_cannot_be_called(network, unset):
+    # The stock server finds the tool by name (only the listing filters), but the call is refused.
+    from mcp_legal_it.server import mcp
+
+    async def session():
+        async with Client(mcp) as client:
+            return await client.call_tool("fetch_law_annotations", CALLS["fetch_law_annotations"], raise_on_error=False)
+
+    result = asyncio.run(session())
+    assert result.is_error and "Unknown tool: 'fetch_law_annotations'" in _text(result)
+    assert network.urls == []
+
+
+@pytest.mark.parametrize("fonte", ["dpa_probe", "normattiva", "brocardi"])
+def test_the_http_guard_refuses_brocardi_whatever_the_source(fonte, monkeypatch):
+    # A supplier probe pointed at brocardi.it must not reach it while Brocardi is off.
+    # No `network` fixture here: it replaces AsyncClient.send, where the guard runs. The
+    # conftest blocks the transport, so a request that got past the guard would fail with
+    # a ConnectError, not with HostNonConsentito.
+    from mcp_legal_it.core import _http
+
+    url = httpx.URL("https://www.brocardi.it/privacy.html")
+    monkeypatch.delenv(switch.ENV_SWITCH, raising=False)
+    assert _http.motivo_rifiuto_host(fonte, url) == "Brocardi non è attivo"
+
+    async def probe():
+        async with _http.async_client(fonte) as client:
+            await client.get(str(url))
+
+    with pytest.raises(_http.HostNonConsentito, match="Brocardi non è attivo"):
+        asyncio.run(probe())
+    monkeypatch.setenv(switch.ENV_SWITCH, "on")
+    motivo = _http.motivo_rifiuto_host(fonte, url)
+    # On, Brocardi is no longer refused as such; the source's own host list still applies.
+    assert motivo is None or motivo.startswith("host non previsto")
+
+
 def test_release_counts_the_default_surface(unset):
     # The manifests show the count of a default install: release.py must agree with the server.
     import importlib.util
