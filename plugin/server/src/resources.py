@@ -171,7 +171,7 @@ PROCEDIMENTI SPECIALI
 
 | Procedimento | Termine | Norma |
 |--------------|---------|-------|
-| Opposizione a decreto ingiuntivo | 40 gg dalla notifica | art. 641 |
+| Opposizione a decreto ingiuntivo | quello fissato nel decreto, dalla notifica: di regola 40 gg (10-60 per giusti motivi; UE 50, riducibile fino a 20; altri Stati 60, tra 30 e 120); dopo la scadenza solo art. 650 | art. 641 |
 | Reclamo cautelare | 15 gg dalla pronuncia/comunic. | art. 669-terdecies |
 | Opposizione all'esecuzione | prima del compimento | art. 615 |
 | Opposizione agli atti esecutivi | 20 gg dal compimento | art. 617 |
@@ -587,14 +587,16 @@ POST-EMISSIONE
 ☐ Notifica del decreto all'intimato
 ☐ Termine per la notifica: 60 giorni dall'emissione (art. 644 c.p.c.)
   — decorso il termine il decreto perde efficacia
-☐ Termine per opposizione: 40 giorni dalla notifica (art. 641 c.p.c.)
+☐ Termine per opposizione: quello fissato nel decreto, dalla notifica: di regola
+  40 giorni (10-60 per giusti motivi; UE 50, riducibile fino a 20; altri Stati 60,
+  tra 30 e 120), art. 641 c.p.c.; dopo la scadenza solo nei casi dell'art. 650 c.p.c.
 
 ═══════════════════════════════════════════════════════════
 FORMULA ESECUTIVA
 ═══════════════════════════════════════════════════════════
 
 ☐ Se non opposto: dichiarazione di esecutività (art. 647 c.p.c.)
-  — Istanza alla cancelleria dopo i 40 giorni
+  — Istanza dopo la scadenza del termine fissato nel decreto
 ☐ Se provvisoriamente esecutivo: procedere direttamente
 ☐ Apposizione formula esecutiva (art. 475 c.p.c.)
 ☐ Notifica titolo esecutivo + precetto (art. 479-480 c.p.c.)

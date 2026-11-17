@@ -116,3 +116,23 @@ def test_irpef_example_total_recomputed():
 def test_irpef_static_detrazioni_tail_preserved():
     out = res.irpef_detrazioni.fn() if hasattr(res.irpef_detrazioni, "fn") else res.irpef_detrazioni()
     assert "DETRAZIONI PER LAVORO DIPENDENTE" in out
+
+
+# --- G-493: the opposition term of a decreto ingiuntivo is the decree's (art. 641) --------
+
+
+def _risorsa(nome: str) -> str:
+    funzione = getattr(res, nome)
+    return getattr(funzione, "fn", funzione)()
+
+
+def test_opposizione_decreto_ingiuntivo_termine_del_decreto():
+    # art. 641 co. 1-2 c.p.c.: 40 days, 10 to 60 for giusti motivi; EU 50, down to 20; other
+    # States 60, between 30 and 120. A flat «40 giorni» loses the opposition when the decree
+    # fixes less, and art. 650 does not save it.
+    for nome in ("termini_processuali", "checklist_decreto_ingiuntivo"):
+        out = _risorsa(nome)
+        assert "40 gg dalla notifica" not in out and "40 giorni dalla notifica" not in out, nome
+        assert "fissato nel decreto" in out and "art. 650" in out, nome
+    checklist = _risorsa("checklist_decreto_ingiuntivo")
+    assert "dopo i 40 giorni" not in checklist

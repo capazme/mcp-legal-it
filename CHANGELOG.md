@@ -40,7 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     between 30 and 120, elsewhere. A late opposition is admitted only under art. 650. The
     opposition model is now the atto introduttivo (citazione, or ricorso in the rito semplificato,
     art. 281-decies co. 3), with the art. 645 co. 3 hearing and a field for the term in the decree.
-    The `decreto_ingiuntivo` tool's `termini.opposizione` says the same.
+    The `decreto_ingiuntivo` tool's `termini.opposizione` says the same, and so do the
+    `legal://riferimenti/termini-processuali` table and the
+    `legal://riferimenti/checklist-decreto-ingiuntivo` checklist, whose istanza di
+    esecutorietà no longer waits «40 giorni» but the term fixed in the decree.
   - `avviso_543_5_cpc` was addressed to the debtor. It goes to the third party, by the hearing
     date, with the numero di ruolo, and the notified notice is deposited in the file; without
     them the pignoramento is inefficace (towards the third parties not notified, art. 543 co. 5
