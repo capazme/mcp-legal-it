@@ -1003,8 +1003,9 @@ described in those sections, not repeated here. Upgrading from 2.x:
   since 2005. A comma all of whose dates have passed (every date it states, with an entry-into-force
   formula or not) and with no exception or derogation now defers nothing, whatever part it names:
   the articles are `ESATTO` again with no notice, and no table is read. A comma with an exception
-  or derogation («salvo», «fatte salve», «ad eccezione», «ad esclusione», «fermo restando», «in
-  deroga», «diversamente disposto» …) stays not known even with past dates, since it may defer
+  or derogation («salvo», «fatte salve», «ad eccezione», «ad esclusione», «eccettuati», «fuorché»,
+  «fermo restando», «in deroga», «diversamente disposto/previsto/stabilito» …) stays not known even
+  with past dates, since it may defer
   elsewhere; so does a spent comma with a date still to come in other words («si applicano a
   decorrere dal …»). A date to come is taken only when the comma states no other date, past or
   future: two dates in one comma may belong to different articles.

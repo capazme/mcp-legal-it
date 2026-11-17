@@ -67,7 +67,8 @@ _ABROGATO = re.compile(r"^(?:\d+(?:-[a-z]+)?\s*\.\s*)?(?:COMMA|ARTICOLO)\s+(?:AB
 #: A comma whose date may not be the whole provision's: an exception or a derogation.
 _ECCEZIONE = re.compile(
     r"\b(?:salv[aeio]|fatt[aeio]\s+salv[aeio]|(?:ad?|fatta)\s+eccezione|eccezion\s+fatta|eccetto|esclusion[ei]"
-    r"|ad\s+esclusione|esclus[aeio]|limitatamente|tranne|in\s+deroga|ferm[oa]\s+restando|diversamente\s+disposto)\b",
+    r"|ad\s+esclusione|esclus[aeio]|eccettuat[aeio]|fuorch[eé]|limitatamente|tranne|in\s+deroga|ferm[oa]\s+restando"
+    r"|diversamente\s+(?:disposto|previsto|stabilito))\b",
     re.IGNORECASE)
 #: Any date a comma states, with or without an entry-into-force formula («quelle di cui al comma 2
 #: dal 1° gennaio 2028», «acquistano efficacia dal …»): a spent comma must have none to come.

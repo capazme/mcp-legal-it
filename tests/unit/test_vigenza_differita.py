@@ -725,6 +725,9 @@ class TestCommaEsaurito:
         "fatta eccezione per il comma 2", "eccezion fatta per il comma 2", "a eccezione del comma 2",
         "ad esclusione del comma 2", "esclusi i commi 2 e 3", "fermo restando il comma 2",
         "ove non diversamente disposto",
+        # Review of #180 (m7): with past dates these read «in_vigore», the less safe way.
+        "eccettuati i commi 2 e 3", "eccettuata la lettera b)", "salvo che sia diversamente previsto",
+        "ove non diversamente stabilito", "fuorché il comma 2", "fuorche' il comma 2",
     ])
     def test_every_form_of_exception_is_not_known(self, eccezione):
         """Review of #180 (N2): with past dates and with a future one alike."""
