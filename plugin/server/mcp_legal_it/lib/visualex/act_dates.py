@@ -52,6 +52,10 @@ _TITLES = {
 # Other titles that still name the kind cited: a decreto legislativo of the Capo provvisorio dello
 # Stato is cited as a «d.lgs.» (legge Basevi, d.lgs. 1577/1947), titled «DECRETO LEGISLATIVO DEL CAPO
 # PROVVISORIO DELLO STATO 14 dicembre 1947, n. 1577» (review of the 2.17.2 port, G-493).
+# 1946 has two numbering series, the Luogotenenza's and the Capo provvisorio's, so a «d.lgs.
+# N/1946» may meet a decreto luogotenenziale with the same number. The rule stays safe: that
+# heading («DECRETO LUOGOTENENZIALE», «DECRETO LEGISLATIVO LUOGOTENENZIALE») is never a d.lgs.'s,
+# so it stays another act, and with a full date the heading's day must be the one cited.
 _TITLES_ANCHE = {"decreto.legislativo": ("DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO",)}
 # Bounded on both sides, so a hostile page costs a constant per "<title", not a rescan of the rest.
 _TITLE_TAG = re.compile(r"<title[^>]{0,200}>([^<]{0,400})</title>", re.IGNORECASE)
