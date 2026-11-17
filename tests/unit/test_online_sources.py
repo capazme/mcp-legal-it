@@ -98,9 +98,12 @@ def test_a_source_outside_the_policy_is_flagged_as_undeclared():
     assert blocco["fonti"], "the observation is still reported"
 
 
-def test_every_tool_named_by_the_committed_bindings_exists_on_the_server():
+def test_every_tool_named_by_the_committed_bindings_exists_on_the_server(monkeypatch):
     """A stale binding would silently stop matching any middleware pass."""
     from mcp_legal_it.server import mcp  # noqa: F401  (the real server registers the tools)
+
+    # Every registered tool: Brocardi's are listed only with Brocardi on (off by default).
+    monkeypatch.setenv("LEGAL_BROCARDI", "on")
     from mcp_legal_it.source_bindings import TOOL_SOURCES
 
     assert TOOL_SOURCES, "the committed policy is not empty"

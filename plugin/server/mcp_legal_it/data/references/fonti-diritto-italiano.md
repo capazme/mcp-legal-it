@@ -91,7 +91,7 @@ cite_law accetta riferimenti in linguaggio naturale:
 - "art. 2043 c.c." → Codice Civile, art. 2043
 - "art. 6 D.Lgs. 231/2001" → D.Lgs. 231/2001, art. 6
 - "art. 117 Costituzione" → Costituzione, art. 117
-- "art. 33 GDPR" con include_annotations=true → testo + giurisprudenza + dottrina
+- "art. 33 GDPR" con include_annotations=true → testo + annotazioni Brocardi, se attive in questa installazione
 
 Supporta: Codice Civile, Penale, Proc. Civile, Proc. Penale, Costituzione,
 GDPR, D.Lgs. 196/2003, D.Lgs. 231/2001, TUF, TUIR, e molti altri.

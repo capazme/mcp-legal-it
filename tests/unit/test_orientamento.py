@@ -464,6 +464,12 @@ class TestOrientamentoSuPrincipio:
 # ---------------------------------------------------------------------------
 
 class TestMappaOrientamento:
+
+    @pytest.fixture(autouse=True)
+    def _brocardi_on(self, monkeypatch):
+        """These tests exercise Brocardi massime: switch it on (off by default, LI-079)."""
+        monkeypatch.setenv("LEGAL_BROCARDI", "on")
+
     @pytest.mark.asyncio
     async def test_brocardi_anchor_surfaced(self):
         massime = [
@@ -702,6 +708,11 @@ class TestOrientamentoSuNormaGdpr:
 
 class TestMappaAncoraggio:
     """mappa_orientamento: the Brocardi anchor is honest about what it is and what it lacks."""
+
+    @pytest.fixture(autouse=True)
+    def _brocardi_on(self, monkeypatch):
+        """These tests exercise Brocardi massime: switch it on (off by default, LI-079)."""
+        monkeypatch.setenv("LEGAL_BROCARDI", "on")
 
     @staticmethod
     def _run(massime, resolve=None):

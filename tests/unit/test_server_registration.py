@@ -1,4 +1,4 @@
-"""Frozen registration surface: 235 tools, 23 prompts, 15 resources.
+"""Frozen registration surface: 235 tools (233 listed by default, Brocardi off), 23 prompts, 15 resources.
 
 Uses the in-process fastmcp Client (FastMCP 3.4.7 — get_tools() no longer exists).
 Requires LEGAL_PROFILE unset/full (the default test environment).
@@ -20,10 +20,13 @@ EXPECTED_RESOURCE_URIS = {
     "legal://riferimenti/cgue-giurisprudenza",
 }
 
-def test_registration_surface():
+def test_registration_surface(monkeypatch):
     from fastmcp import Client
     from mcp_legal_it.server import mcp
     from tests.unit.test_prompt_surface import EXPECTED as EXPECTED_PROMPTS
+
+    # Every registered tool: Brocardi on for this listing (off by default it is 233).
+    monkeypatch.setenv("LEGAL_BROCARDI", "on")
 
     async def run():
         async with Client(mcp) as c:
@@ -37,8 +40,11 @@ def test_registration_surface():
     assert {str(r.uri) for r in resources} == EXPECTED_RESOURCE_URIS
 
 
-def test_tool_vocabulary_matches_server():
+def test_tool_vocabulary_matches_server(monkeypatch):
     import json
+
+    # The vocabulary is every registered tool, Brocardi's included.
+    monkeypatch.setenv("LEGAL_BROCARDI", "on")
 
     from fastmcp import Client
     from mcp_legal_it.server import mcp

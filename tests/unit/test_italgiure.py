@@ -2036,6 +2036,11 @@ def _make_brocardi_result(massime: list) -> "object":
 
 class TestGiurisprudenzaArticoloImpl:
 
+    @pytest.fixture(autouse=True)
+    def _brocardi_on(self, monkeypatch):
+        """These tests exercise Brocardi massime: switch it on (off by default, LI-079)."""
+        monkeypatch.setenv("LEGAL_BROCARDI", "on")
+
     @pytest.mark.asyncio
     async def test_happy_path_brocardi_plus_italgiure(self):
         """Brocardi returns 2 massime; one Cassazione with number → direct lookup + text search."""
@@ -3115,6 +3120,12 @@ class TestAnchoredSearch:
 
 
 class TestGiurisprudenzaArticoloReport:
+
+    @pytest.fixture(autouse=True)
+    def _brocardi_on(self, monkeypatch):
+        """These tests exercise Brocardi massime: switch it on (off by default, LI-079)."""
+        monkeypatch.setenv("LEGAL_BROCARDI", "on")
+
     def _patches(self, massime, client):
         return (
             patch("mcp_legal_it.tools.italgiure.fetch_brocardi", return_value=_make_brocardi_result(massime)),

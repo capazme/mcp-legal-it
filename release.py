@@ -276,16 +276,21 @@ def build_web_skills(*, dry_run: bool) -> None:
 # ---------------------------------------------------------------------------
 
 def count_tools() -> int:
-    """Count @mcp.tool() decorators across all tool files."""
+    """Count the tools a default install lists: the @mcp.tool() decorators across all
+    tool files, less the ``solo_brocardi`` ones, which Brocardi (off by default,
+    LI-079) hides unless LEGAL_BROCARDI=on. This is the count the manifests show."""
     for tools_dir in [
         PROJECT_DIR / "plugin" / "server" / "mcp_legal_it" / "tools",
     ]:
         if tools_dir.is_dir():
-            total = sum(
-                f.read_text().count("@mcp.tool")
+            decorators = [
+                line
                 for f in tools_dir.glob("*.py")
-            )
-            if total > 0:
+                for line in f.read_text().splitlines()
+                if line.lstrip().startswith("@mcp.tool")
+            ]
+            total = sum(1 for line in decorators if '"solo_brocardi"' not in line)
+            if decorators:
                 return total
     return 0
 

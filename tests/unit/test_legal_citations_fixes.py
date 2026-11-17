@@ -565,6 +565,7 @@ class TestBrocardiArticleText:
 
     @pytest.mark.asyncio
     async def test_fetch_law_annotations_returns_the_article_text(self, monkeypatch):
+        monkeypatch.setenv("LEGAL_BROCARDI", "on")  # off by default (LI-079)
         monkeypatch.setenv("LEGAL_CACHE", "off")
         monkeypatch.setattr(brocardi, "_url_cache", {})
         index = '<a href="/codice-civile/libro-quarto/titolo-ix/art2043.html">Art. 2043</a>'

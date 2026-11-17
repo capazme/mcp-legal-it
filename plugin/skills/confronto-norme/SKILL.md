@@ -11,7 +11,7 @@ Differenze, sovrapposizioni, prevalenza e coordinamento.
 
 ### 1. Recupero testi
 
-Chiama `legal-it:cite_law` per ciascuna norma. Per annotazioni: `legal-it:cerca_brocardi` (se disponibile).
+Chiama `legal-it:cite_law` per ciascuna norma. Per annotazioni, solo se il tool è disponibile in questa installazione: `legal-it:cerca_brocardi`.
 
 ### 2. Analisi comparativa
 

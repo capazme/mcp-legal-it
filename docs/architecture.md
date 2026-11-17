@@ -86,7 +86,7 @@ run_server.py
             └─ @mcp.tool() → mcp._tool_registry["rivaluta_moneta"] = fn
        └─ from mcp_legal_it.tools import tassi_interessi
             └─ @mcp.tool() → mcp._tool_registry["tasso_interesse_legale"] = fn
-       └─ ... (37 moduli, 235 tool totali)
+       └─ ... (37 moduli, 235 tool registrati; 233 esposti per default, Brocardi spento)
        └─ from mcp_legal_it import prompts
             └─ @mcp.prompt() → 23 prompt registrati
        └─ from mcp_legal_it import resources
@@ -135,22 +135,32 @@ if _profile != "full":
 ```
 
 Dopo il profilo agiscono gli interruttori: `LEGAL_PREVIGENTE=off` nasconde il tag
-`previgente`, `LEGAL_BROCARDI=off` il tag `solo_brocardi` (e gli scraper rifiutano ogni
-richiesta a brocardi.it). `crea_server(include_tags, exclude_tags, brocardi)` costruisce
-un server nuovo che monta quello standard con gli stessi filtri, senza modificarlo.
+`previgente`; Brocardi, spento per default (LI-079), nasconde il tag `solo_brocardi`
+finché `LEGAL_BROCARDI=on` non lo accende (e gli scraper rifiutano ogni richiesta a
+brocardi.it). Il primo è un `disable()` statico all'import; Brocardi invece è una
+trasformazione di visibilità (`_BrocardiVisibility` in `server.py`) che decide **a ogni
+richiesta**, leggendo `_brocardi_switch.enabled()`: un `disable()` statico sul server
+standard non si potrebbe annullare da un server che lo monta, mentre
+`crea_server(brocardi=True)` deve poter rimostrare i `solo_brocardi` per le proprie
+richieste (un middleware imposta l'interruttore su `list_tools` e `call_tool`).
+`crea_server(include_tags, exclude_tags, brocardi)` costruisce un server nuovo che monta
+quello standard con gli stessi filtri, senza modificarlo.
+
+I conteggi della tabella valgono con Brocardi spento, come per default; con
+`LEGAL_BROCARDI=on` i profili che includono `normativa` espongono due tool in più.
 
 | Profilo | Tool esposti | Caso d'uso |
 |---------|-------------|-----------|
-| `full` | 235 | Claude Code con Tool Search |
-| `sinistro` | 83 | Risarcimento danni e sinistri |
-| `credito` | 93 | Recupero crediti |
-| `penale` | 55 | Diritto penale |
+| `full` | 233 | Claude Code con Tool Search |
+| `sinistro` | 81 | Risarcimento danni e sinistri |
+| `credito` | 91 | Recupero crediti |
+| `penale` | 53 | Diritto penale |
 | `fiscale` | 66 | Calcoli fiscali, immobiliari, societari e di crisi |
-| `normativa` | 77 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
-| `privacy` | 68 | GDPR e privacy compliance |
+| `normativa` | 75 | Ricerca su tutte le fonti (norme, ogni corte, autorità, registri) |
+| `privacy` | 66 | GDPR e privacy compliance |
 | `studio` | 76 | Gestione studio legale |
-| `redattore` | 77 | Redazione di atti giudiziari |
-| `cowork` | 81 | Set ridotto per host con contesto limitato (l'agente cloud Cowork non avvia server MCP locali, vedi README) |
+| `redattore` | 75 | Redazione di atti giudiziari |
+| `cowork` | 79 | Set ridotto per host con contesto limitato (l'agente cloud Cowork non avvia server MCP locali, vedi README) |
 | `calcoli` | 144 | Solo calcoli e diagnostica, nessuna connessione di rete |
 
 Il profilo `full` è consigliato per Claude Code, che usa Tool Search per
@@ -280,7 +290,7 @@ non parlano con fonti esterne: osservano le chiamate.
 | `_tables_open.py`, `_ledger.py` | Registrano, per chiamata, quali tabelle il tool ha *davvero* letto (wrapper trasparenti sulle costanti di `table_bindings.py`); il risultato finisce in `_meta` come `mcp-legal-it/opened_tables` |
 | `_precision.py` | Trasforma la riga `Precisione: ESATTO / INDICATIVO / STIMATO` del docstring in una regola: una tabella `da_verificare` ritira la pretesa di esattezza, una tabella scaduta blocca solo i calcoli ancorati a oggi; il rifiuto è negoziabile con `accetta_precisione` |
 | `_regime.py` | Legge la riga `Regime: PREVIGENTE — <casi residuali>; tool vigenti: <nomi>` del docstring: il wrapper `@previgente` mette `regime_normativo` in ogni risposta, il middleware lo ripete in `_meta` (`mcp-legal-it/regime`) e in `tools/list`, il tag `previgente` permette a `LEGAL_PREVIGENTE=off` di nascondere il gruppo; l'audit tiene allineati riga, tag e wrapper |
-| `_brocardi_switch.py` | Interruttore di Brocardi (`LEGAL_BROCARDI=off`, `crea_server(brocardi=False)`, `disabled()`): gli scraper Brocardi chiamano `guard()`/`enabled()` prima di ogni richiesta, i tool misti dichiarano `DISABLED_NOTE`; uno spento nell'ambiente vince sul codice |
+| `_brocardi_switch.py` | Interruttore di Brocardi, spento per default (`LEGAL_BROCARDI=on` lo accende; `crea_server(brocardi=True/False)`, `configurazione(brocardi=…)`, `set_default()`, `disabled()` in codice): gli scraper Brocardi chiamano `guard()`/`enabled()` prima di ogni richiesta, i tool misti dichiarano `DISABLED_NOTE`, la trasformazione di visibilità di `server.py` nasconde i `solo_brocardi`; uno spento nell'ambiente (o un valore non riconosciuto) vince sul codice |
 | `_clock.py` | Unico lettore dell'orologio (`LEGAL_TODAY`/`LEGAL_NOW` lo pinnano); chi lo consulta è "ancorato al presente" ai fini della regola sopra; l'audit vieta `date.today()`/`datetime.now()` altrove |
 | `_cache.py` | Unico lettore di `MCP_CACHE_DIR` e dello switch `LEGAL_CACHE=off`; le cache su disco dichiarate sono in `docs/cache-inventory.md` (generato) |
 | `_sources.py`, `_http.py` | Provenienza delle fonti online: ogni fetch con `dataset=` viene annotato e la risposta espone `mcp-legal-it/fonti_consultate` (host e momento, URL senza query string) |

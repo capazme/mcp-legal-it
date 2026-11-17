@@ -19,11 +19,14 @@ and the tone (written for lawyers, no Python knowledge assumed) are unchanged.
   restart, the one-time download on the first start, how to check the version
   (`stato_server`), what changes for them, the `.mcpb` update, a link to the
   release notes.
-- New section **«Usare Legal IT senza Brocardi»**: `LEGAL_BROCARDI=off` for Mac
-  (`LEGAL_BROCARDI=off claude`) and Windows PowerShell
-  (`$env:LEGAL_BROCARDI="off"; claude`), and for the app's Code tab the `env`
+- New section **«Brocardi (spento per default)»** (decision LI-079): Brocardi.it
+  is off unless switched on; `LEGAL_BROCARDI=on` for Mac
+  (`LEGAL_BROCARDI=on claude`) and Windows PowerShell
+  (`$env:LEGAL_BROCARDI="on"; claude`), and for the app's Code tab the `env`
   block of `~/.claude/settings.json` (verified: Claude Code passes that block
-  to a plugin's MCP server), checked with `stato_server`.
+  to a plugin's MCP server), checked with `stato_server`. The lead says 233
+  tools (the default count) and the «what changes» list names the two
+  Brocardi tools.
 - Troubleshooting table: two rows, the citation gate («gate citazioni» and
   «fuori copertura») and a value no longer accepted after the update
   (`opposizione_atti_esecutivi`).
@@ -42,7 +45,7 @@ and the tone (written for lawyers, no Python knowledge assumed) are unchanged.
   transcript, the text Claude writes into files, tool results, the same
   session's subagent transcripts), and that it reads no other session, saves
   nothing, sends nothing.
-- Sources: Brocardi.it can be excluded with `LEGAL_BROCARDI=off`; a new
+- Sources: Brocardi.it is off by default and reached only with `LEGAL_BROCARDI=on`; a new
   paragraph on the network rules (host check on every request and redirect,
   http(s) only, no credentials, at most three requests at a time per source,
   `Retry-After` honoured, verified TLS for Italgiure too).

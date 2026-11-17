@@ -74,7 +74,7 @@ STRATEGIA DI RICERCA NORMATIVA
 
 1. IDENTIFICARE L'AREA → consultare questa tabella per trovare le fonti pertinenti
 2. RECUPERARE IL TESTO → cite_law("art. N [fonte]") per il testo vigente
-3. ANNOTAZIONI → cite_law("art. N [fonte]", include_annotations=true) per giurisprudenza
+3. GIURISPRUDENZA → giurisprudenza_su_norma("art. N [fonte]") per le sentenze che citano l'articolo (annotazioni Brocardi con include_annotations=true, se attive)
 4. NORME COLLEGATE → cercare richiami interni ed esterni nel testo recuperato
 5. VERIFICARE MODIFICHE → controllare se la norma è stata novellata di recente
 6. COORDINARE LE FONTI → applicare i criteri di risoluzione delle antinomie

@@ -1,13 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.capazme/mcp-legal-it",
-  "description": "Model Context Protocol server with 235 tools for Italian law: calculations (damages, interests, deadlines, parcels, taxes), legislation (Normattiva, EUR-Lex), case law (Cassazione, Corte Costituzionale, CGUE, TAR/CdS), Gazzetta Ufficiale, parliamentary bills, GDPR compliance and document generation. Every local calculation is audited, every online consult is declared in the answer's _meta.",
+  "description": "Model Context Protocol server with 233 tools for Italian law: calculations (damages, interests, deadlines, parcels, taxes), legislation (Normattiva, EUR-Lex), case law (Cassazione, Corte Costituzionale, CGUE, TAR/CdS), Gazzetta Ufficiale, parliamentary bills, GDPR compliance and document generation. Every local calculation is audited, every online consult is declared in the answer's _meta.",
   "version": "3.0.0",
   "remotes": [],
   "environmentVariables": [
     {
       "name": "LEGAL_PROFILE",
-      "description": "Restrict the exposed surface to a practice area (sinistro, credito, penale, fiscale, normativa, privacy, studio, redattore, cowork; calcoli = offline calculators only). Unset or 'full' exposes all 235 tools; an unknown name refuses to start.",
+      "description": "Restrict the exposed surface to a practice area (sinistro, credito, penale, fiscale, normativa, privacy, studio, redattore, cowork; calcoli = offline calculators only). Unset or 'full' exposes every tool (233 by default, 235 with LEGAL_BROCARDI=on); an unknown name refuses to start.",
+      "isRequired": false
+    },
+    {
+      "name": "LEGAL_BROCARDI",
+      "description": "Brocardi.it, the only private source (doctrinal notes and case-law abstracts, never the text of a norm), is off by default. 'on' (or 1, true, yes) switches it on; 'off' (or 0, false, no) keeps it off and cannot be overridden from code; any other value counts as off.",
       "isRequired": false
     },
     {

@@ -19,7 +19,7 @@ Identifica:
 ## Step 2 — Verifica normativa
 Per OGNI norma che intendi citare nel parere:
 1. Chiama `cite_law` con il riferimento (es. "art. X legge Y") per ottenere il testo vigente
-2. Se serve approfondimento dottrinale: chiama `cerca_brocardi` (se disponibile)
+2. Se serve approfondimento dottrinale e il tool è disponibile in questa installazione: chiama `cerca_brocardi`
 
 MAI citare una norma a memoria. Ogni citazione deve avere un `cite_law` corrispondente.
 
@@ -39,7 +39,7 @@ Riassumi i fatti rilevanti come esposti dal cliente.
 Esponi il quadro normativo applicabile, citando:
 - Articoli di legge (con testo recuperato da `cite_law`)
 - Principi giurisprudenziali (con numero e anno delle sentenze)
-- Dottrina rilevante (se emersa da `cerca_brocardi`)
+- Dottrina rilevante (solo se emersa da `cerca_brocardi`; altrimenti ometti la voce)
 
 ### ANALISI
 Applica il diritto ai fatti:

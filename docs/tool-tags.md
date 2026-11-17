@@ -1,7 +1,7 @@
 # Etichette dei tool
 
 Ogni tool porta delle etichette (`tags`). Sono ciò su cui filtrano `LEGAL_PROFILE`,
-`crea_server(include_tags=…, exclude_tags=…)` e `LEGAL_BROCARDI=off`: un filtro vale
+`crea_server(include_tags=…, exclude_tags=…)` e l'interruttore di Brocardi: un filtro vale
 quanto le etichette su cui lavora. Il vocabolario è dato, in
 [`mcp_legal_it/tool_taxonomy.py`](../plugin/server/mcp_legal_it/tool_taxonomy.py), e
 `tests/unit/test_tool_taxonomy.py` fa fallire la suite se un tool viola una regola
@@ -97,20 +97,22 @@ etichette. Tutti includono `diagnostica`.
 
 | Profilo | Etichette | Tool |
 |---|---|---|
-| **full** | tutte | 235 |
-| **sinistro** | danni, rivalutazione, interessi, normativa, giurisprudenza, sinistro, diagnostica | 83 |
-| **credito** | interessi, rivalutazione, parcelle_avv, normativa, giurisprudenza, credito, diagnostica | 93 |
-| **penale** | penale, normativa, giurisprudenza, diagnostica | 55 |
+| **full** | tutte | 233 |
+| **sinistro** | danni, rivalutazione, interessi, normativa, giurisprudenza, sinistro, diagnostica | 81 |
+| **credito** | interessi, rivalutazione, parcelle_avv, normativa, giurisprudenza, credito, diagnostica | 91 |
+| **penale** | penale, normativa, giurisprudenza, diagnostica | 53 |
 | **fiscale** | fiscale, proprieta, utility, consob, investimenti, crisi_impresa, societario, diagnostica | 66 |
-| **normativa** | normativa, giurisprudenza, autorita, registri, privacy, diagnostica | 77 |
-| **privacy** | privacy, garante, normativa, giurisprudenza, diagnostica | 68 |
+| **normativa** | normativa, giurisprudenza, autorita, registri, privacy, diagnostica | 75 |
+| **privacy** | privacy, garante, normativa, giurisprudenza, diagnostica | 66 |
 | **studio** | scadenze, giudiziario, parcelle_avv, parcelle_prof, investimenti, lavoro, diagnostica | 76 |
-| **redattore** | atti, giudiziario, parcelle_avv, scadenze, normativa, diagnostica | 77 |
-| **cowork** | normativa, giurisprudenza, privacy, parcelle_avv, diagnostica | 81 |
+| **redattore** | atti, giudiziario, parcelle_avv, scadenze, normativa, diagnostica | 75 |
+| **cowork** | normativa, giurisprudenza, privacy, parcelle_avv, diagnostica | 79 |
 | **calcoli** | calcolo, diagnostica | 144 |
 
-Con `LEGAL_BROCARDI=off` ogni profilo che contiene `normativa` espone due tool in meno
-(`cerca_brocardi`, `fetch_law_annotations`); `full` passa da 235 a 233.
+I conteggi valgono con Brocardi spento, come per default (LI-079). Con `LEGAL_BROCARDI=on`
+ogni profilo che contiene `normativa` espone due tool in più (`cerca_brocardi`,
+`fetch_law_annotations`); `full` passa da 233 a 235. Le etichette e i conteggi per tipo qui
+sopra contano invece tutti i tool registrati, Brocardi compreso.
 
 ## Un server con una parte dei tool: `crea_server`
 
@@ -126,8 +128,12 @@ fonti.run()                                   # come server a sé
 - `include_tags`: tiene i tool con almeno una di queste etichette (`None` = tutti; un insieme
   vuoto è rifiutato con `ValueError`, perché non selezionerebbe nulla).
 - `exclude_tags`: poi toglie quelli con una di queste etichette.
-- `brocardi=False`: nasconde i `solo_brocardi` e fa girare ogni chiamata di quel server
-  con Brocardi spento; i tool misti rispondono senza Brocardi e lo dicono.
+- `brocardi`: Brocardi è spento per default. `None` (default) segue il processo: spento
+  salvo `LEGAL_BROCARDI=on` o `set_default(True)`. `True` lo accende per le richieste di quel
+  server: i `solo_brocardi` tornano in `list_tools` e si possono chiamare (solleva
+  `ValueError` se l'ambiente dice `off` o un valore non riconosciuto). `False` nasconde i
+  `solo_brocardi` e fa girare ogni chiamata con Brocardi spento, anche se l'ambiente dice `on`;
+  i tool misti rispondono senza Brocardi e lo dicono.
   `exclude_tags={"brocardi"}` è diverso: toglie *ogni* tool che può mostrare Brocardi,
   `cite_law` compreso.
 - `prompts=False`: niente prompt né risorse `legal://` (non hanno etichette, i filtri
@@ -135,11 +141,13 @@ fonti.run()                                   # come server a sé
 - Un'etichetta sconosciuta solleva `ValueError` con il vocabolario.
 - Le istruzioni del server sono quelle standard senza i tool esclusi: un passo di workflow che
   nomina un tool nascosto viene tolto dalla catena, una riga che lo nomina altrimenti viene
-  tolta. Lo stesso vale per il server standard con `LEGAL_BROCARDI=off`
-  («Norma → cite_law → giurisprudenza_su_norma → leggi_sentenza»).
+  tolta. Lo stesso vale per il server standard con Brocardi spento (il default): la riga
+  «DOTTRINA (se disponibile): cerca_brocardi()» sparisce.
 
 I tool esclusi non compaiono in `list_tools` e una chiamata riceve «Unknown tool».
 Nomi, firme, annotazioni, `_meta` e middleware restano quelli del server standard,
 che il factory monta senza modificarlo. Le variabili d'ambiente del processo
 (`LEGAL_PROFILE`, `LEGAL_PREVIGENTE=off`, `LEGAL_BROCARDI=off`) agiscono sotto e
-possono solo restringere ciò che il factory seleziona.
+possono solo restringere ciò che il factory seleziona. L'unica eccezione è
+`brocardi=True`: Brocardi spento per default non è una scelta dell'operatore, e il server
+standard nasconde i `solo_brocardi` richiesta per richiesta, così il factory li rimostra.
