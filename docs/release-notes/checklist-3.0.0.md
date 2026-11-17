@@ -3,13 +3,18 @@
 Tick each box with the evidence (a command output, a link, a date). A box
 that cannot be ticked stops the release; it is not skipped.
 
+State last checked on 17 November 2026, on `develop` at `353325a`.
+
 ## 1. Decisions to close first
 
 These need the project owner. Each one either changes code before the GA or
 is shipped as it is today, stated as such in the release notes. None may be
 «completed» by whoever runs the release.
 
-- [ ] Merge order and approval of the 3.0 chain (§2).
+- [x] Merge order and approval of the 3.0 chain (§2): merged in order on
+      2026-10-21 (#55-#62), then the migration PRs (§2).
+- [x] The last 2.x release: decided (G-493), 2.17.2 is the last 2.x release
+      and the next one is 3.0. It must be published before the GA (§5).
 - [x] Start of the art. 482 c.p.c. window: decided (G-329, G-407), first day
       = notice + 11, no extension, no August suspension.
 - [ ] A «substantive» mode of `scadenza_processuale` without the Saturday
@@ -23,7 +28,8 @@ is shipped as it is today, stated as such in the release notes. None may be
       131/1986 until 31/12/2026).
 - [x] `rendimento_btp` on the 50-year BTP (simple yield above the MEF gross):
       decided (LI-059), yield to maturity gross and net as the MEF; live gate green.
-- [ ] How long the 2.x line keeps receiving fixes after 3.0.
+- [ ] How long the 2.x line keeps receiving fixes after 3.0 (G-493 makes
+      2.17.2 the last planned one; fixes after the GA are not decided).
 - [ ] Review of twelve content items: non-pecuniary damage tables (Milan vs
       TUN), art. 139 Codice delle assicurazioni in work accidents, order of the
       briefs under art. 171-ter c.p.c., 2012 text of art. 348-bis c.p.c.,
@@ -43,22 +49,42 @@ is shipped as it is today, stated as such in the release notes. None may be
 - [x] Relicensing: written consent to MPL-2.0 obtained from every past
       contributor. `NOTICE` still says that the 2.x releases remain available
       under Apache-2.0.
+- [ ] Sigle of the fiscal testi unici (G-440 follow-up). Since the fiscal reform's
+      new testi unici, «TUS», «TUIVA» and «T.U. registro» name more than one act
+      and are refused as ambiguous («nome ambiguo»); which act each sigla
+      resolves to, if any, is not decided.
+- [ ] Regional laws (G-444, LI-076): not covered; whether 3.0 states it as a
+      declared limit or covers them is not decided.
+- [ ] Codice deontologico forense (CNF): which date to state for the text
+      served, where the CNF's own sources give two.
+- [ ] Art. 645 co. 3 c.p.c. in the `opposizione_decreto_ingiuntivo` model
+      (G-493): the provision refers to «l'anticipazione di cui all'articolo
+      163-bis, secondo comma», and Normattiva gives that comma as repealed by
+      D.Lgs. 149/2022. The warning quotes the provision verbatim until decided.
+- [ ] Act models: renames, merged keys and a filter, proposed for 3.1 with
+      aliases for the old keys. A proposal awaiting decision, not a 3.0
+      blocker if 3.0 ships the catalogue as it is.
 
 ## 2. The 3.0 chain is merged
 
-- [ ] In order, each with green CI: #55 → #56 → #57 → #59 → #58 → #60 → #61 →
-      #62 → the release-material PR → the remaining VisuaLex migration PRs
-      (Normattiva text channel, act index and AKN, EUR-Lex, decisions,
-      citations/URN, vigenza), or a decision to ship 3.0 without some of them.
-- [ ] The only expected conflict is `CHANGELOG.md` / `plugin/CHANGELOG.md`
-      (union of the entries); a trial integration of #55-#62 on 2026-10-21 had
-      no other conflict and 5207 tests green.
+- [x] In order: #55 → #56 → #57 → #59 → #58 → #60 → #61 → #62, all merged on
+      2026-10-21; the release material #63 (2026-10-21); the VisuaLex
+      migration: Normattiva text channel #64, AKN #65, act tree and index #67,
+      vigenza #72 and #88, EUR-Lex #74, #87, #94, #95, citations/URN #93; the
+      decisions are in the library API of #59 (`api._decisioni`).
+- [x] The integration conflicts (`CHANGELOG.md` / `plugin/CHANGELOG.md`) were
+      resolved when the chain was merged; nothing is left to integrate.
 - [ ] `docs/migration/2.x-to-3.0.md` and `docs/release-notes/3.0.0.md` updated
-      with what the remaining migration PRs changed, and with the outcome of
-      every decision in §1 (or left «in attesa di decisione»).
-- [ ] Counts are true everywhere: 235 tools (233 with `LEGAL_BROCARDI=off`),
-      30 skills, 9 slash commands, 6 agents (`release.py` `count_tools()`,
-      `plugin.json`, `marketplace.json`, README, the pages).
+      with what the migration PRs and the later fixes changed (§8), and with the
+      outcome of every decision in §1 (or left «in attesa di decisione»).
+- [x] Counts are true everywhere: 235 tools (233 with `LEGAL_BROCARDI=off`),
+      30 skills, 9 slash commands, 6 agents, 23 prompts, 15 resources. Checked
+      on 2026-11-17: `release.py` `count_tools()` 235; the server's
+      `list_tools` 235 and 233 with `LEGAL_BROCARDI=off`; `content/` 30 skills,
+      9 commands, 6 agents; `plugin.json`, `marketplace.json`, README and the
+      pages agree (`plugin/README.md` said 23 skills in English: fixed). The
+      OpenAI bundle's 42 skills (28 + 6 agents + 8 commands) and the 2.x
+      count of 228 tools in the migration guide are right.
 
 ## 3. Gates
 
@@ -66,13 +92,16 @@ Run long jobs under `caffeinate -dims`: a sleeping Mac stalls the live suites.
 
 - [ ] Full non-live suite: `pytest tests/ -m "not live"`, green in CI on
       Python 3.11 and 3.12 × FastMCP 3 and 4.
-- [ ] `python scripts/audit_tool_annotations.py --check`: up to date.
-- [ ] `python scripts/check_deps_sync.py`: OK.
-- [ ] `python scripts/check_directory_readiness.py`: OK, only the two accepted
-      holds (`uv-run-frozen`, `subfolder-program`).
+- [x] `python scripts/audit_tool_annotations.py --check`: up to date
+      (2026-11-17, `353325a`).
+- [x] `python scripts/check_deps_sync.py`: OK, the three launchers match
+      `pyproject.toml` (2026-11-17).
+- [x] `python scripts/check_directory_readiness.py`: OK, only the two accepted
+      holds (`uv-run-frozen`, `subfolder-program`), 257 files (2026-11-17).
 - [ ] `python scripts/build_targets.py all` twice: no diff the second time.
-- [ ] `pip-audit` on the root environment and on `plugin/server/uv.lock`:
-      clean.
+- [x] `pip-audit` on the root environment and on `plugin/server/uv.lock`:
+      clean. The lock exported with `uv export --frozen` and audited on
+      2026-11-17: no known vulnerabilities; both CI jobs green on #182.
 - [ ] Replay: `scripts/replay_mcp_outputs.py compare --base <previous tip>`:
       only the differences each PR declared.
 - [ ] **Live gate, act numbers**:
@@ -83,8 +112,9 @@ Run long jobs under `caffeinate -dims`: a sleeping Mac stalls the live suites.
       table URL answers; every source of brocardi.it/fonti.html is mapped).
 - [ ] Every other live module, one at a time (`ls tests/unit/*_live.py`),
       including the CeRDEF canary and `test_italgiure_live.py` with TLS
-      verification on. Red gates are either fixed or listed in §1 (today:
-      BTP 50-year yield; the D.M. 55/2014 gate is no longer red).
+      verification on. Red gates are either fixed or listed in §1 (the BTP
+      50-year yield, LI-059, was fixed in #147; the D.M. 55/2014 gate is no
+      longer red).
 - [ ] The citation gate on a real session: a reply citing an article not read
       is stopped once with «ATTENZIONE — gate citazioni»; after `cite_law` it
       passes; «fuori copertura» passes; a subagent's read counts.
@@ -113,7 +143,11 @@ The Mac Intel column checks the `cryptography` platform split of the lock.
 The marketplace is git-sourced from `main` on GitHub: when `main` moves to 3.0,
 every 2.x plugin user with auto-update receives it.
 
-- [ ] On a machine with 2.17.1 installed from the marketplace:
+- [ ] 2.17.2, the last 2.x release (G-493), is published before the GA, so
+      the update path starts from it.
+- [ ] #176 (cookie-audit, a 2.x fix open against `main`): in 2.17.2, or closed
+      with the reason.
+- [ ] On a machine with 2.17.2 installed from the marketplace:
       `claude plugin marketplace update mcp-legal-it`, then
       `claude plugin update legal-it@mcp-legal-it`, restart. The first start
       syncs the new lock in the background (two-phase start) and the tools
@@ -121,7 +155,7 @@ every 2.x plugin user with auto-update receives it.
 - [ ] The same with auto-update on, without typing anything.
 - [ ] The hooks are the new ones: `Stop` and `SubagentStop` in the installed
       `hooks/hooks.json`.
-- [ ] A 2.17.1 `.mcpb` replaced by the 3.0.0 one keeps working after the
+- [ ] A 2.17.2 `.mcpb` replaced by the 3.0.0 one keeps working after the
       one-time uv rebuild.
 - [ ] A 3.0.0-beta user (pre-release artifacts) moves to the GA the same way.
 - [ ] `marketplace.json` and `plugin.json` on `main` say 3.0.0 after the
@@ -132,13 +166,16 @@ every 2.x plugin user with auto-update receives it.
 The beta channel's GA procedure, checked against what the script does today.
 
 - [ ] Working tree clean, on `develop`, in sync with `origin/develop`.
-- [ ] `release/3.0.0` (3.0.0-beta.3) is already contained in develop: #55
-      merged it. Check with
-      `git merge-base --is-ancestor origin/release/3.0.0 origin/develop`. Only
-      if a beta was cut after #55, merge `release/3.0.0` into `develop`
-      (`--no-ff`, keep `3.0.0` over `3.0.0-beta.N` in `pyproject.toml`,
-      `plugin.json`, `marketplace.json` and the manifests) and push that merge
-      to `origin/develop` before running the script (`check_remote_sync`).
+- [ ] `release/3.0.0` carries 3.0.0-beta.4 (cut on 2026-11-03), which is not
+      in develop: `git merge-base --is-ancestor origin/release/3.0.0
+      origin/develop` fails on 2026-11-17. The two commits that develop lacks
+      only bump the versions to `3.0.0-beta.4` (`cea6ae17`) and add its
+      changelog heading (`95f2e41f`); develop already carries `3.0.0` and one
+      `[Unreleased]` section. Merge `release/3.0.0` into `develop` (`--no-ff`)
+      keeping develop's content (`3.0.0` in `pyproject.toml`, `plugin.json`,
+      `marketplace.json`, the manifests and the lock; no beta.4 heading), check
+      the ancestry again, and push that merge to `origin/develop` before
+      running the script (`check_remote_sync`).
 - [ ] Delete `release/3.0.0` **locally and on origin**: the standard flow
       creates a branch with the same name.
 - [ ] `CHANGELOG.md`: rename `## [Unreleased]` to `## [3.0.0] - <date>`. The
@@ -197,3 +234,8 @@ The beta channel's GA procedure, checked against what the script does today.
 - [ ] Open issues touched by 3.0 answered with the release link.
 - [ ] Monthly data-freshness cron (`data-freshness.yml`) still opens its PRs
       against the right branch after the GA.
+- [ ] `docs/release-notes/3.0.0.md` and the pages updated with the November work:
+      deferred entries into force (#173, #179, #180), the legge Basevi cited as
+      a d.lgs. (#181), the act-model warnings (#182, G-493), the codice
+      deontologico forense from the CNF (#158, #159), the act names and types of
+      G-440 (#160-#167).

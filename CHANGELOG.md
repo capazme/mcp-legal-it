@@ -978,6 +978,7 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- `plugin/README.md` said 23 skills in its English summary: the plugin ships 30 (and 235 tools, 9 commands, 6 agents).
 - **Act models whose warnings cost the act or the right (G-493, from the 2.17.2 hotfix).** Each was
   reread on the text in force on Normattiva. Only these models were reread; the others are unchanged
   (the istanza di esecutorietà model, for one, still counts «40 giorni + 10»).
