@@ -188,6 +188,12 @@ class TestBuildSearchQuery:
         with pytest.raises(TypeError):
             _build_search_query([["codice"], "strada"], legislatura=19)
 
+    def test_generator_groups_are_not_exhausted_by_the_check(self):
+        groups = (g for g in [["codice della strada"], ["285", "1992"]])
+        q = _build_search_query(groups, legislatura=19)
+        assert 'CONTAINS(LCASE(STR(?titolo)), "codice della strada")' in q
+        assert 'CONTAINS(LCASE(STR(?titolo)), "1992")' in q
+
     def test_whitespace_collapsed_outside_literals(self):
         q = _build_search_query([["x"]], legislatura=19, stato="all'esame assemblea", solo_pendenti=True)
         assert "\n" not in q and "  " not in q
@@ -227,6 +233,39 @@ class TestBuildIterQuery:
         assert "osr:idDdl 55442 ." in q
         assert '"55442"' not in q
         assert "?leg" in q
+
+
+class TestCompactPreconditions:
+    """_compact collapses whitespace outside '"[^"]*"' spans: it is correct only
+    while literals carry no '"' or backslash, and the query text outside the
+    literals holds no '#' comment (it would swallow the rest of the one-line
+    query) and no single-quoted literal (its whitespace would be collapsed)."""
+
+    @staticmethod
+    def _queries():
+        from mcp_legal_it.lib.parlamento.client import _build_iter_query
+
+        return [
+            _build_search_query(
+                [['a"b\\c'], ["dell'ambiente", "x"]], legislatura=19,
+                ramo="S", stato='all\'esame "assemblea"\\', solo_pendenti=True,
+            ),
+            _build_iter_query(fase="S.562-B", legislatura=19),
+            _build_iter_query(id_ddl="55442"),
+        ]
+
+    def test_outside_literals_no_comment_and_no_single_quotes(self):
+        import re
+
+        for q in self._queries():
+            outside = re.sub(r"<[^>]*>", "", re.sub(r'"[^"]*"', "", q))  # the # of an IRI is no comment
+            assert "#" not in outside, q
+            assert "'" not in outside, q
+
+    def test_literals_carry_no_quote_or_backslash(self):
+        for q in self._queries():
+            assert q.count('"') % 2 == 0, q
+            assert "\\" not in q, q
 
 
 class TestParseAttoInput:
@@ -647,6 +686,18 @@ class TestIterDdlImpl:
         result = await _iter_ddl_impl("pippo")
         assert not result.success
         assert "pippo" in result.to_str()
+
+    async def test_query_too_long_is_invalid_input_without_network(self):
+        """parse_atto_input admits any number of suffix segments: an absurd one
+        outgrows the URL the WAF accepts and must not read as "Senato down"."""
+        client = _make_client(get_json=_SENATO_ITER)
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+            result = await _iter_ddl_impl("S.1" + "-B" * 600)
+
+        assert not result.success
+        assert result.error_type == "invalid_input"
+        assert "troppo lunga" in result.to_str()
+        client.get.assert_not_awaited()
 
     async def test_not_found(self):
         client = _make_client(get_json=_EMPTY)

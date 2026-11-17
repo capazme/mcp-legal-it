@@ -985,7 +985,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   and came back as `source_down`. The SPARQL queries now travel with their whitespace collapsed,
   which leaves room for one or two terms more with the same results (checked live against the
   previous queries). A search that
-  still does not fit is refused before the request, with the reason and what to shorten. A bare
+  still does not fit is refused before the request, with the reason and what to shorten, and so
+  is an `iter_ddl` atto with an absurd run of suffixes («S.1-B-B-B…»). A bare
   string passed to `search_ddl` in place of a list of term groups, which turned «codice della
   strada» into seventeen one-letter clauses, now raises `TypeError`. New live tests run the real
   `search_ddl` and pin the 2048-byte limit.

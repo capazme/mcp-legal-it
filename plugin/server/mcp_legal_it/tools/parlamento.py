@@ -144,6 +144,15 @@ async def _iter_ddl_impl(
 
     try:
         fasi = await fetch_iter(kind, value, legislatura=legislatura)
+    except QueryTooLong as exc:
+        # parse_atto_input admits any number of suffix segments: an absurd
+        # "S.1-B-B-B..." can outgrow the URL the WAF accepts.
+        return SearchResult(
+            success=False,
+            source="parlamento",
+            error_type="invalid_input",
+            results_text=f"**Errore**: {exc}",
+        )
     except Exception as exc:
         return SearchResult(success=False, source="parlamento", error_type="source_down", error_message=str(exc))
 
