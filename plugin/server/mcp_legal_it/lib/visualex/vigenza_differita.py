@@ -211,11 +211,14 @@ def stato_disposizione(testo: str, comma: "str | None", oggi: str,
 
     - ``("rinvio", data)``: it states one date after *oggi*;
     - ``("in_vigore", None)``: every date it states has passed, or the comma is repealed
-      (spent): nothing is deferred any more;
+      (spent): nothing is deferred any more, whatever part of an article it names (d.l.
+      35/2005, art. 2, comma 3-sexies: «Le disposizioni di cui ai commi 3, lettera e) … entrano
+      in vigore il 1° marzo 2006»);
     - ``("ignoto", None)``: the comma is not found, states no date, or more than one date
-      after *oggi*; or its date may not be the one of what the chain defers: an exception
-      («salvo», «ad eccezione», «in deroga» …), only part of an article («articolo 27, comma
-      1», «dei commi 1 e 2»), or another article than *articolo* (the one the chain names).
+      after *oggi*; an exception («salvo», «ad eccezione», «in deroga» …), which may defer
+      elsewhere, whatever its dates; or, with a date still to come, a comma whose date may
+      not be the one of what the chain defers: only part of an article («articolo 27, comma
+      1», «dei commi 1 e 2») or another article than *articolo* (the one the chain names).
       Never a guess.
     """
     blocco = _blocco_comma(testo, comma)
@@ -223,16 +226,17 @@ def stato_disposizione(testo: str, comma: "str | None", oggi: str,
         return "ignoto", None
     if _ABROGATO.match(blocco):
         return "in_vigore", None
-    if _ECCEZIONE.search(blocco) or _PARTE_DI_ARTICOLO.search(blocco):
+    date = {_iso(m["g"], m["m"], m["a"]) for m in _ENTRATA.finditer(blocco)}
+    future = {d for d in date if d > oggi}
+    if not date or _ECCEZIONE.search(blocco):
+        return "ignoto", None
+    if not future:
+        # Review of #179: which part a spent comma names does not matter, nothing is left to defer.
+        return "in_vigore", None
+    if _PARTE_DI_ARTICOLO.search(blocco) or len(future) > 1:
         return "ignoto", None
     if articolo and not re.search(rf"\barticol[oi]\s+{re.escape(articolo)}(?![\w-])", blocco, re.IGNORECASE):
         return "ignoto", None
-    date = {_iso(m["g"], m["m"], m["a"]) for m in _ENTRATA.finditer(blocco)}
-    future = {d for d in date if d > oggi}
-    if not date or len(future) > 1:
-        return "ignoto", None
-    if not future:
-        return "in_vigore", None
     return "rinvio", future.pop()
 
 

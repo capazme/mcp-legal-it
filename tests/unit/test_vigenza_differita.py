@@ -668,3 +668,45 @@ class TestRevisione:
         m = await api.modifiche_articolo("art. 765 c.p.c.", dal="2025-10-01")
         assert m.esito == "trovato" and m.precisione == "INDICATIVO"
         assert "art. 32, comma 3" in m.avvisi[0]
+
+
+# --- A spent comma read with no future date (review of #179, 17 November 2026) -----------------
+
+ART567 = _pagina("cpc_art567_vig_2026-11-17_riforma_2005_trimmed.html")
+ART569 = _pagina("cpc_art569_vig_2026-11-17_riforma_2005_trimmed.html")
+ART2_DL35 = _pagina("dl35_2005_art2_vig_2026-11-17_trimmed.html")
+TABELLA_567 = json.loads((NORMATTIVA / "cpc567_aggiornamenti_dal_2005.json").read_text(encoding="utf-8"))
+DL35 = "decreto.legge:2005-03-14;35~art"
+COMMA_3_SEXIES = "Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis)"
+
+
+class TestCommaEsaurito:
+    """The 2005-2006 reform of the esecuzioni: notes (115) and (116) of art. 567 c.p.c. move the
+    entry into force of d.l. 35/2005, art. 2, comma 3-sexies from 1/1/2006 to 1/3/2006, a chain
+    moved later and long past. The comma read live defers part of an article («ai commi 3 …»)
+    to a date already past: nothing is deferred, the text is ESATTO with no notice."""
+
+    def test_part_of_an_article_with_past_dates_is_in_force(self):
+        testo = f"3-sexies. {COMMA_3_SEXIES}, entrano in vigore il 1° marzo 2006."
+        assert vd.stato_disposizione(testo, "3-sexies", OGGI) == ("in_vigore", None)
+        # Another article than the chain's, every date past: nothing left to defer either.
+        assert vd.stato_disposizione("3. Le disposizioni dell'articolo 28 entrano in vigore il 1° gennaio 2019.",
+                                     "3", OGGI, "27") == ("in_vigore", None)
+        # An exception may defer elsewhere (#177): past dates do not make it known.
+        salvo = f"3-sexies. {COMMA_3_SEXIES}, salvo quanto previsto dal comma 3-septies, entrano in vigore il 1° marzo 2006."
+        assert vd.stato_disposizione(salvo, "3-sexies", OGGI) == ("ignoto", None)
+
+    @pytest.mark.parametrize("articolo, pagina", [("567", ART567), ("569", ART569)], ids=["art567", "art569"])
+    async def test_the_2005_reform_is_in_force_and_said_nothing_of(self, monkeypatch, articolo, pagina):
+        richieste, tabelle = _serve(monkeypatch, {CPC + articolo: pagina, DL35 + "2": ART2_DL35}, None)
+        t = await api.testo_articolo(_cpc(articolo), canale="html")
+        assert t.esito == "trovato" and t.precisione == "ESATTO"
+        assert not any("2006" in a for a in t.avvisi), t.avvisi
+        assert tabelle == [] and DL35 + "2!vig=" + OGGI in richieste  # read once, no table walk
+
+    async def test_an_exception_in_the_spent_comma_still_gives_the_notice(self, monkeypatch):
+        salvo = ART2_DL35.replace(COMMA_3_SEXIES, COMMA_3_SEXIES + ", salvo quanto previsto dal comma 3-septies", 1)
+        assert salvo != ART2_DL35
+        _serve(monkeypatch, {CPC + "567": ART567, DL35 + "2": salvo}, {"567": _tabella("567", TABELLA_567)})
+        t = await api.testo_articolo(_cpc("567"), canale="html")
+        assert t.precisione == "INDICATIVO" and "art. 2, comma 3-sexies" in t.avvisi[0]

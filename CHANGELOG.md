@@ -994,6 +994,16 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `api.modifiche_articolo` name the version Normattiva wrongly gives as in force, `INDICATIVO`, from
   the notes of the page the walk already reads (no request more). Checked live on the 20 articles of
   the c.p.c. and c.c. that carry the note.
+- **A false deferral notice on the articles of the 2005-2006 esecuzioni reform (#177).** Since #179,
+  arts. 567 and 569 c.p.c. (and every article d.l. 35/2005 touched) came out `INDICATIVO` with «non è
+  stato possibile leggere sull'art. 2, comma 3-sexies … se quella data è stata rinviata ancora». Their
+  notes move that entry into force from 1/1/2006 to 1/3/2006, a chain read live as possibly stale.
+  The comma defers part of an article («Le disposizioni di cui ai commi 3, lettera e) …»), so it was
+  «not known» before its dates were looked at, and each reading also walked the article's versions
+  since 2005. A comma whose dates have all passed now defers nothing, whatever part it names: the
+  articles are `ESATTO` again with no notice, and no table is read. A comma with an exception
+  («salvo», «ad eccezione», «in deroga» …) stays not known even with past dates: it may defer
+  elsewhere.
 - **Two more provisions of art. 27 d.lgs. 116/2017 served as in force, and a case B notice that
   said too much (#177).** A scan of all 32 provisions art. 27 amends found:
   - art. 765 c.p.c. served `ESATTO` with «cancelliere del giudice di pace». Normattiva's notes on that
