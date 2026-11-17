@@ -65,7 +65,14 @@ _INIZIO_COMMA = re.compile(r"^\s*\d+(?:-[a-z]+)?\s*\.(?:\s|$)")
 #: A comma (or article) Normattiva gives as repealed: «3. COMMA ABROGATO DAL …».
 _ABROGATO = re.compile(r"^(?:\d+(?:-[a-z]+)?\s*\.\s*)?(?:COMMA|ARTICOLO)\s+(?:ABROGAT|SOPPRESS)[OA]\b")
 #: A comma whose date may not be the whole provision's: an exception or a derogation.
-_ECCEZIONE = re.compile(r"\b(?:salvo|ad\s+eccezione|eccetto|limitatamente|tranne|in\s+deroga)\b", re.IGNORECASE)
+_ECCEZIONE = re.compile(
+    r"\b(?:salv[aeio]|fatt[aeio]\s+salv[aeio]|(?:ad?|fatta)\s+eccezione|eccezion\s+fatta|eccetto|esclusion[ei]"
+    r"|ad\s+esclusione|esclus[aeio]|eccettuat[aeio]|fuorch[eé]|limitatamente|tranne|in\s+deroga|ferm[oa]\s+restando"
+    r"|diversamente\s+(?:disposto|previsto|stabilito))\b",
+    re.IGNORECASE)
+#: Any date a comma states, with or without an entry-into-force formula («quelle di cui al comma 2
+#: dal 1° gennaio 2028», «acquistano efficacia dal …»): a spent comma must have none to come.
+_DATA = re.compile(rf"\b(?P<g>\d{{1,2}})[°º]?\s+(?P<m>{_MESE})\s+(?P<a>\d{{4}})\b", re.IGNORECASE)
 #: A comma that defers only part of an article: «articolo 27, comma 1», «dei commi 1 e 2».
 _PARTE_DI_ARTICOLO = re.compile(
     r"\barticol[oi]\s+\d+(?:-[a-z]+)?\s*,\s*(?:comm[ai]|letter[ae]|numer[oi])\b"
@@ -210,29 +217,39 @@ def stato_disposizione(testo: str, comma: "str | None", oggi: str,
     entrano in vigore il ((31 ottobre 2027)).»); without *comma*, the whole article.
 
     - ``("rinvio", data)``: it states one date after *oggi*;
-    - ``("in_vigore", None)``: every date it states has passed, or the comma is repealed
-      (spent): nothing is deferred any more;
-    - ``("ignoto", None)``: the comma is not found, states no date, or more than one date
-      after *oggi*; or its date may not be the one of what the chain defers: an exception
-      («salvo», «ad eccezione», «in deroga» …), only part of an article («articolo 27, comma
-      1», «dei commi 1 e 2»), or another article than *articolo* (the one the chain names).
-      Never a guess.
+    - ``("in_vigore", None)``: every date it states has passed, those of an entry-into-force
+      formula and any other, and it has no exception; or the comma is repealed (spent): nothing
+      is deferred any more, whatever part of an article it names (d.l. 35/2005, art. 2, comma
+      3-sexies: «Le disposizioni di cui ai commi 3, lettera e) … entrano in vigore il 1° marzo
+      2006»);
+    - ``("ignoto", None)``: the comma is not found, states no entry-into-force date, or a
+      spent comma states a date still to come in other words («si applicano a decorrere dal
+      …»); an exception or derogation («salvo», «fatte salve», «ad eccezione», «ad
+      esclusione», «fermo restando», «in deroga», «diversamente disposto» …), which may defer
+      elsewhere, whatever its dates; or, with a date still to come, a comma that states any
+      other date, past or future, only part of an article («articolo 27, comma 1», «dei commi
+      1 e 2») or another article than *articolo* (the one the chain names). Never a guess.
     """
     blocco = _blocco_comma(testo, comma)
     if blocco is None:
         return "ignoto", None
     if _ABROGATO.match(blocco):
         return "in_vigore", None
-    if _ECCEZIONE.search(blocco) or _PARTE_DI_ARTICOLO.search(blocco):
+    date = {_iso(m["g"], m["m"], m["a"]) for m in _ENTRATA.finditer(blocco)}
+    future = {d for d in date if d > oggi}
+    if not date or _ECCEZIONE.search(blocco):
+        return "ignoto", None
+    tutte = {_iso(m["g"], m["m"], m["a"]) for m in _DATA.finditer(blocco)}
+    if not future:
+        # Review of #179: which part a spent comma names does not matter, nothing is left to defer;
+        # but every date it states must have passed, with an entry formula or not (review of #180).
+        return ("ignoto", None) if any(d > oggi for d in tutte) else ("in_vigore", None)
+    if tutte != future or len(future) > 1 or _PARTE_DI_ARTICOLO.search(blocco):
+        # One date, still to come, and no other: past and future dates in one comma may belong to
+        # different articles (review of #180).
         return "ignoto", None
     if articolo and not re.search(rf"\barticol[oi]\s+{re.escape(articolo)}(?![\w-])", blocco, re.IGNORECASE):
         return "ignoto", None
-    date = {_iso(m["g"], m["m"], m["a"]) for m in _ENTRATA.finditer(blocco)}
-    future = {d for d in date if d > oggi}
-    if not date or len(future) > 1:
-        return "ignoto", None
-    if not future:
-        return "in_vigore", None
     return "rinvio", future.pop()
 
 

@@ -384,7 +384,9 @@ class TestNoteFerme:
         assert vd.stato_disposizione(testo, "4", OGGI) == ("in_vigore", None)  # its only date has passed
         assert vd.stato_disposizione(testo, "1", OGGI) == ("in_vigore", None)  # repealed: nothing deferred
         assert vd.stato_disposizione(testo, "2", OGGI) == ("ignoto", None)  # not found
-        assert vd.stato_disposizione(testo, None, OGGI) == ("rinvio", "2027-10-31")  # one future date
+        # The whole article: a date to come (comma 3) and a past one (comma 4) may be different
+        # articles' dates, so it is not known (review of #180, N3).
+        assert vd.stato_disposizione(testo, None, OGGI) == ("ignoto", None)
         # Review of #179 (M1): a comma read whose dates have all passed defers nothing, for ever.
         assert vd.stato_disposizione(testo, "3", "2027-11-01") == ("in_vigore", None)
         due = "3. Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2027 e quelle dell'articolo 28 " \
@@ -668,3 +670,80 @@ class TestRevisione:
         m = await api.modifiche_articolo("art. 765 c.p.c.", dal="2025-10-01")
         assert m.esito == "trovato" and m.precisione == "INDICATIVO"
         assert "art. 32, comma 3" in m.avvisi[0]
+
+
+# --- A spent comma read with no future date (review of #179, 17 November 2026) -----------------
+
+ART567 = _pagina("cpc_art567_vig_2026-11-17_riforma_2005_trimmed.html")
+ART569 = _pagina("cpc_art569_vig_2026-11-17_riforma_2005_trimmed.html")
+ART2_DL35 = _pagina("dl35_2005_art2_vig_2026-11-17_trimmed.html")
+TABELLA_567 = json.loads((NORMATTIVA / "cpc567_aggiornamenti_dal_2005.json").read_text(encoding="utf-8"))
+DL35 = "decreto.legge:2005-03-14;35~art"
+COMMA_3_SEXIES = "Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis)"
+
+
+class TestCommaEsaurito:
+    """The 2005-2006 reform of the esecuzioni: notes (115) and (116) of art. 567 c.p.c. move the
+    entry into force of d.l. 35/2005, art. 2, comma 3-sexies from 1/1/2006 to 1/3/2006, a chain
+    moved later and long past. The comma read live defers part of an article («ai commi 3 …»)
+    to a date already past: nothing is deferred, the text is ESATTO with no notice."""
+
+    def test_part_of_an_article_with_past_dates_is_in_force(self):
+        testo = f"3-sexies. {COMMA_3_SEXIES}, entrano in vigore il 1° marzo 2006."
+        assert vd.stato_disposizione(testo, "3-sexies", OGGI) == ("in_vigore", None)
+        # Another article than the chain's, every date past: nothing left to defer either.
+        assert vd.stato_disposizione("3. Le disposizioni dell'articolo 28 entrano in vigore il 1° gennaio 2019.",
+                                     "3", OGGI, "27") == ("in_vigore", None)
+        # An exception may defer elsewhere (#177): past dates do not make it known.
+        salvo = f"3-sexies. {COMMA_3_SEXIES}, salvo quanto previsto dal comma 3-septies, entrano in vigore il 1° marzo 2006."
+        assert vd.stato_disposizione(salvo, "3-sexies", OGGI) == ("ignoto", None)
+
+    @pytest.mark.parametrize("articolo, pagina", [("567", ART567), ("569", ART569)], ids=["art567", "art569"])
+    async def test_the_2005_reform_is_in_force_and_said_nothing_of(self, monkeypatch, articolo, pagina):
+        richieste, tabelle = _serve(monkeypatch, {CPC + articolo: pagina, DL35 + "2": ART2_DL35}, None)
+        t = await api.testo_articolo(_cpc(articolo), canale="html")
+        assert t.esito == "trovato" and t.precisione == "ESATTO"
+        assert not any("2006" in a for a in t.avvisi), t.avvisi
+        assert tabelle == [] and DL35 + "2!vig=" + OGGI in richieste  # read once, no table walk
+
+    async def test_an_exception_in_the_spent_comma_still_gives_the_notice(self, monkeypatch):
+        salvo = ART2_DL35.replace(COMMA_3_SEXIES, COMMA_3_SEXIES + ", salvo quanto previsto dal comma 3-septies", 1)
+        assert salvo != ART2_DL35
+        _serve(monkeypatch, {CPC + "567": ART567, DL35 + "2": salvo}, {"567": _tabella("567", TABELLA_567)})
+        t = await api.testo_articolo(_cpc("567"), canale="html")
+        assert t.precisione == "INDICATIVO" and "art. 2, comma 3-sexies" in t.avvisi[0]
+
+    def test_a_future_date_without_the_entry_formula_is_never_in_force(self):
+        """Review of #180 (N1): a spent comma with a second date still to come, in other words."""
+        for coda in ("; quelle di cui al comma 2 dal 1° gennaio 2028", "; si applicano a decorrere dal 1° gennaio 2028",
+                     "; le altre acquistano efficacia dal 1° gennaio 2028"):
+            testo = f"3-sexies. {COMMA_3_SEXIES}, entrano in vigore il 1° marzo 2006{coda}."
+            assert vd.stato_disposizione(testo, "3-sexies", OGGI) == ("ignoto", None), coda
+
+    @pytest.mark.parametrize("eccezione", [
+        "fatte salve le disposizioni del comma 4", "salva la disciplina transitoria", "salvi i commi 2 e 3",
+        "fatta eccezione per il comma 2", "eccezion fatta per il comma 2", "a eccezione del comma 2",
+        "ad esclusione del comma 2", "esclusi i commi 2 e 3", "fermo restando il comma 2",
+        "ove non diversamente disposto",
+        # Review of #180 (m7): with past dates these read «in_vigore», the less safe way.
+        "eccettuati i commi 2 e 3", "eccettuata la lettera b)", "salvo che sia diversamente previsto",
+        "ove non diversamente stabilito", "fuorché il comma 2", "fuorche' il comma 2",
+    ])
+    def test_every_form_of_exception_is_not_known(self, eccezione):
+        """Review of #180 (N2): with past dates and with a future one alike."""
+        passata = f"3. Le disposizioni dell'articolo 27, {eccezione}, entrano in vigore il 1° marzo 2006."
+        futura = f"3. Le disposizioni dell'articolo 27, {eccezione}, entrano in vigore il 31 ottobre 2027."
+        assert vd.stato_disposizione(passata, "3", OGGI) == ("ignoto", None)
+        assert vd.stato_disposizione(futura, "3", OGGI, "27") == ("ignoto", None)
+
+    def test_past_and_future_dates_in_one_comma_are_not_known(self):
+        """Review of #180 (N3): the chain on art. 27 must not take art. 28's date."""
+        testo = ("3. Le disposizioni dell'articolo 27 entrano in vigore il 1° marzo 2006 e quelle dell'articolo 28 "
+                 "entrano in vigore il 1° gennaio 2028.")
+        assert vd.stato_disposizione(testo, "3", OGGI, "27") == ("ignoto", None)
+
+    def test_the_real_comma_3_sexies_has_no_exception_and_no_other_date(self):
+        from mcp_legal_it.lib.visualex import scraper as sc
+
+        testo = sc._lettura_pagina(ART2_DL35)[0]
+        assert vd.stato_disposizione(testo, "3-sexies", OGGI) == ("in_vigore", None)
