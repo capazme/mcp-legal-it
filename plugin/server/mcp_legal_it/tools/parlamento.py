@@ -17,6 +17,7 @@ from mcp_legal_it.lib.parlamento.client import (
     STATI_PENDENTI,
     CameraIter,
     NoValidSearchTerms,
+    QueryTooLong,
     fetch_camera_iter,
     fetch_iter,
     format_fase,
@@ -103,6 +104,10 @@ async def _cerca_ddl_impl(
     except NoValidSearchTerms as exc:
         return SearchResult(
             success=False, source="parlamento", error_type="no_results", results_text=str(exc),
+        )
+    except QueryTooLong as exc:
+        return SearchResult(
+            success=False, source="parlamento", error_type="invalid_input", results_text=str(exc),
         )
     except Exception as exc:
         return SearchResult(success=False, source="parlamento", error_type="source_down", error_message=str(exc))
@@ -199,6 +204,10 @@ async def _ddl_su_norma_impl(
     except NoValidSearchTerms as exc:
         return SearchResult(
             success=False, source="parlamento", error_type="no_results", results_text=str(exc),
+        )
+    except QueryTooLong as exc:
+        return SearchResult(
+            success=False, source="parlamento", error_type="invalid_input", results_text=str(exc),
         )
     except Exception as exc:
         return SearchResult(success=False, source="parlamento", error_type="source_down", error_message=str(exc))

@@ -29,6 +29,15 @@ Quirks verified live (2026-08-25):
 - Third readings carry a suffix and unified texts merge the numbers —
   "S.562-B", "C.813-B", "S.93-338-353-B" are real osr:fase values, and the
   Camera identifies the -B reading as dc:identifier "813-B" (a distinct atto).
+
+Verified live 2026-11-17 (issue #185):
+- The Senato WAF answers 403 to any GET whose request target (path plus the
+  percent-encoded query string) exceeds 2048 bytes: 2048 answers 200, 2049
+  answers 403, whatever the query says. With POST refused too, a search has
+  to fit in the URL: queries are sent with their whitespace collapsed and a
+  longer one is refused locally (QueryTooLong) instead of reaching the WAF.
+- Virtuoso on dati.senato.it rejects BIND (SP030), so LCASE(STR(?titolo))
+  cannot be computed once and is repeated in every CONTAINS.
 """
 
 import html
@@ -68,6 +77,10 @@ STATI_PENDENTI: frozenset[str] = frozenset({
 _SENTINEL_DATA_LEGGE = "2100-01-01"
 _MAX_TITLE_LENGTH = 300
 
+#: Longest request target (path + percent-encoded query string) the Senato
+#: WAF lets through: one byte more and it answers 403 (verified 2026-11-17).
+SENATO_MAX_REQUEST_TARGET = 2048
+
 
 class NoValidSearchTerms(ValueError):
     """Every search term vanished in sanitisation.
@@ -75,6 +88,14 @@ class NoValidSearchTerms(ValueError):
     A dedicated type: catching bare ValueError would also swallow
     json.JSONDecodeError (its subclass) from a broken endpoint response,
     turning a source failure into a false "no results".
+    """
+
+
+class QueryTooLong(ValueError):
+    """The query would not fit in the URL the Senato WAF accepts.
+
+    Raised before any request: sent anyway, it would come back as a 403 page
+    and read as "Senato unreachable", while the cause is the search itself.
     """
 
 
@@ -171,6 +192,18 @@ PREFIX osr: <http://dati.senato.it/osr/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 """
 
+_LITERAL_OR_SPACE = re.compile(r'("[^"]*")|\s+')
+
+
+def _compact(query: str) -> str:
+    """Collapse whitespace outside string literals.
+
+    Every byte of the query counts against the 2048-byte request target the
+    Senato WAF accepts: the indentation of the templates alone costs ~110
+    bytes once percent-encoded. Literals are left untouched.
+    """
+    return _LITERAL_OR_SPACE.sub(lambda m: m.group(1) or " ", query).strip()
+
 
 def _build_search_query(
     groups: list[list[str]],
@@ -180,6 +213,10 @@ def _build_search_query(
     solo_pendenti: bool = False,
     limit: int = 10,
 ) -> str:
+    if isinstance(groups, str) or any(isinstance(group, str) for group in groups):
+        # A bare string iterates as characters: "codice della strada" became
+        # 17 one-letter CONTAINS clauses OR-ed together, and a 403 (#185).
+        raise TypeError("groups must be a list of term lists, e.g. [['codice della strada']]")
     filters = []
     expr = _title_filter_expr(groups)
     if groups and not expr:
@@ -201,7 +238,7 @@ def _build_search_query(
         filters="\n".join(filters),
         tail=f"ORDER BY DESC(?dataStato) LIMIT {int(limit)}",
     )
-    return _PREFIXES + body
+    return _compact(_PREFIXES + body)
 
 
 def _build_iter_query(
@@ -220,7 +257,7 @@ def _build_iter_query(
     else:
         where_head = f"  ?ddl osr:idDdl {int(id_ddl)} .\n"
     body = _SELECT_FASI.format(where_head=where_head, filters="", tail="ORDER BY ?prog")
-    return _PREFIXES + body
+    return _compact(_PREFIXES + body)
 
 
 def parse_atto_input(atto: str) -> tuple[str, str]:
@@ -250,12 +287,32 @@ def parse_atto_input(atto: str) -> tuple[str, str]:
     )
 
 
+def _senato_params(query: str) -> dict[str, str]:
+    return {"query": query, "format": "application/sparql-results+json"}
+
+
+def senato_request_target(query: str) -> bytes:
+    """Path plus percent-encoded query string of the GET that carries *query*."""
+    return httpx.Request("GET", SENATO_SPARQL_URL, params=_senato_params(query)).url.raw_path
+
+
 async def _execute_sparql_senato(query: str) -> list[dict]:
-    """GET only: dati.senato.it answers POST with a 403 WAF page."""
+    """GET only: dati.senato.it answers POST with a 403 WAF page.
+
+    A request target over SENATO_MAX_REQUEST_TARGET bytes gets a 403 too, so
+    it is refused here, before the request, with the reason spelled out.
+    """
+    size = len(senato_request_target(query))
+    if size > SENATO_MAX_REQUEST_TARGET:
+        raise QueryTooLong(
+            f"Ricerca troppo lunga per dati.senato.it: la richiesta occuperebbe {size} byte "
+            f"e il sito ne accetta al massimo {SENATO_MAX_REQUEST_TARGET}. "
+            "Usare meno termini, o termini più brevi, oppure togliere un filtro."
+        )
     async with async_client("parlamento_senato", timeout=_TIMEOUT, headers=_HEADERS) as client:
         resp = await retry_request(
             client, "GET", SENATO_SPARQL_URL, dataset="parlamento_senato",
-            params={"query": query, "format": "application/sparql-results+json"},
+            params=_senato_params(query),
         )
         return resp.json()["results"]["bindings"]
 
