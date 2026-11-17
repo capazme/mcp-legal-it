@@ -1099,6 +1099,14 @@ def _lettori_statici() -> dict[str, list]:
 # risparmia a nascondere i tool che non servono, non a promettere bytes esatti.
 _BYTES_PER_TOOL_STIMA = 1024
 
+#: What the environment chose for Brocardi, as stato_server reports it (lib/_brocardi_switch.py).
+_STATO_BROCARDI = {
+    "unset": "spento_per_default",
+    "on": "acceso",
+    "off": "spento_esplicito",
+    "unrecognised": "valore_non_riconosciuto",
+}
+
 
 @mcp.tool(tags={"diagnostica"})
 async def stato_server() -> dict:
@@ -1112,10 +1120,18 @@ async def stato_server() -> dict:
     Non consulta la rete e non tocca il disco (il percorso cache è solo descritto).
     Dentro un server costruito con `crea_server()` il conteggio resta quello del
     server standard, mentre `brocardi.attivo` vale per la chiamata in corso.
+    `brocardi.stato` dice cosa ha scelto l'ambiente per il server standard:
+    spento_per_default, acceso, spento_esplicito o valore_non_riconosciuto (trattato
+    come spento; il valore è in `brocardi.valore_non_riconosciuto`).
 
     Precisione: ESATTO (lettura dello stato del processo in esecuzione).
     """
-    active = await mcp.list_tools()
+    # The stock surface, not the one a crea_server(brocardi=...) call sets for itself.
+    token = _brocardi_switch.set_for_context(None)
+    try:
+        active = await mcp.list_tools()
+    finally:
+        _brocardi_switch.reset(token)
     active_names = sorted(t.name for t in active)
     pinned = os.environ.get(_clock.TODAY_ENV, "") or os.environ.get(_clock.NOW_ENV, "")
     profile = os.environ.get("LEGAL_PROFILE", "full").strip() or "full"
@@ -1137,12 +1153,15 @@ async def stato_server() -> dict:
         },
         "brocardi": {
             "attivo": _brocardi_switch.enabled(),
-            "nota": "con LEGAL_BROCARDI=off nessuna richiesta a brocardi.it e i tool solo_brocardi non sono esposti",
+            "stato": _STATO_BROCARDI[_brocardi_switch.environment_state()],
+            "valore_non_riconosciuto": _brocardi_switch.unrecognised_value(),
+            "nota": "da spento nessuna richiesta raggiunge brocardi.it e i tool solo_brocardi non sono esposti; "
+                    "`stato` è la scelta dell'ambiente per il server standard, `attivo` vale per la chiamata in corso",
         },
         "macchina": platform.node(),
         "fastmcp": fastmcp.__version__,
         "context_hint": {
             "bytes_stima_per_tool_nascosto": _BYTES_PER_TOOL_STIMA,
-            "nota": "il conteggio `tools_attivi` è la superficie del server standard dopo LEGAL_PROFILE e gli interruttori d'ambiente (LEGAL_PREVIGENTE, LEGAL_BROCARDI), scelti all'avvio; un server costruito con crea_server() può esporne meno",
+            "nota": "il conteggio `tools_attivi` è la superficie del server standard dopo LEGAL_PROFILE e gli interruttori d'ambiente (LEGAL_PREVIGENTE, LEGAL_BROCARDI), scelti all'avvio; un server costruito con crea_server() può esporne un numero diverso",
         },
     }

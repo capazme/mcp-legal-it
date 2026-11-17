@@ -7,8 +7,10 @@ the process default (``configura()``), else the built-in default (every field
 
 The environment keeps the last word on what an operator switched off:
 ``LEGAL_CACHE=off`` disables the disk caches whatever ``cache`` says, and
-``LEGAL_BROCARDI=off`` disables Brocardi whatever ``brocardi`` says
-(``lib/_cache.py``, ``lib/_brocardi_switch.py``).
+``LEGAL_BROCARDI=off`` (or a value it does not recognise) disables Brocardi
+whatever ``brocardi`` says (``lib/_cache.py``, ``lib/_brocardi_switch.py``).
+Brocardi is off by default: ``brocardi=True`` switches it on where the environment
+leaves it unset (or says ``on``).
 """
 
 from __future__ import annotations
@@ -39,7 +41,8 @@ class Configurazione:
     cache_dir: str | Path | None = None
     #: ``False``: no disk cache (as ``LEGAL_CACHE=off``). ``True`` cannot override that variable.
     cache: bool | None = None
-    #: ``False``: no Brocardi request (as ``LEGAL_BROCARDI=off``).
+    #: ``True``: Brocardi on (it is off by default); ``False``: no Brocardi request.
+    #: ``True`` cannot override ``LEGAL_BROCARDI=off`` (or an unrecognised value).
     brocardi: bool | None = None
 
 
@@ -78,8 +81,9 @@ def configura(
     """Set fields of the process default (``configura(cache=False)``); returns the new default.
 
     Fields not passed keep their value; ``configura()`` with no field resets the
-    default to the built-in one. ``brocardi=True`` is refused (``ValueError``) when
-    ``LEGAL_BROCARDI=off`` is set.
+    default to the built-in one. ``brocardi=True`` switches Brocardi on for the
+    process; it is refused (``ValueError``) when ``LEGAL_BROCARDI`` is off or
+    unrecognised.
     """
     global _process
     from mcp_legal_it.lib import _brocardi_switch
@@ -102,7 +106,8 @@ def configurazione(
 ) -> Iterator[Configurazione]:
     """Run a block with these fields overriding the configuration in force (this context only).
 
-    ``brocardi=True`` is refused (``ValueError``) when ``LEGAL_BROCARDI=off`` is set.
+    ``brocardi=True`` switches Brocardi on for the block; it is refused (``ValueError``)
+    when ``LEGAL_BROCARDI`` is off or unrecognised, and inside a context already off.
     """
     from mcp_legal_it.lib import _brocardi_switch
 
@@ -112,10 +117,7 @@ def configurazione(
         # An off cannot be undone from inside: not the environment's (same rule as
         # set_default(True)), nor one set for this context (crea_server(brocardi=False),
         # _brocardi_switch.disabled(), an enclosing configurazione(brocardi=False)).
-        if _brocardi_switch.off_by_environment():
-            raise ValueError(
-                f"{_brocardi_switch.ENV_SWITCH}=off is set in the environment: Brocardi cannot be switched back on"
-            )
+        _brocardi_switch.check_can_switch_on()
         if _brocardi_switch._context.get() is False:
             raise ValueError("Brocardi is off for this context: it cannot be switched back on inside it")
     token = _context.set(nuovo)

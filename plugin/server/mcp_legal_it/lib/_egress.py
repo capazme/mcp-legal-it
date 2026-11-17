@@ -52,9 +52,9 @@ ALLOWED_HOSTS: dict[str, str] = {
     # case-law abstracts, never the text of a norm: that always comes from
     # Normattiva or EUR-Lex (the codice deontologico forense: from the CNF). Named explicitly because an auditor should see
     # that this project's single private dependency was a deliberate choice.
-    # LEGAL_BROCARDI=off (or crea_server(brocardi=False)) removes it at runtime:
-    # `is_allowed` refuses it and the scrapers never build a request for it
-    # (lib/_brocardi_switch.py).
+    # It is off by default (LI-079): unless LEGAL_BROCARDI=on (or code switches it on,
+    # crea_server(brocardi=True)), `is_allowed` refuses it and the scrapers never build
+    # a request for it (lib/_brocardi_switch.py).
     "www.brocardi.it": "Brocardi.it — annotazioni dottrinali (fonte privata)",
 }
 

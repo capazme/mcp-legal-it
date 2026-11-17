@@ -287,9 +287,10 @@ async def cite_law(
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
     Fonti: Normattiva (leggi italiane), EUR-Lex (regolamenti/direttive UE), CNF (codice deontologico
-    forense), Brocardi (annotazioni).
+    forense); annotazioni Brocardi solo se attive in questa installazione.
 
-    Dopo questo tool: cerca_brocardi() per approfondimenti dottrinali, cerca_giurisprudenza() per precedenti.
+    Dopo questo tool: giurisprudenza_su_norma() o cerca_giurisprudenza() per precedenti.
+    Approfondimenti dottrinali con cerca_brocardi(), se disponibile.
     Restituisce: testo ufficiale dell'articolo da Normattiva/EUR-Lex con URL fonte.
 
     Esempi di riferimenti validi:
@@ -331,7 +332,8 @@ async def cite_law(
                    "art. 6 D.Lgs. 231/2001", "art. 117 Costituzione",
                    "considerando 42 GDPR", "art. 4 n. 11 GDPR"
         include_annotations: Includi anche le annotazioni Brocardi (ratio legis, spiegazione,
-                             massime giurisprudenziali). Default False.
+                             massime giurisprudenziali), se attive in questa installazione;
+                             altrimenti una riga lo dice. Default False.
         formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
                  atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, allegato,
                  testo, errore, data_consultazione, avvisi, upcoming. "avvisi" (lista, vuota se
