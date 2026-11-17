@@ -1000,10 +1000,14 @@ described in those sections, not repeated here. Upgrading from 2.x:
   notes move that entry into force from 1/1/2006 to 1/3/2006, a chain read live as possibly stale.
   The comma defers part of an article («Le disposizioni di cui ai commi 3, lettera e) …»), so it was
   «not known» before its dates were looked at, and each reading also walked the article's versions
-  since 2005. A comma whose dates have all passed now defers nothing, whatever part it names: the
-  articles are `ESATTO` again with no notice, and no table is read. A comma with an exception
-  («salvo», «ad eccezione», «in deroga» …) stays not known even with past dates: it may defer
-  elsewhere.
+  since 2005. A comma all of whose dates have passed (every date it states, with an entry-into-force
+  formula or not) and with no exception or derogation now defers nothing, whatever part it names:
+  the articles are `ESATTO` again with no notice, and no table is read. A comma with an exception
+  or derogation («salvo», «fatte salve», «ad eccezione», «ad esclusione», «fermo restando», «in
+  deroga», «diversamente disposto» …) stays not known even with past dates, since it may defer
+  elsewhere; so does a spent comma with a date still to come in other words («si applicano a
+  decorrere dal …»). A date to come is taken only when the comma states no other date, past or
+  future: two dates in one comma may belong to different articles.
 - **Two more provisions of art. 27 d.lgs. 116/2017 served as in force, and a case B notice that
   said too much (#177).** A scan of all 32 provisions art. 27 amends found:
   - art. 765 c.p.c. served `ESATTO` with «cancelliere del giudice di pace». Normattiva's notes on that
