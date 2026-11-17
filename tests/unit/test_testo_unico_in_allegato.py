@@ -127,7 +127,7 @@ class TestDecreeCitation:
         _serve_akn(monkeypatch, tu, pagine={";175~art2": _PAGINA_DECRETO_ART1,
                                             ";175:1~art2": _PAGINA_DECRETO_ART1})
         out = await lc._cite_law_impl("art. 2 d.lgs. 175/2024")
-        assert "Testo tratto dall'Allegato" in out.split("###")[0] or "Testo tratto dall'Allegato" in out
+        assert "Testo tratto da: Allegato" in out.split("###")[0] or "Testo tratto da: Allegato" in out
 
 
 class TestTestoUnicoByName:

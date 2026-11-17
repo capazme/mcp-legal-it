@@ -978,6 +978,35 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **Act models whose warnings cost the act or the right (G-493, from the 2.17.2 hotfix).** Each was
+  reread on the text in force on Normattiva. Only these models were reread; the others are unchanged
+  (the istanza di esecutorietà model, for one, still counts «40 giorni + 10»).
+  - `opposizione_decreto_ingiuntivo` and `relata_pec_opposizione_di` gave «40 giorni dalla notifica».
+    The term is the one the decree fixes (art. 641 co. 1-2 c.p.c.): 40 days, down to 10 or up to 60
+    for giusti motivi; 50 days, down to 20, for a debtor in another EU State; 60, between 30 and
+    120, elsewhere. A late opposition is admitted only under art. 650: no timely knowledge of the
+    decree (irregular notification, caso fortuito, forza maggiore) or, after C. Cost. 120/1976,
+    knowledge of it but no way to oppose in time for caso fortuito or forza maggiore; never past ten
+    days from the first act of execution. The opposition model is now the atto introduttivo
+    (before the giudice di pace, ricorso semplificato, art. 316 co. 1; before the tribunale,
+    citazione, or ricorso in the rito semplificato, art. 281-decies co. 3), with the art. 645 co. 3
+    hearing and a field for the term in the decree. The `decreto_ingiuntivo` tool's
+    `termini.opposizione` says the same, and so do the `legal://riferimenti/termini-processuali`
+    table and the `legal://riferimenti/checklist-decreto-ingiuntivo` checklist, whose istanza di
+    esecutorietà no longer waits «40 giorni» but the term fixed in the decree.
+  - `avviso_543_5_cpc` was addressed to the debtor. It is notified to the third party, with the
+    numero di ruolo, and, notified, deposited in the file, both by the hearing date; otherwise the
+    pignoramento is inefficace (towards the third parties whose notice is not notified or
+    deposited, art. 543 co. 5 c.p.c.). Fields for the numero di ruolo and the hearing date.
+  - `vendita_immobili` asked to attach an expert valuation (art. 568) and pointed to the catasto
+    calculator. The judge sets the market value on the parties' elements and the art. 569 expert's;
+    what the creditor deposits, within the art. 497 term, is the catasto extract and the
+    twenty-year certificates, or a notarial certificate, on pain of inefficacia, with the
+    transcription cancelled and, without other goods, the process extinguished (art. 567 co. 2-3).
+    The art. 501 ten-day wait is stated too.
+  - The live test that certified «40 giorni» as correct now checks the decree's term, with rows for
+    the other models; `cite_law` names an annex as «Testo tratto da: …» (it read «dall'CODICE
+    CIVILE» for a part without «Allegato» in its name).
 - **The legge Basevi cited as a «d.lgs.» was refused.** A D.Lgs.C.P.S. is a decreto legislativo of the
   Capo provvisorio dello Stato, and «art. 26 d.lgs. 1577/1947» is how it is cited; since its heading
   type was measured (G-440) the page counted as another act's, and only «D.Lgs.C.P.S. 1577/1947» or

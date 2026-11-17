@@ -116,3 +116,25 @@ def test_irpef_example_total_recomputed():
 def test_irpef_static_detrazioni_tail_preserved():
     out = res.irpef_detrazioni.fn() if hasattr(res.irpef_detrazioni, "fn") else res.irpef_detrazioni()
     assert "DETRAZIONI PER LAVORO DIPENDENTE" in out
+
+
+# --- G-493: the opposition term of a decreto ingiuntivo is the decree's (art. 641) --------
+
+_RIFERIMENTI_DI = ("termini-processuali.md", "checklist-decreto-ingiuntivo.md")
+_CONTENT_REFERENCES = Path(__file__).parents[2] / "content" / "references"
+
+
+def _senza_quaranta_giorni(testo: str, nome: str) -> None:
+    assert "40 gg dalla notifica" not in testo and "40 giorni dalla notifica" not in testo, nome
+    assert "fissato nel decreto" in testo and "art. 650" in testo, nome
+
+
+def test_opposizione_decreto_ingiuntivo_termine_del_decreto():
+    # art. 641 co. 1-2 c.p.c.: 40 days, 10 to 60 for giusti motivi; EU 50, down to 20; other
+    # States 60, between 30 and 120. A flat «40 giorni» loses the opposition when the decree
+    # fixes less, and art. 650 does not save it. Both the source and the projected copy.
+    for nome in _RIFERIMENTI_DI:
+        _senza_quaranta_giorni((res._REFERENCES_DIR / nome).read_text(encoding="utf-8"), nome)
+        _senza_quaranta_giorni((_CONTENT_REFERENCES / nome).read_text(encoding="utf-8"), f"content/{nome}")
+    checklist = (res._REFERENCES_DIR / "checklist-decreto-ingiuntivo.md").read_text(encoding="utf-8")
+    assert "dopo i 40 giorni" not in checklist
