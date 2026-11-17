@@ -978,6 +978,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **The legge Basevi cited as a «d.lgs.» was refused.** A D.Lgs.C.P.S. is a decreto legislativo of the
+  Capo provvisorio dello Stato, and «art. 26 d.lgs. 1577/1947» is how it is cited; since its heading
+  type was measured (G-440) the page counted as another act's, and only «D.Lgs.C.P.S. 1577/1947» or
+  «legge Basevi» read it. A «d.lgs.» now also takes the heading «DECRETO LEGISLATIVO DEL CAPO
+  PROVVISORIO DELLO STATO», dated by its title like any d.lgs.; cited as a legge, or another type, it
+  is still another act. No cache holds the refusal: a date not found is never kept.
 - **Amendments whose entry into force was deferred, served as in force (#172).** Normattiva dated the
   versions carrying art. 27 of d.lgs. 116/2017 (giudice di pace reform) by superseded dates of its
   entry-into-force chain (31/10/2021, 2025) and served them as the text in force, `ESATTO`, although
