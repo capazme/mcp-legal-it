@@ -52,6 +52,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     co. 2-3). The art. 501 ten-day wait is stated too.
   - The live test that certified «40 giorni» as correct now checks the decree's term, with rows
     for the other three models.
+- **Four citations that answered with another act's article (G-493, found in G-440).**
+  - **A decree whose main text is an annex, cited by its own number.** «art. 1 d.lgs.
+    175/2024» answered the testo unico's art. 1 (its annex) under the decree's URN, unlabelled;
+    the decree has an art. 1 of its own («È approvato l'allegato testo unico …»). The same for
+    the R.D. 262/1942 (artt. 1-2 are the decree's, not the codice civile's) and the d.lgs.
+    104/2010. The decree's own article now comes from its page; one the decree lacks comes from
+    the annex, labelled with it (`allegato`). Codes cited by name are unchanged («art. 2043 c.c.»,
+    «art. 30 c.p.a.», «legge fallimentare»).
+  - **«legge sulle locazioni abitative»** was typed as a decreto legislativo, so it was refused as
+    another act: it is the L. 9 dicembre 1998, n. 431.
+  - **Historical headings.** Asked a «legge» or «r.d.» n. 512 of 1946, Normattiva serves the
+    D.Lgt. 30 marzo 1946, n. 512, whose art. 1 was answered as the act cited. «DECRETO
+    LUOGOTENENZIALE», «DECRETO DEL CAPO PROVVISORIO DELLO STATO» and «DECRETO LEGISLATIVO DEL CAPO
+    PROVVISORIO DELLO STATO» head real pages (measured on 1923-1950) and now mark another act:
+    refused, with the year or the full date.
+  - **Cached export addresses.** The export's address index never expires, and an entry written
+    before the historical headings were known may hold the D.Lgt.'s export for a «legge
+    512/1946». Its entries carry a new mark («intestazione-2»), so those older ones are no longer
+    read.
 - **An act cited by its year is never read as another act Normattiva serves in its place**
   (#136, #146). Normattiva's resolver does not check an act's type: asked for a D.M. n. 241
   of 1990 by its year it serves L. 7 agosto 1990, n. 241, and `cite_law("art. 3 d.m.

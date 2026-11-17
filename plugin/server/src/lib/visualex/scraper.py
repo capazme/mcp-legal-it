@@ -155,7 +155,18 @@ _TIPI_PER_INTESTAZIONE = frozenset({
     "decreto.ministeriale", "decreto.del.presidente.del.consiglio.dei.ministri",
     "decreto.legislativo.luogotenenziale",
 })
-_TIPI_INTESTAZIONE_NOTI = frozenset().union(*_INTESTAZIONI.values())
+#: Heading types of real Normattiva pages that no type of the library cites, measured on
+#: 11 November 2026 by sampling year-only URNs of 1923-1950 (G-440): «DECRETO LUOGOTENENZIALE
+#: 30 marzo 1946, n. 512», «DECRETO DEL CAPO PROVVISORIO DELLO STATO 6 settembre 1946, n. 659»,
+#: «DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 10 gennaio 1947, n. 3». They are never
+#: an act asked for, but a page headed by one of them is another act's: before they were known,
+#: «legge 512/1946» (or «r.d. 512/1946») served the decreto luogotenenziale n. 512 as its own.
+_INTESTAZIONI_ALTRE = frozenset({
+    "DECRETO LUOGOTENENZIALE",
+    "DECRETO DEL CAPO PROVVISORIO DELLO STATO",
+    "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO",
+})
+_TIPI_INTESTAZIONE_NOTI = frozenset().union(*_INTESTAZIONI.values()) | _INTESTAZIONI_ALTRE
 
 
 class AttoNonVerificato(LookupError):
@@ -355,6 +366,8 @@ async def _fetch_article(nv: NormaVisitata) -> dict:
             from .akn_fetch import fetch_act_akn
 
             act = await fetch_act_akn(nv.norma)
+            if act is not None and _nomina_il_decreto(act, nv, url, part):
+                return await _articolo_del_decreto(nv, url, act)
             if act is not None:
                 akn_text = _akn_article(act, nv.numero_articolo, part)
                 if akn_text:
@@ -377,6 +390,50 @@ async def _fetch_article(nv: NormaVisitata) -> dict:
         return _checked_html_article(result, nv, served, act, part)
 
     return {"text": text, "url": url, "source": source}
+
+
+#: The ":k" after the act number of a Normattiva URL: the URN names one of the act's parts.
+_URL_NOMINA_PARTE = re.compile(r";[^;:~!@?]+:\d+(?=~|!|@|$)")
+
+
+def _nomina_il_decreto(act, nv: NormaVisitata, url: str, part: "str | None") -> bool:
+    """Whether the citation names the body of a decree whose main text is an annex (G-440).
+
+    The export's default lookup is then the annex (d.lgs. 175/2024: the testo unico della
+    giustizia tributaria; R.D. 262/1942: the codice civile), while the decree, cited by its
+    type and number with no part in its URN (``;175~art1``), has articles of its own («È
+    approvato l'allegato testo unico …»). A code cited by its name is not: its URN names the
+    part (``;262:2``), or the name is a code's.
+    """
+    return (bool(act.main_part) and not part and not _URL_NOMINA_PARTE.search(url)
+            and not codice_urn(nv.norma.tipo_atto_normalized.lower()))
+
+
+async def _articolo_del_decreto(nv: NormaVisitata, url: str, act) -> dict:
+    """The decree's own article; the annex's, labelled with it, when the decree has none (G-440).
+
+    The parsed export holds the annex only, so the decree's articles come from the page of its
+    URN, which names the article it serves: the decree's own when the decree has it, its art. 1
+    otherwise. Only then, the decree lacking the article, the annex's comes from the export,
+    with ``allegato`` naming the annex. A page that names no article proves nothing either way
+    (:func:`_checked_html_article`).
+    """
+    async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
+        resp = await client.get(url)
+        resp.raise_for_status()
+        note_source("normattiva", str(resp.url) if hasattr(resp, "url") else "")
+        html = resp.text
+    controlla_intestazione(url, html)  # never another act's article
+    text, served = _normattiva_article_page(html)
+    result = {"text": text, "url": url, "source": "normattiva", "data_atto": nv.norma.data}
+    requested = _article_identity(normalize_article_key(nv.numero_articolo))
+    got = _article_identity(served) if served is not None else None
+    if requested is not None and got is not None and got[0] != requested[0]:
+        annesso = _akn_article(act, nv.numero_articolo, None)
+        if annesso:
+            return {"text": annesso, "url": url, "source": "normattiva-akn", "data_atto": nv.norma.data,
+                    "allegato": act.main_part}
+    return _checked_html_article(result, nv, served, act, None)
 
 
 # ---------------------------------------------------------------------------

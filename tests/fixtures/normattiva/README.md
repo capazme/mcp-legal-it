@@ -44,3 +44,17 @@ laws it serves for decrees it does not have.
 
 Used by `tests/unit/test_atto_per_anno_tipo.py`, with `../akn/landing_legge_241_1990.html`.
 | `dm_241_1990_art3_serve_legge.html` | `decreto.ministeriale:1990-08-07;241~art3` (full date) | art. 3 of L. 7 agosto 1990, n. 241 (2026-11-02), trimmed to the head |
+
+Another act's article served as the cited one (G-493, from G-440), used by
+`tests/unit/test_articolo_di_un_altro_atto.py`. The decree pages keep the real `<title>`
+(the heading check reads it) and `div.bodyTesto`; captured on 2026-11-17, the D.Lgt.'s
+landing page on 2026-11-11.
+
+| File | URN (after `urn:nir:stato:`) | What Normattiva served |
+|------|------------------------------|------------------------|
+| `dlgs175_2024_decreto_art1.html` | `decreto.legislativo:2024-11-14;175~art1` | the decree's own art. 1, «È approvato l'allegato testo unico …» |
+| `dlgs175_2024_decreto_art4_serve_art1.html` | `decreto.legislativo:2024-11-14;175~art4` | the decree's art. 1 again: the decree has no art. 4 (the testo unico in its annex has) |
+| `rd262_1942_decreto_art1.html` | `regio.decreto:1942-03-16;262~art1` | the decree's own art. 1, «È approvato il testo del Codice civile …» |
+| `rd262_1942_decreto_art3_serve_art1.html` | `regio.decreto:1942-03-16;262~art3` | the decree's art. 1 again: the decree has no art. 3 (the codice civile has) |
+| `landing_dlgt_512_1946_serve_rdlgs.html` | `regio.decreto.legislativo:1946;512` | the page of D.Lgt. 30 marzo 1946, n. 512 (title «DECRETO LUOGOTENENZIALE 30 marzo 1946, n. 512»), another act |
+| `dlgs104_2010_decreto_art3_serve_art1.html` | `decreto.legislativo:2010-07-02;104~art3` | the decree's art. 1: the decree has no art. 3 (the codice del processo amministrativo in its annex has); used by `tests/unit/test_allegati.py` |
