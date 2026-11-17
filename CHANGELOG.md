@@ -978,6 +978,17 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`cerca_ddl` and `ddl_su_norma`: a long search no longer reads as «Senato unreachable» (#185).**
+  The dati.senato.it WAF answers 403 to any GET whose path and query string exceed 2048 bytes,
+  whatever the query says (verified live: 2048 answers, 2049 does not), and POST is refused too.
+  With words of average length, a search of thirteen terms, or six with every filter on, crossed it
+  and came back as `source_down`. The SPARQL queries now travel with their whitespace collapsed,
+  which leaves room for one or two terms more with the same results (checked live against the
+  previous queries). A search that
+  still does not fit is refused before the request, with the reason and what to shorten. A bare
+  string passed to `search_ddl` in place of a list of term groups, which turned «codice della
+  strada» into seventeen one-letter clauses, now raises `TypeError`. New live tests run the real
+  `search_ddl` and pin the 2048-byte limit.
 - `plugin/README.md` said 23 skills in its English summary: the plugin ships 30 (and 235 tools, 9 commands, 6 agents).
 - **Act models whose warnings cost the act or the right (G-493, from the 2.17.2 hotfix).** Each was
   reread on the text in force on Normattiva. Only these models were reread; the others are unchanged
