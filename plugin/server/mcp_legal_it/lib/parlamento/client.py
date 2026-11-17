@@ -201,6 +201,15 @@ def _compact(query: str) -> str:
     Every byte of the query counts against the 2048-byte request target the
     Senato WAF accepts: the indentation of the templates alone costs ~110
     bytes once percent-encoded. Literals are left untouched.
+
+    Correct only under two conditions, both held today and pinned by
+    TestCompactPreconditions:
+    - every literal is double-quoted and carries no '"' or backslash
+      (_sanitize_phrase strips both), so '"[^"]*"' spans exactly one literal;
+    - the templates hold no '#' comment and no single-quoted literal: a
+      comment would swallow the rest of the query once the newlines go, and
+      the whitespace inside a '...' literal would be collapsed. The '#' inside
+      an IRI (<...XMLSchema#>) is not a comment.
     """
     return _LITERAL_OR_SPACE.sub(lambda m: m.group(1) or " ", query).strip()
 
@@ -213,10 +222,14 @@ def _build_search_query(
     solo_pendenti: bool = False,
     limit: int = 10,
 ) -> str:
-    if isinstance(groups, str) or any(isinstance(group, str) for group in groups):
-        # A bare string iterates as characters: "codice della strada" became
-        # 17 one-letter CONTAINS clauses OR-ed together, and a 403 (#185).
-        raise TypeError("groups must be a list of term lists, e.g. [['codice della strada']]")
+    # A bare string iterates as characters: "codice della strada" became 17
+    # one-letter CONTAINS clauses OR-ed together, and a 403 (#185).
+    misuse = "groups must be a list of term lists, e.g. [['codice della strada']]"
+    if isinstance(groups, str):
+        raise TypeError(misuse)
+    groups = list(groups)  # a generator would be exhausted by the check below
+    if any(isinstance(group, str) for group in groups):
+        raise TypeError(misuse)
     filters = []
     expr = _title_filter_expr(groups)
     if groups and not expr:
