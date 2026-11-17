@@ -128,3 +128,13 @@ The other provisions art. 27 amends (#177), captured on 2026-11-16 the same way,
 | `dlgs116_2017_art32_vig_2026-11-16_trimmed.html` | art. 32 d.lgs. 116/2017 | version 9 (12-6-2026): comma 3 «Le disposizioni dell'articolo 27 entrano in vigore il ((31 ottobre 2027))» |
 
 `rinvio_art27_aggiornamenti.json`: `aggiornamenti.leggi_aggiornamenti` on 2026-11-16, unreduced (rows keep their dispositions), for art. 765 c.p.c. and art. 73-bis disp. att. c.c. (`dal=2017-07-13`) and for art. 32 d.lgs. 116/2017 (`dal=2026-06-12`, `max_versioni=1`: its latest version, d.l. 100/2026 on comma 3).
+
+A spent comma read with no future date (review of #179), captured on 2026-11-17 the same way:
+
+| File | Article | What Normattiva served |
+|------|---------|------------------------|
+| `cpc_art567_vig_2026-11-17_riforma_2005_trimmed.html` | art. 567 c.p.c. | version 11 (01-01-2023); notes (115) and (116) move the entry into force of d.l. 35/2005, art. 2, comma 3-sexies from 1/1/2006 to 1/3/2006 |
+| `cpc_art569_vig_2026-11-17_riforma_2005_trimmed.html` | art. 569 c.p.c. | the text in force, with the same notes (115) and (116) |
+| `dl35_2005_art2_vig_2026-11-17_trimmed.html` | art. 2 d.l. 35/2005 | comma 3-sexies: «Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis) … entrano in vigore il 1° marzo 2006» |
+
+`cpc567_aggiornamenti_dal_2005.json`: `aggiornamenti.leggi_aggiornamenti(dal=2005-03-14)` on 2026-11-17 for art. 567 c.p.c., unreduced.

@@ -1,0 +1,324 @@
+{
+ "_nota": "aggiornamenti.leggi_aggiornamenti on 2026-11-17 for art. 567 c.p.c., dal=2005-03-14, max_versioni=20, unreduced. See README.md.",
+ "567": {
+  "esito": "trovato",
+  "versioni": {
+   "11": [
+    "2023-01-01",
+    null
+   ],
+   "10": [
+    "2022-10-18",
+    "2022-12-31"
+   ],
+   "9": [
+    "2015-08-21",
+    "2022-10-17"
+   ],
+   "8": [
+    "2006-01-01",
+    "2015-08-20"
+   ],
+   "7": [
+    "2005-09-11",
+    "2005-12-31"
+   ],
+   "6": [
+    "2000-12-16",
+    "2005-09-10"
+   ],
+   "5": null,
+   "4": null,
+   "3": null,
+   "2": null,
+   "1": null
+  },
+  "righe": {
+   "11": [
+    {
+     "progressivo": 1,
+     "data_gu": "2022-12-29",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2022-12-29",
+        "numero_atto": "197",
+        "gazzetta": "SO n.43, relativo alla G.U. 29/12/2022, n.303",
+        "data_gu": "2022-12-29",
+        "descrizione": "La LEGGE 29 dicembre 2022, n. 197 (in SO n.43, relativo alla G.U. 29/12/2022, n.303) nel modificare l'art. 35, comma 1 del D.Lgs. 10 ottobre 2022, n. 149 (in S.O. n. 38, relativo alla G.U. 17/10/2022, n. 243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 380, lettera a)",
+         "tipo": "modifica",
+         "parti": "commi 2 e 3",
+         "testo": "ha conseguentemente disposto (con l'art. 1, comma 380, lettera a)) la modifica dell'art. 567, commi 2 e 3"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "10": [
+    {
+     "progressivo": 1,
+     "data_gu": "2022-10-17",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2022-10-10",
+        "numero_atto": "149",
+        "gazzetta": "SO n.38, relativo alla G.U. 17/10/2022, n.243",
+        "data_gu": "2022-10-17",
+        "descrizione": "Il DECRETO LEGISLATIVO 10 ottobre 2022, n. 149 (in SO n.38, relativo alla G.U. 17/10/2022, n.243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 3, comma 39, lettera a)",
+         "tipo": "modifica",
+         "parti": "commi 2 e 3",
+         "testo": "ha disposto (con l'art. 3, comma 39, lettera a)) la modifica dell'art. 567, commi 2 e 3"
+        }
+       ]
+      },
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2022-10-10",
+        "numero_atto": "149",
+        "gazzetta": "SO n.38, relativo alla G.U. 17/10/2022, n.243",
+        "data_gu": "2022-10-17",
+        "descrizione": "Il DECRETO LEGISLATIVO 10 ottobre 2022, n. 149 (in SO n.38, relativo alla G.U. 17/10/2022, n.243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 35, comma 1",
+         "tipo": "modifica",
+         "parti": "commi 2 e 3",
+         "testo": "ha disposto (con l'art. 35, comma 1) la modifica dell'art. 567, commi 2 e 3"
+        }
+       ],
+       "continua": true
+      }
+     ]
+    }
+   ],
+   "9": [
+    {
+     "progressivo": 1,
+     "data_gu": "2015-06-27",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2015-06-27",
+        "numero_atto": "83",
+        "gazzetta": "G.U. 27/06/2015, n.147",
+        "data_gu": "2015-06-27",
+        "descrizione": "Il DECRETO-LEGGE 27 giugno 2015, n. 83 (in G.U. 27/06/2015, n.147) convertito con modificazioni dalla L. 6 agosto 2015, n. 132 (in SO n. 50, relativo alla G.U. 20/08/2015, n. 192)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 13, comma 1, lettera n)",
+         "tipo": "modifica",
+         "parti": "commi 2 e 3",
+         "testo": "ha disposto (con l'art. 13, comma 1, lettera n)) la modifica dell'art. 567, commi 2 e 3"
+        }
+       ]
+      },
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2015-06-27",
+        "numero_atto": "83",
+        "gazzetta": "G.U. 27/06/2015, n.147",
+        "data_gu": "2015-06-27",
+        "descrizione": "Il DECRETO-LEGGE 27 giugno 2015, n. 83 (in G.U. 27/06/2015, n.147) convertito con modificazioni dalla L. 6 agosto 2015, n. 132 (in SO n. 50, relativo alla G.U. 20/08/2015, n. 192)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 23, comma 6",
+         "tipo": "modifica",
+         "parti": "commi 2 e 3",
+         "testo": "ha disposto (con l'art. 23, comma 6) la modifica dell'art. 567, commi 2 e 3"
+        }
+       ],
+       "continua": true
+      }
+     ]
+    }
+   ],
+   "8": [
+    {
+     "progressivo": 1,
+     "data_gu": "2005-12-28",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2005-12-28",
+        "numero_atto": "263",
+        "gazzetta": "SO n.209, relativo alla G.U. 28/12/2005, n.301",
+        "data_gu": "2005-12-28",
+        "descrizione": "La LEGGE 28 dicembre 2005, n. 263 (in SO n.209, relativo alla G.U. 28/12/2005, n.301) nel modificare l'art. 2, comma 3 lettera e) del D.L. 14 marzo 2005, n. 35 (in G.U. 16/3/2005, n. 62) convertito con modificazioni dalla L. 14 maggio 2005, n. 80 (in SO n.91, relativo alla G.U. 14/05/2005, n.111)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 3",
+         "tipo": "modifica",
+         "parti": "commi 2 e 3; nell'introdurre il comma 3-sexies all'art. 2 del D.L. 14 marzo 2005, n. 35 (in G.U. 16/3/2005, n. 62) convertito con modificazioni dalla L. 14 maggio 2005, n. 80 (in S.O. n. 91, relativo alla G.U. 14/05/2005, n. 111) ha conseguentemente disposto (con l'art. 1, comma 6) la modifica dell'art. 567, commi 2 e 3",
+         "testo": "ha conseguentemente disposto (con l'art. 1, comma 3) la modifica dell'art. 567, commi 2 e 3; nell'introdurre il comma 3-sexies all'art. 2 del D.L. 14 marzo 2005, n. 35 (in G.U. 16/3/2005, n. 62) convertito con modificazioni dalla L. 14 maggio 2005, n. 80 (in S.O. n. 91, relativo alla G.U. 14/05/2005, n. 111) ha conseguentemente disposto (con l'art. 1, comma 6) la modifica dell'art. 567, commi 2 e 3"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 2,
+     "data_gu": "2005-12-30",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2005-12-30",
+        "numero_atto": "273",
+        "gazzetta": "G.U. 30/12/2005, n.303",
+        "data_gu": "2005-12-30",
+        "descrizione": "Il DECRETO-LEGGE 30 dicembre 2005, n. 273 (in G.U. 30/12/2005, n.303) convertito con modificazioni dalla L. 23 febbraio 2006, n. 51 (in SO n. 47, relativo alla G.U. 28/02/2006, n. 49) nel modificare l'art. 2, comma 3-sexies del D.L. 14 marzo 2005, n. 35 (in G.U. 16/3/2005, n. 62) convertito con modificazioni dalla L. 14 maggio 2005, n. 80 (in SO n.91, relativo alla G.U. 14/05/2005, n.111)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 39-quater, comma 1",
+         "tipo": "modifica",
+         "parti": "commi 2 e 3",
+         "testo": "ha conseguentemente disposto (con l'art. 39-quater, comma 1) la modifica dell'art. 567, commi 2 e 3"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "7": [
+    {
+     "progressivo": 1,
+     "data_gu": "2005-03-16",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2005-03-14",
+        "numero_atto": "35",
+        "gazzetta": "G.U. 16/03/2005, n.62",
+        "data_gu": "2005-03-16",
+        "descrizione": "Il DECRETO-LEGGE 14 marzo 2005, n. 35 (in G.U. 16/03/2005, n.62) convertito con modificazioni dalla L. 14 maggio 2005, n. 80 (in S.O. n. 91, relativo alla G.U. 14/5/2005, n. 111)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 2, comma 3, lettera e)",
+         "tipo": "modifica",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 2, comma 3, lettera e)) la modifica dell'art. 567"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 2,
+     "data_gu": "2005-07-01",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2005-06-30",
+        "numero_atto": "115",
+        "gazzetta": "G.U. 01/07/2005, n.151",
+        "data_gu": "2005-07-01",
+        "descrizione": "Il DECRETO-LEGGE 30 giugno 2005, n. 115 (in G.U. 01/07/2005, n.151) convertito con modificazioni dalla L. 17 agosto 2005, n. 168 (in G.U. 22/8/2005, n. 194) nel modificare l'art. 2, comma 3-quater, del D.L. 14 marzo 2005, n. 35 (in G.U. 16/3/2005, n. 62) convertito con modificazioni dalla L. 14 maggio 2005, n. 80 (in SO n.91, relativo alla G.U. 14/05/2005, n.111)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 8, comma 1",
+         "tipo": "modifica",
+         "parti": null,
+         "testo": "ha conseguentemente disposto (con l'art. 8, comma 1) la modifica dell'art. 567"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "mancanti": [],
+  "oltre_tetto": [],
+  "vuote": [],
+  "storia_certa": true,
+  "nota_v1": null,
+  "errore": null,
+  "corrente": 11,
+  "note_pagina": [
+   {
+    "numero": "92",
+    "testo": "La L. 3 agosto 1998, n. 302, come modificata dal D.L. 21 settembre 1998, n. 328, convertito con modificazioni dalla L. 19 novembre 1998, n. 399, ha disposto (con l'art. 13-bis) che \"Per i procedimenti esecutivi nei quali sia già stata presentata istanza di vendita alla data di entrata in vigore della presente legge, il termine per l'allegazione della documentazione prevista dal secondo comma dell'articolo 567 del codice di procedura civile, come sostituito dall'articolo 1 della presente legge, è di quattro mesi per le procedure esecutive immobiliari nelle quali il ricorso di cui al primo comma dell'articolo 567 del codice di procedura civile è stato depositato entro il 31 dicembre 1995, di sei mesi se il ricorso è stato depositato entro il 31 dicembre 1996, di nove mesi se il ricorso è stato depositato entro il 31 dicembre 1997 e di dodici mesi se il ricorso è stato depositato entro la data di entrata in vigore della presente legge\". Il D.L. 21 settembre 1998, n. 328, convertito con modificazioni dalla L. 19 novembre 1998, n. 399, nel modificare l'art. 13-bis della L. 3 agosto 1998, n. 302, ha conseguentemente disposto (con l'art. 4, comma 2) che il suddetto termine decorre dalla data di entrata in vigore della L. 19 novembre 1998, n. 399.",
+    "ordine": 1,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "95",
+    "testo": "La L. 3 agosto 1998, n. 302, come modificata dal D.L. 17 marzo 1999, n. 64, convertito con modificazioni dalla L. 14 maggio 1999, n. 134, ha disposto (con l'art. 13-bis, comma 1) che \"1. Il termine per l'allegazione della documentazione prescritta dal secondo comma dell'articolo 567 del codice di procedura civile, come sostituito dall'articolo 1 della presente legge, ha le seguenti scadenze: a) 21 dicembre 1999, quando l'istanza di vendita risulta depositata entro il 31 dicembre 1995; b) 21 aprile 2000, quando l'istanza di vendita risulta depositata entro il 31 dicembre 1997; c) 21 luglio 2000, quando l'istanza di vendita risulta depositata entro il 31 dicembre 1998; d) 21 ottobre 2000, quando l'istanza di vendita risulta depositata entro il 31 dicembre 1999.\"",
+    "ordine": 2,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "96",
+    "testo": "La L. 3 agosto 1998, n. 302, come modificata dal D.L. 17 dicembre 1999, n. 480, convertito con modificazioni dalla L. 16 febbraio 2000, n. 25, ha disposto (con l'art. 13-bis, comma 1) che \"Il termine per l'allegazione della documentazione prescritta dal secondocomma dell'articolo 567 del codice di procedura civile, come sostituito dall'articolo 1 della presente legge, scade il 21 ottobre 2000 per tutte le procedure esecutive nelle quali l'istanza di vendita risulta depositata entro il 31 dicembre 1999, e il 21 dicembre 2000 per tutte le procedure esecutive nelle quali l'istanza di vendita risulta depositata tra il 1 gennaio e il 21 ottobre 2000.\"",
+    "ordine": 3,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "97",
+    "testo": "La L. 3 agosto 1998, n. 302, come modificata dal D.L. 18 ottobre 2000, n. 291, convertito con modificazioni dalla L. 14 dicembre 2000, n. 372, ha disposto (con l'art. 13-bis, comma 1) che \"Il termine per l'allegazione della documentazione prescritta dall'articolo 567 del codice di procedura civile, come modificato dall'articolo 1 della presente legge, scade il 30 giugno 2001 per tutte le procedure esecutive nelle quali l'istanza di vendita risulta depositata entro il 30 aprile 2001.\"",
+    "ordine": 4,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "113a",
+    "testo": "Il D.L. 14 marzo 2005, n. 35, convertito con modificazioni dalla L. 14 maggio 2005, n. 80, come modificato dal D.L. 30 giugno 2005, n. 115, convertito con modificazioni dalla L. 17 agosto 2005, n. 168, ha disposto (con l'art. 2, comma 3-quater) che la presente modifica ha effetto a decorrere dal 1 gennaio 2006.",
+    "ordine": 5,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "115",
+    "testo": "Il D.L.14 marzo 2005, n. 35,convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dalla L. 28 dicembre 2005, n. 263, ha disposto (con l'art. 2, comma 3-sexies) che \"Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis), b), c), c-bis), d), e) ed f), entrano in vigore il 1° gennaio 2006 e si applicano anche alle procedure esecutive pendenti a tale data di entrata in vigore. Quando tuttavia è già stata ordinata la vendita, la stessa ha luogo con l'osservanza delle norme precedentemente in vigore. L'intervento dei creditori non muniti di titolo esecutivo conserva efficacia se avvenuto prima del 1° gennaio 2006.\"",
+    "ordine": 6,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "116",
+    "testo": "Il D.L.14 marzo 2005, n. 35,convertito con modificazioni dalla L. 14 maggio 2005, n. 80 , come modificato dal D.L.30 dicembre 2005, n. 273, convertito con modificazioni dalla L. 23 febbraio 2006, n. 51, ha disposto (con l'art. 2, comma 3-sexies) che \"Le disposizioni di cui ai commi 3, lettera e), numeri da 2) a 43-bis), e 3-ter, lettere a-bis), b), c), c-bis), d), e) ed f), entrano in vigore il 1° marzo 2006 e si applicano anche alle procedure esecutive pendenti a tale data di entrata in vigore. Quando tuttavia è già stata ordinata la vendita, la stessa ha luogo con l'osservanza delle norme precedentemente in vigore. L'intervento dei creditori non muniti di titolo esecutivo conserva efficacia se avvenuto prima del 1° marzo 2006.\"",
+    "ordine": 7,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "148",
+    "testo": "Il D.L. 27 giugno 2015, n. 83, convertito con modificazioni dalla L. 6 agosto 2015, n. 132, ha disposto (con l'art. 23, comma 6) che \"Le disposizioni di cui agli articoli 12 e 13, comma 1, lettere d), l), m), n), si applicano esclusivamente alle procedure esecutive iniziate successivamente alla data di entrata in vigore del presente decreto\".",
+    "ordine": 8,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "171",
+    "testo": "Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "ordine": 9,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "173",
+    "testo": "Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "ordine": 10,
+    "corte_costituzionale": false
+   }
+  ]
+ }
+}

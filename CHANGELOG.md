@@ -1007,6 +1007,12 @@ described in those sections, not repeated here. Upgrading from 2.x:
   - The live test that certified «40 giorni» as correct now checks the decree's term, with rows for
     the other models; `cite_law` names an annex as «Testo tratto da: …» (it read «dall'CODICE
     CIVILE» for a part without «Allegato» in its name).
+- **The legge Basevi cited as a «d.lgs.» was refused.** A D.Lgs.C.P.S. is a decreto legislativo of the
+  Capo provvisorio dello Stato, and «art. 26 d.lgs. 1577/1947» is how it is cited; since its heading
+  type was measured (G-440) the page counted as another act's, and only «D.Lgs.C.P.S. 1577/1947» or
+  «legge Basevi» read it. A «d.lgs.» now also takes the heading «DECRETO LEGISLATIVO DEL CAPO
+  PROVVISORIO DELLO STATO», dated by its title like any d.lgs.; cited as a legge, or another type, it
+  is still another act. No cache holds the refusal: a date not found is never kept.
 - **Amendments whose entry into force was deferred, served as in force (#172).** Normattiva dated the
   versions carrying art. 27 of d.lgs. 116/2017 (giudice di pace reform) by superseded dates of its
   entry-into-force chain (31/10/2021, 2025) and served them as the text in force, `ESATTO`, although
@@ -1023,6 +1029,21 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `api.modifiche_articolo` name the version Normattiva wrongly gives as in force, `INDICATIVO`, from
   the notes of the page the walk already reads (no request more). Checked live on the 20 articles of
   the c.p.c. and c.c. that carry the note.
+- **A false deferral notice on the articles of the 2005-2006 esecuzioni reform (#177).** Since #179,
+  arts. 567 and 569 c.p.c. (and every article d.l. 35/2005 touched) came out `INDICATIVO` with «non è
+  stato possibile leggere sull'art. 2, comma 3-sexies … se quella data è stata rinviata ancora». Their
+  notes move that entry into force from 1/1/2006 to 1/3/2006, a chain read live as possibly stale.
+  The comma defers part of an article («Le disposizioni di cui ai commi 3, lettera e) …»), so it was
+  «not known» before its dates were looked at, and each reading also walked the article's versions
+  since 2005. A comma all of whose dates have passed (every date it states, with an entry-into-force
+  formula or not) and with no exception or derogation now defers nothing, whatever part it names:
+  the articles are `ESATTO` again with no notice, and no table is read. A comma with an exception
+  or derogation («salvo», «fatte salve», «ad eccezione», «ad esclusione», «eccettuati», «fuorché»,
+  «fermo restando», «in deroga», «diversamente disposto/previsto/stabilito» …) stays not known even
+  with past dates, since it may defer
+  elsewhere; so does a spent comma with a date still to come in other words («si applicano a
+  decorrere dal …»). A date to come is taken only when the comma states no other date, past or
+  future: two dates in one comma may belong to different articles.
 - **Two more provisions of art. 27 d.lgs. 116/2017 served as in force, and a case B notice that
   said too much (#177).** A scan of all 32 provisions art. 27 amends found:
   - art. 765 c.p.c. served `ESATTO` with «cancelliere del giudice di pace». Normattiva's notes on that
