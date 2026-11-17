@@ -446,11 +446,16 @@ def test_decreto_ingiuntivo_giudice_competente_e_contributo():
 
 
 def test_decreto_ingiuntivo_termini_641_644():
-    _norma("art. 641 c.p.c.", "nel termine di quaranta giorni", "il termine e' di cinquanta giorni",
-           "il termine e' di sessanta giorni")
+    """Art. 641 co. 1-2 c.p.c.: the term is the one the decree fixes (40 days, 10 to 60 for giusti motivi;
+    EU 50, down to 20; other States 60, between 30 and 120), never a flat 40 days (G-493)."""
+    _norma("art. 641 c.p.c.", "nel termine di quaranta giorni",
+           "il termine puo' essere ridotto sino a dieci giorni oppure aumentato a sessanta",
+           "il termine e' di cinquanta giorni e puo' essere ridotto fino a venti giorni",
+           "il termine e' di sessanta giorni", "non puo' essere inferiore a trenta ne' superiore a centoventi")
     _norma("art. 644 c.p.c.", "nel termine di sessanta giorni dalla pronuncia", "e di novanta giorni negli altri casi")
     t = _genera("decreto_ingiuntivo", CASI["decreto_ingiuntivo"][0])["termini"]
-    assert not contiene(t["opposizione"], "40 giorni", "50", "60 fuori", "art. 641")
+    assert not contiene(t["opposizione"], "fissato nel decreto", "40 giorni", "fino a 10", "a 60 per giusti motivi",
+                        "50 giorni", "fino a 20", "tra 30 e 120", "art. 641", "art. 650")
     assert not contiene(t["notifica_decreto"], "60 giorni", "90", "art. 644")
 
 

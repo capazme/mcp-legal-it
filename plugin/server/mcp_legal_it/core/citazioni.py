@@ -646,7 +646,7 @@ _TITOLO_ARTICOLO = re.compile(
 def articolo_servito(testo: str) -> "str | None":
     """The article a ``cite_law``/``fetch_law_article`` text is about, from its first line of body.
 
-    Header lines ("**Fonte**: ...", "**Testo tratto dall'Allegato ...**") are skipped.
+    Header lines ("**Fonte**: ...", "**Testo tratto da: Allegato ...**") are skipped.
     None when the text does not open on an article heading (an annex, a recital).
     """
     corpo = next((r for r in testo.splitlines() if r.strip() and not r.lstrip().startswith("**")), "")
