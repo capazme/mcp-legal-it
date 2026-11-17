@@ -32,6 +32,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   changes; the lock keeps its format (revision 3). pip-audit on the lock finds none.
 
 ### Fixed
+- **Act models whose warnings cost the act or the right (G-493).** Each was reread on the text
+  in force on Normattiva.
+  - `opposizione_decreto_ingiuntivo` and `relata_pec_opposizione_di` gave «40 giorni dalla
+    notifica». The term is the one the decree fixes (art. 641 co. 1-2 c.p.c.): 40 days, down to
+    10 or up to 60 for giusti motivi; 50 days, down to 20, for a debtor in another EU State; 60,
+    between 30 and 120, elsewhere. A late opposition is admitted only under art. 650. The
+    opposition model is now the atto introduttivo (citazione, or ricorso in the rito semplificato,
+    art. 281-decies co. 3), with the art. 645 co. 3 hearing and a field for the term in the decree.
+    The `decreto_ingiuntivo` tool's `termini.opposizione` says the same.
+  - `avviso_543_5_cpc` was addressed to the debtor. It goes to the third party, by the hearing
+    date, with the numero di ruolo, and the notified notice is deposited in the file; without
+    them the pignoramento is inefficace (towards the third parties not notified, art. 543 co. 5
+    c.p.c.). Fields for the numero di ruolo and the hearing date.
+  - `vendita_immobili` asked to attach an expert valuation (art. 568) and pointed to the catasto
+    calculator. The judge sets the market value on the parties' elements and the art. 569
+    expert's; what the creditor deposits, within the art. 497 term, is the catasto extract and
+    the twenty-year certificates, or a notarial certificate, on pain of inefficacia (art. 567
+    co. 2-3). The art. 501 ten-day wait is stated too.
+  - The live test that certified «40 giorni» as correct now checks the decree's term, with rows
+    for the other three models.
 - **An act cited by its year is never read as another act Normattiva serves in its place**
   (#136, #146). Normattiva's resolver does not check an act's type: asked for a D.M. n. 241
   of 1990 by its year it serves L. 7 agosto 1990, n. 241, and `cite_law("art. 3 d.m.

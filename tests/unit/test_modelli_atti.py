@@ -293,6 +293,21 @@ class TestCatalogoNormeVigenti:
         avv = " ".join(_CATALOGO["sfratto_morosita"]["avvertenze"])
         assert ">= 2 canoni" not in avv and "20 gg" in avv
 
+    def test_gravi_g493_non_tornano(self):
+        # G-493: the four entries no longer carry the claims that lost the act or the right
+        for tipo in ("opposizione_decreto_ingiuntivo", "relata_pec_opposizione_di"):
+            avv = " ".join(_CATALOGO[tipo]["avvertenze"])
+            assert "40 giorni dalla notifica" not in avv and "fissato nel decreto" in avv, tipo
+            assert "art. 641 c.p.c." in _CATALOGO[tipo]["riferimenti_normativi"], tipo
+        assert "termine_fissato_nel_decreto" in _CATALOGO["opposizione_decreto_ingiuntivo"]["campi_obbligatori"]
+        avviso = _CATALOGO["avviso_543_5_cpc"]
+        assert "debitore pignorato" not in avviso["descrizione"] and "terzo pignorato" in avviso["descrizione"]
+        assert {"numero_ruolo", "data_udienza_comparizione"} <= set(avviso["campi_obbligatori"])
+        vendita = _CATALOGO["vendita_immobili"]
+        assert "stima" not in vendita["campi_opzionali"] and "calcolo_valore_catastale" not in vendita["tool_calcolo"]
+        assert not any(a.lower().startswith("allegare relazione di stima") for a in vendita["avvertenze"])
+        assert {"art. 497 c.p.c.", "art. 501 c.p.c."} <= set(vendita["riferimenti_normativi"])
+
     def test_relata_penale_art_152_cpp(self):
         rif = _CATALOGO["relata_pec_penale"]["riferimenti_normativi"]
         assert "art. 152 c.p.p." in rif and "L. 53/1994" not in rif

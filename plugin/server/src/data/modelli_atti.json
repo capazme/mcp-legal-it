@@ -397,8 +397,8 @@
     "campi_obbligatori": ["avvocato", "destinatario", "pec_destinatario", "atto_notificato", "data_invio"],
     "campi_opzionali": [],
     "tool_calcolo": [],
-    "riferimenti_normativi": ["L. 53/1994", "art. 645 c.p.c."],
-    "avvertenze": ["Termine: 40 giorni dalla notifica del DI"]
+    "riferimenti_normativi": ["L. 53/1994", "art. 641 c.p.c.", "art. 645 c.p.c.", "art. 650 c.p.c."],
+    "avvertenze": ["Termine: quello fissato nel decreto ingiuntivo, dalla notifica: di regola 40 giorni, riducibile fino a 10 o aumentabile a 60 per giusti motivi; 50 giorni, riducibili fino a 20, se l'intimato risiede in altro Stato UE; 60 giorni, tra 30 e 120, in altri Stati (art. 641 co. 1-2 c.p.c.)", "Dopo la scadenza l'opposizione è ammessa solo se l'intimato prova di non aver avuto tempestiva conoscenza del decreto per irregolarità della notifica, caso fortuito o forza maggiore, e non oltre 10 giorni dal primo atto di esecuzione (art. 650 c.p.c.)"]
   },
   "relata_pec_appello": {
     "categoria": "notifiche",
@@ -699,14 +699,14 @@
   },
   "opposizione_decreto_ingiuntivo": {
     "categoria": "atti_introduttivi",
-    "descrizione": "Atto di citazione in opposizione a decreto ingiuntivo",
+    "descrizione": "Atto introduttivo dell'opposizione a decreto ingiuntivo: atto di citazione, o ricorso nel rito semplificato",
     "tier": 3,
     "routing": {"tipo": "resource", "resource": "legal://modelli-atti/introduttivi", "fase": 3},
-    "campi_obbligatori": ["opponente", "opposto", "decreto_opposto", "motivi_opposizione"],
+    "campi_obbligatori": ["opponente", "opposto", "decreto_opposto", "termine_fissato_nel_decreto", "motivi_opposizione"],
     "campi_opzionali": ["istanza_sospensione"],
     "tool_calcolo": ["contributo_unificato", "scadenza_processuale"],
-    "riferimenti_normativi": ["art. 645 c.p.c."],
-    "avvertenze": ["Termine: 40 giorni dalla notifica del decreto"]
+    "riferimenti_normativi": ["art. 641 c.p.c.", "art. 645 c.p.c.", "art. 650 c.p.c.", "art. 281-decies c.p.c."],
+    "avvertenze": ["Termine: quello fissato nel decreto, dalla notifica: di regola 40 giorni, riducibile fino a 10 o aumentabile a 60 per giusti motivi; 50 giorni, riducibili fino a 20, se l'intimato risiede in altro Stato UE; 60 giorni, tra 30 e 120, in altri Stati (art. 641 co. 1-2 c.p.c.)", "Dopo la scadenza l'opposizione è ammessa solo se l'intimato prova di non aver avuto tempestiva conoscenza del decreto per irregolarità della notifica, caso fortuito o forza maggiore, e non oltre 10 giorni dal primo atto di esecuzione (art. 650 c.p.c.)", "Forma: atto di citazione, oppure ricorso nelle forme del procedimento semplificato quando i fatti di causa non sono controversi, la domanda è fondata su prova documentale, è di pronta soluzione o richiede un'istruzione non complessa e, nelle cause del tribunale in composizione monocratica, anche senza questi presupposti (art. 281-decies co. 1-3 c.p.c.)", "Nel rito ordinario l'anticipazione di cui all'art. 163-bis, secondo comma, va disposta fissando l'udienza di comparizione non oltre 30 giorni dalla scadenza del termine minimo a comparire (art. 645 co. 3 c.p.c.)"]
   },
   "ricerca_beni_492bis": {
     "categoria": "esecuzione",
@@ -743,14 +743,14 @@
   },
   "avviso_543_5_cpc": {
     "categoria": "esecuzione",
-    "descrizione": "Avviso ex art. 543 co. 5 c.p.c. — comunicazione al debitore pignorato",
+    "descrizione": "Avviso ex art. 543 co. 5 c.p.c. — notifica al terzo pignorato dell'avvenuta iscrizione a ruolo",
     "tier": 3,
     "routing": {"tipo": "resource", "resource": "legal://modelli-atti/esecuzione", "fase": 3},
-    "campi_obbligatori": ["creditore", "debitore", "terzo_pignorato"],
+    "campi_obbligatori": ["creditore", "debitore", "terzo_pignorato", "numero_ruolo", "data_udienza_comparizione"],
     "campi_opzionali": [],
     "tool_calcolo": [],
     "riferimenti_normativi": ["art. 543 co. 5 c.p.c."],
-    "avvertenze": []
+    "avvertenze": ["Destinatario: il terzo pignorato, non il debitore. L'avviso, con il numero di ruolo della procedura, va notificato entro la data dell'udienza di comparizione indicata nell'atto di pignoramento, e l'avviso notificato va depositato nel fascicolo dell'esecuzione (art. 543 co. 5 c.p.c.)", "Senza notifica o deposito dell'avviso il pignoramento è inefficace; con più terzi, solo verso quelli non avvisati. Senza notifica gli obblighi del terzo cessano alla data dell'udienza indicata nell'atto di pignoramento (art. 543 co. 5 c.p.c.)"]
   },
   "cessazione_obbligo_custodia": {
     "categoria": "esecuzione",
@@ -820,14 +820,14 @@
   },
   "vendita_immobili": {
     "categoria": "esecuzione",
-    "descrizione": "Istanza di vendita immobili pignorati con relazione di stima",
+    "descrizione": "Istanza di vendita dell'immobile pignorato (art. 567 c.p.c.)",
     "tier": 3,
     "routing": {"tipo": "resource", "resource": "legal://modelli-atti/esecuzione", "fase": 3},
-    "campi_obbligatori": ["creditore", "numero_esecuzione", "immobile_dati"],
-    "campi_opzionali": ["stima"],
-    "tool_calcolo": ["calcolo_valore_catastale"],
-    "riferimenti_normativi": ["artt. 567-591 c.p.c."],
-    "avvertenze": ["Allegare relazione di stima ex art. 568 c.p.c."]
+    "campi_obbligatori": ["creditore", "numero_esecuzione", "immobile_dati", "data_pignoramento"],
+    "campi_opzionali": ["documentazione_ipocatastale"],
+    "tool_calcolo": [],
+    "riferimenti_normativi": ["art. 497 c.p.c.", "art. 501 c.p.c.", "artt. 567-591 c.p.c."],
+    "avvertenze": ["Non prima di 10 giorni dal pignoramento (art. 501 c.p.c.) e non oltre 45 giorni dal suo compimento, altrimenti il pignoramento perde efficacia (art. 497 c.p.c.)", "Entro lo stesso termine dell'art. 497 depositare l'estratto del catasto e i certificati delle iscrizioni e trascrizioni dei venti anni anteriori alla trascrizione del pignoramento, oppure un certificato notarile che ne attesti le risultanze (art. 567 co. 2 c.p.c.)", "Il termine per il deposito è prorogabile una sola volta, per giusti motivi e per non oltre 45 giorni; senza il deposito, o senza l'integrazione chiesta dal giudice nel termine assegnato, il giudice dichiara l'inefficacia del pignoramento per l'immobile (art. 567 co. 3 c.p.c.)", "Nessuna relazione di stima da allegare: il valore dell'immobile lo determina il giudice, avuto riguardo al valore di mercato, sugli elementi forniti dalle parti e dall'esperto nominato ai sensi dell'art. 569 (art. 568 co. 1 c.p.c.)"]
   },
   "rinuncia_esecuzione": {
     "categoria": "esecuzione",
