@@ -207,10 +207,12 @@ _INTESTAZIONI_ELI = {
 #: D.Lgt. 30 marzo 1946, n. 512 served for a «r.d.lgs. 512/1946», G-440). A heading type in no
 #: table says nothing: measure it on a real page before adding it.
 _TIPI_INTESTAZIONE_NOTI = frozenset(act_dates._TITLES.values()).union(*_INTESTAZIONI_ELI.values())
-#: The heading each type's page opens with: the titles VisuaLex verifies (``act_dates._TITLES``)
-#: and the measured ones above. A titled type is dated by its title; its heading only says
-#: when the page is another act's (L. 241/1990 served for a d.lgs. n. 241 of 1990, #146).
-_INTESTAZIONI = {**{kind: frozenset({tipo}) for kind, tipo in act_dates._TITLES.items()}, **_INTESTAZIONI_ELI}
+#: The heading each type's page opens with: the titles VisuaLex verifies (``act_dates._TITLES``,
+#: with ``_TITLES_ANCHE``: a D.Lgs.C.P.S. is the act a «d.lgs.» cites, the legge Basevi) and the
+#: measured ones above. A titled type is dated by its title; its heading only says when the page
+#: is another act's (L. 241/1990 served for a d.lgs. n. 241 of 1990, #146).
+_INTESTAZIONI = {**{kind: frozenset({tipo, *act_dates._TITLES_ANCHE.get(kind, ())})
+                    for kind, tipo in act_dates._TITLES.items()}, **_INTESTAZIONI_ELI}
 
 
 class AttoNonVerificato(LookupError):
