@@ -157,12 +157,14 @@ _TIPI_PER_INTESTAZIONE = frozenset({
     "decreto.ministeriale", "decreto.del.presidente.del.consiglio.dei.ministri",
     "decreto.legislativo.luogotenenziale",
 })
-#: Heading types of real Normattiva pages that no type of the library cites, measured on
-#: 11 November 2026 by sampling year-only URNs of 1923-1950 (G-440): «DECRETO LUOGOTENENZIALE
-#: 30 marzo 1946, n. 512», «DECRETO DEL CAPO PROVVISORIO DELLO STATO 6 settembre 1946, n. 659»,
-#: «DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 10 gennaio 1947, n. 3». They are never
-#: an act asked for, but a page headed by one of them is another act's: before they were known,
-#: «legge 512/1946» (or «r.d. 512/1946») served the decreto luogotenenziale n. 512 as its own.
+#: Heading types of real Normattiva pages measured on 11 November 2026 by sampling year-only
+#: URNs of 1923-1950 (G-440): «DECRETO LUOGOTENENZIALE 30 marzo 1946, n. 512», «DECRETO DEL
+#: CAPO PROVVISORIO DELLO STATO 6 settembre 1946, n. 659», «DECRETO LEGISLATIVO DEL CAPO
+#: PROVVISORIO DELLO STATO 10 gennaio 1947, n. 3». The first two are no type the library cites:
+#: a page headed by one of them is another act's (before they were known, «legge 512/1946» or
+#: «r.d. 512/1946» served the decreto luogotenenziale n. 512 as its own). The third is the act a
+#: «d.lgs.» cites (legge Basevi, d.lgs. 1577/1947: ``_INTESTAZIONI["decreto.legislativo"]``),
+#: and another act's heading for every other type.
 _INTESTAZIONI_ALTRE = frozenset({
     "DECRETO LUOGOTENENZIALE",
     "DECRETO DEL CAPO PROVVISORIO DELLO STATO",
