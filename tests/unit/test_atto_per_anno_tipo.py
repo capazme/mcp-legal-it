@@ -506,6 +506,17 @@ class TestIntestazioniStoriche:
         scraper.controlla_intestazione(f"{N2LS}decreto.legislativo:1947-12-14;1577~art26", self.DLGSCPS1577)
         r, _ = await _risolvi({"legge:1947-01-01;1577": self.DLGSCPS1577}, "legge", "1577", "1947")
         assert r.esito == "atto_non_trovato"
+        assert "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 14 dicembre 1947, n. 1577" in r.errore
+
+    async def test_a_dlgs_never_takes_a_dcps_heading(self):
+        """A decreto del Capo provvisorio dello Stato is not legislative: a «d.lgs. 659/1946» that
+        gets the D.C.P.S. 6 settembre 1946, n. 659 is another act, by year and by full date."""
+        r, _ = await _risolvi({"decreto.legislativo:1946-01-01;659": self.DCPS659}, "decreto legislativo",
+                              "659", "1946")
+        assert r.esito == "atto_non_trovato"
+        assert "DECRETO DEL CAPO PROVVISORIO DELLO STATO 6 settembre 1946, n. 659" in r.errore
+        with pytest.raises(scraper.AttoNonVerificato, match="DECRETO DEL CAPO PROVVISORIO DELLO STATO"):
+            scraper.controlla_intestazione(f"{N2LS}decreto.legislativo:1946-09-06;659~art1", self.DCPS659)
 
     @pytest.mark.parametrize("tipo, kind", [
         ("decreto luogotenenziale", "decreto.luogotenenziale"),
