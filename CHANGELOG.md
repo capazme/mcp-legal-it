@@ -23,8 +23,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   ass.», «cod. priv.», «codice Urbani» / «CBCP», «legge Madia», «legge Balduzzi», «decreto
   whistleblowing», «decreto dignità», «decreto Salva Casa»; every identity checked on Normattiva.
   Names more than one act answers are refused on purpose with «nome ambiguo» and no near-miss
-  suggestion (`NOMI_AMBIGUI`): «TUS», «TUIVA» and «T.U. registro» (the old acts and the fiscal
-  reform's new testi unici, d.lgs. 10/2026 and 123/2025), «T.U. rinnovabili», «decreto FER» / «CER»,
+  suggestion (`NOMI_AMBIGUI`): «TUS» («TUIVA» and «T.U. registro» were refused here too, until
+  the date rule of LI-086 below), «T.U. rinnovabili», «decreto FER» / «CER»,
   «decreto trasparenza», «decreto Semplificazioni», «riforma Cartabia», «S.L.», «TUI»,
   «L.P.A.», «cod. app.» (three codes, 2006, 2016, 2023), the short «testo unico dei servizi di media
   audiovisivi» (2021 or 2005). «TUE» stays the Treaty on European Union.
@@ -1033,6 +1033,11 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`cookie-audit`: the newsletter-form probe reads the form's real address (#175).** It read
+  the form's `action` property, which a field named «action» inside the form hides (WordPress
+  forms posting to `admin-ajax.php` have one): the probe threw on any page with such a form, and
+  reported none of the page's forms. It now reads the
+  `action` attribute, resolved against the page as the browser does.
 - **`cerca_ddl` and `ddl_su_norma`: a long search no longer reads as «Senato unreachable» (#185).**
   The dati.senato.it WAF answers 403 to any GET whose path and query string exceed 2048 bytes,
   whatever the query says (verified live: 2048 answers, 2049 does not), and POST is refused too.

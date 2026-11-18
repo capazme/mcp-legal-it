@@ -519,6 +519,9 @@ entry, it is the same feature as ported to the 3.0 line.
   `mcp-legal-it/fonti_consultate` dal `_meta`).
 
 ### Fixed
+- **`cookie-audit`: the newsletter-form probe reads the form's real address (#175).** A field
+  named «action» inside the form (WordPress forms posting to `admin-ajax.php`) hid the form's
+  address and made the probe throw on the whole page; it now reads the `action` attribute.
 - The citation hook (Stop and SubagentStop) no longer opens the server's
   Python environment. `uv run --project <plugin>/server`, even with
   `--no-sync`, deletes and recreates that environment whenever it finds it

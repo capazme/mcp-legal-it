@@ -3,7 +3,9 @@
 Tick each box with the evidence (a command output, a link, a date). A box
 that cannot be ticked stops the release; it is not skipped.
 
-State last checked on 17 November 2026, on `develop` at `353325a`.
+State last checked on 17 November 2026, on `develop` at `353325a`. Sections 1,
+5 and 6 updated on 18 November 2026 with decision LI-086, on `develop` at
+`e109b44`.
 
 ## 1. Decisions to close first
 
@@ -14,13 +16,18 @@ is shipped as it is today, stated as such in the release notes. None may be
 - [x] Merge order and approval of the 3.0 chain (§2): merged in order on
       2026-10-21 (#55-#62), then the migration PRs (§2).
 - [x] The last 2.x release: decided (G-493), 2.17.2 is the last 2.x release
-      and the next one is 3.0. It must be published before the GA (§5).
+      and the next one is 3.0. Published on 2026-11-18 (§5).
+- [ ] An upgrade notice for 2.x users. LI-045 planned one last 2.x release,
+      right after the GA, telling users to move to 3.0; 2.17.2 carries no such
+      notice, and LI-086 keeps 2.17.2 as the last release. Plugin users with
+      auto-update move to 3.0 anyway; `.mcpb` users would not be told. Asked
+      on 2026-11-18: a 2.17.3 on `support/2.x` with the notice, or none.
 - [x] Start of the art. 482 c.p.c. window: decided (G-329, G-407), first day
       = notice + 11, no extension, no August suspension.
-- [ ] A «substantive» mode of `scadenza_processuale` without the Saturday
-      extension. Drafted code on the branch
-      `feature/termini-decisioni-pendenti`; tests are strict `xfail` «pending
-      owner decision».
+- [x] A «substantive» mode of `scadenza_processuale` without the Saturday
+      extension: decided (LI-086), not in 3.0, planned for 3.1 and stated in
+      the release notes. The drafted code stays on
+      `feature/termini-decisioni-pendenti`.
 - [x] Art. 617 c.p.c. and the August suspension: decided (LI-060), excluded;
       `termini_esecuzioni` states the reading and the case law in a note.
 - [x] Registration tax: whether the text of D.P.R. 131/1986 is still
@@ -28,42 +35,59 @@ is shipped as it is today, stated as such in the release notes. None may be
       131/1986 until 31/12/2026).
 - [x] `rendimento_btp` on the 50-year BTP (simple yield above the MEF gross):
       decided (LI-059), yield to maturity gross and net as the MEF; live gate green.
-- [ ] How long the 2.x line keeps receiving fixes after 3.0 (G-493 makes
-      2.17.2 the last planned one; fixes after the GA are not decided).
-- [ ] Review of twelve content items: non-pecuniary damage tables (Milan vs
+- [x] How long the 2.x line keeps receiving fixes after 3.0: decided
+      (LI-086), security fixes only, for three months after the GA, then the
+      line closes. 2.17.2 stays the last planned release.
+- [x] Review of twelve content items: non-pecuniary damage tables (Milan vs
       TUN), art. 139 Codice delle assicurazioni in work accidents, order of the
       briefs under art. 171-ter c.p.c., 2012 text of art. 348-bis c.p.c.,
       mediation duration, naming of the «sommario» procedure, abrogated abuse
       of office, some CONSOB identifiers, the labour consultant as independent
       controller, Cass. SS.UU. 19499/2008, Cass. SS.UU. 1712/1995, Italgiure
-      archive coverage if listed.
-- [ ] Where the 2.x line lives after the GA. Today `main` is 2.x; the GA merges
-      3.0 into `main`. If 2.x keeps receiving hotfixes, it needs its own
-      branch (for example `support/2.x` from `v2.17.1`) before the GA.
-- [ ] `main → develop`: until #55 the 2.x and 3.x lines were kept divergent
+      archive coverage if listed. Decided (LI-086): they ship as they are and
+      the release notes list them «in revisione».
+- [x] Where the 2.x line lives after the GA: decided (LI-086), on
+      `support/2.x`, created from `v2.17.2` before the GA merges 3.0 into
+      `main` (§6).
+- [x] `main → develop`: until #55 the 2.x and 3.x lines were kept divergent
       on purpose and `main` was never merged into `develop`. Since #55 develop
       descends from `v2.17.0`, and that PR's stated intent is that 2.x hotfixes
       merge forward. 2.17.1 (released, tag `v2.17.1` on `main`) is not an
       ancestor of `develop`: its fixes reached the 3.0 line as separate
-      commits. The rule needs restating before the next 2.x release.
+      commits. Decided (LI-086): `main` is never merged into `develop`; a fix
+      on `support/2.x` reaches the 3.x line as its own commit.
 - [x] Relicensing: written consent to MPL-2.0 obtained from every past
       contributor. `NOTICE` still says that the 2.x releases remain available
       under Apache-2.0.
-- [ ] Sigle of the fiscal testi unici (G-440 follow-up). Since the fiscal reform's
+- [x] Sigle of the fiscal testi unici (G-440 follow-up). Since the fiscal reform's
       new testi unici, «TUS», «TUIVA» and «T.U. registro» name more than one act
       and are refused as ambiguous («nome ambiguo»); which act each sigla
-      resolves to, if any, is not decided.
-- [ ] Regional laws (G-444, LI-076): not covered; whether 3.0 states it as a
-      declared limit or covers them is not decided.
-- [ ] Codice deontologico forense (CNF): which date to state for the text
-      served, where the CNF's own sources give two.
-- [ ] Art. 645 co. 3 c.p.c. in the `opposizione_decreto_ingiuntivo` model
+      resolves to, if any, is not decided. Decided (LI-086) and merged in #191:
+      «TUIR», «TUR», «TUIVA» and «T.U. registro» follow the date («TUS» stays
+      refused). Before the new testo unico applies
+      (1/1/2027 for TUIR, TU IVA and TU registro, checked on Normattiva) it
+      gives the old act with a warning naming the new one; from that date,
+      the new act. «TUA» is refused as ambiguous (codice dell'ambiente or
+      testo unico accise).
+- [x] Regional laws (G-444, LI-076): decided (LI-086) and merged in #191, a
+      declared limit. A regional law answers «fonte non coperta» and is never
+      read as a State law; the citation gate warns on every regional law
+      cited; no regional Normattiva URN is built. Real coverage comes later,
+      on the regions branch.
+- [ ] The laws of the autonomous provinces (Trento, Bolzano) still read as
+      State laws: the same guard is to be added before beta.5 (#193).
+- [x] Codice deontologico forense (CNF): decided (LI-086), 7 April 2026, the
+      date on the CNF's page, which the parser already reads (the PDF's notes
+      to art. 25-bis say 6 April).
+- [x] Art. 645 co. 3 c.p.c. in the `opposizione_decreto_ingiuntivo` model
       (G-493): the provision refers to «l'anticipazione di cui all'articolo
       163-bis, secondo comma», and Normattiva gives that comma as repealed by
-      D.Lgs. 149/2022. The warning quotes the provision verbatim until decided.
-- [ ] Act models: renames, merged keys and a filter, proposed for 3.1 with
-      aliases for the old keys. A proposal awaiting decision, not a 3.0
-      blocker if 3.0 ships the catalogue as it is.
+      D.Lgs. 149/2022. Decided (LI-086) and merged in #191: the quote stays
+      verbatim, followed by a sentence saying that comma is shown as
+      repealed.
+- [x] Act models: renames, merged keys and a filter: decided (LI-086), in
+      3.1, with aliases for the old keys. 3.0 ships the catalogue as it is,
+      with the content fixes already made.
 
 ## 2. The 3.0 chain is merged
 
@@ -147,10 +171,13 @@ The Mac Intel column checks the `cryptography` platform split of the lock.
 The marketplace is git-sourced from `main` on GitHub: when `main` moves to 3.0,
 every 2.x plugin user with auto-update receives it.
 
-- [ ] 2.17.2, the last 2.x release (G-493), is published before the GA, so
-      the update path starts from it.
-- [ ] #176 (cookie-audit, a 2.x fix open against `main`): in 2.17.2, or closed
-      with the reason.
+- [x] 2.17.2, the last 2.x release (G-493), is published before the GA, so
+      the update path starts from it: tag `v2.17.2` on `main` (`55025e3`),
+      released on 2026-11-18 with the `.mcpb`, the plugin zip and the skills
+      zip.
+- [x] #176 (cookie-audit, a 2.x fix open against `main`): closed on
+      2026-11-18 with the reason (LI-086: 2.x takes security fixes only); the
+      same fix is in 3.0 through #175.
 - [ ] On a machine with 2.17.2 installed from the marketplace:
       `claude plugin marketplace update mcp-legal-it`, then
       `claude plugin update legal-it@mcp-legal-it`, restart. The first start
@@ -182,6 +209,9 @@ The beta channel's GA procedure, checked against what the script does today.
       running the script (`check_remote_sync`).
 - [ ] Delete `release/3.0.0` **locally and on origin**: the standard flow
       creates a branch with the same name.
+- [ ] Create `support/2.x` from `v2.17.2` and push it (LI-086), before `main`
+      moves to 3.0. It takes security fixes only, for three months after the
+      GA.
 - [ ] `CHANGELOG.md`: rename `## [Unreleased]` to `## [3.0.0] - <date>`. The
       section is already the release section: the 2.x entries are in their own
       sections, not repeated. `plugin/CHANGELOG.md` is not a copy of the root
