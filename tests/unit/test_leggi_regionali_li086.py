@@ -46,6 +46,18 @@ REGIONALI = [
     "legge 3/2015 della Regione autonoma della Sardegna",
     "L.R. Toscana n. 65 del 10 novembre 2014",
     "della l.r. Toscana 65/2014",
+    # «l.» / «L» / «Reg.» / «R.»: every spelling of «legge» the State patterns read (review of #191).
+    "L. 65/2014 della Regione Toscana",
+    "L. 65/2014 (Regione Toscana)",
+    "l. n. 65/2014 Regione Toscana",
+    "L. 65/2014 Toscana",
+    "l. 10 novembre 2014, n. 65 Regione Toscana",
+    "legge 65/2014 Reg. Toscana",
+    "legge 65/2014 R. Toscana",
+    "L 65/2014 Regione Toscana",
+    "L.65/2014 Regione Toscana",
+    "legge n. 65 del 2014 della Regione Toscana",
+    "l. Regione Toscana 65/2014",
 ]
 
 
@@ -69,7 +81,8 @@ class TestResolver:
         assert articolo == "3" and _resolve_act(atto) is None
 
     @pytest.mark.parametrize("nome", ["legge 65/2014", "L. 65/2014", "legge 10 novembre 2014, n. 65",
-                                      "legge 241/1990", "l. 3/2015"])
+                                      "legge 241/1990", "l. 3/2015", "L 241/1990", "L.241/1990",
+                                      "legge 241/1990, che si applica alle regioni"])
     def test_the_state_laws_still_resolve(self, nome):
         assert not legge_regionale(nome)
         assert _resolve_act(nome)["tipo_atto"] == "legge"
@@ -175,6 +188,14 @@ class TestGate:
         assert "l.r. Toscana 65/2014 (legge regionale: non coperta dai tool del server" in r.stderr
         assert "Bollettino ufficiale o sulla banca dati della Regione" in r.stderr
 
+    @pytest.mark.parametrize("testo", ["Si applica l'art. 1 L. 65/2014 della Regione Toscana.",
+                                       "Si applica l'art. 1 legge 65/2014 Reg. Toscana."])
+    def test_a_state_like_spelling_is_warned_on_and_not_asked_as_a_state_law(self, tmp_path, testo):
+        r = run({"transcript_path": str(session(tmp_path).prompt().say(testo).write())})
+        assert r.returncode == NAGS
+        assert "legge regionale: non coperta" in r.stderr and "(cite_law)" not in r.stderr
+        assert norme_nel_testo(testo) == []
+
     def test_a_bare_mention_without_an_article_is_warned_on_too(self, tmp_path):
         t = session(tmp_path).prompt().say("La legge regionale 12 marzo 2015, n. 3 disciplina la materia.")
         assert run({"transcript_path": str(t.write())}).returncode == NAGS
@@ -191,6 +212,12 @@ class TestGate:
     def test_a_generic_mention_is_not_a_citation(self, tmp_path):
         t = session(tmp_path).prompt().say("La materia è disciplinata dalla legge regionale.")
         assert run({"transcript_path": str(t.write())}).returncode == SILENT
+
+    @pytest.mark.parametrize("testo", ["La legge regionale prevede 3 casi.", "La l. recante norme n. 15/2005."])
+    def test_the_fallback_reader_does_not_read_prose_as_a_regional_law(self, tmp_path, isolated_hook, testo):
+        t = session(tmp_path).prompt().say(testo)
+        r = run({"transcript_path": str(t.write())}, python_args=("-I", "-S"), hook=isolated_hook)
+        assert "legge regionale: non coperta" not in r.stderr
 
     def test_the_fallback_reader_does_not_read_a_word_after_l(self, tmp_path, isolated_hook):
         t = session(tmp_path).prompt().say("La l. recante norme n. 15/2005 si applica (fuori copertura).")

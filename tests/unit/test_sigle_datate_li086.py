@@ -245,10 +245,60 @@ class TestAvvisoNeiTool:
         assert ig._avviso_sigla("art. 2 TUIR") == _AVVISO_TUIR
         assert ig._avviso_sigla("art. 2043 c.c.") is None
 
-    def test_the_alias_catalogue_gives_the_act_of_today(self, monkeypatch):
+    def test_the_alias_catalogue_gives_the_act_of_today_with_its_annex(self, monkeypatch):
         from mcp_legal_it import api
 
         monkeypatch.setenv("LEGAL_TODAY", PRIMA)
         assert api.catalogo_alias().presets["tuir"] == {"act_type": DPR, "act_number": "917", "date": "1986-12-22"}
+        assert api.catalogo_alias().presets["tugt"]["allegato"] == "1"
         monkeypatch.setenv("LEGAL_TODAY", DAL)
-        assert api.catalogo_alias().presets["tuir"] == {"act_type": DLGS, "act_number": "117", "date": "2026-06-19"}
+        assert api.catalogo_alias().presets["tuir"] == {"act_type": DLGS, "act_number": "117", "date": "2026-06-19",
+                                                       "allegato": "1"}
+
+    def test_leggi_riferimento_has_it_in_avvisi(self, monkeypatch):
+        from mcp_legal_it import api
+
+        monkeypatch.setenv("LEGAL_TODAY", PRIMA)
+        assert api.leggi_riferimento("art. 1 TUIR").avvisi == (_AVVISO_TUIR,)
+        assert api.leggi_riferimento("art. 2043 c.c.").avvisi == ()
+        monkeypatch.setenv("LEGAL_TODAY", DAL)
+        assert api.leggi_riferimento("art. 1 TUIR").avvisi == ()
+
+    @pytest.mark.asyncio
+    async def test_indice_atto_and_testo_atto_have_it_first(self, monkeypatch):
+        from mcp_legal_it import api
+        from mcp_legal_it.api import _norme as api_norme
+
+        monkeypatch.setenv("LEGAL_TODAY", PRIMA)
+
+        async def indice(atto):
+            return api.IndiceAtto(esito="trovato", avvisi=("altro",))
+
+        async def testo(atto):
+            return api.TestoAtto(esito="trovato", testo="x" * 60, avvisi=("altro",))
+
+        monkeypatch.setattr(api_norme, "_indice_atto", indice)
+        monkeypatch.setattr(api_norme, "_testo_atto", testo)
+        assert (await api.indice_atto("TUIR")).avvisi == (_AVVISO_TUIR, "altro")
+        assert (await api.testo_atto("TUIVA")).avvisi == (_AVVISO_IVA, "altro")
+        assert (await api.indice_atto("d.lgs. 196/2003")).avvisi == ("altro",)
+
+    @pytest.mark.asyncio
+    async def test_giurisprudenza_su_norma_says_it_with_no_results_too(self, monkeypatch):
+        async def nessuna(params):
+            return {"response": {"docs": [], "numFound": 0}}
+
+        monkeypatch.setenv("LEGAL_TODAY", PRIMA)
+        monkeypatch.setattr(ig.cassazione, "query_con_ripiego", nessuna)
+        r = await ig._giurisprudenza_su_norma_impl("art. 2 TUIR")
+        assert r.error_type == "no_results" and f"Attenzione: {_AVVISO_TUIR}." in r.results_text
+
+
+class TestDataMalformata:
+    @pytest.mark.parametrize("nome", ["TUIR", "c.c.", "l.r. 65/2014", "d.lgs. 196/2003", "cod. app."])
+    @pytest.mark.parametrize("data", ["31/12/2026", "domani", "2026-13-01"])
+    def test_one_clear_error_for_every_name(self, nome, data):
+        with pytest.raises(ValueError, match="data di riferimento non valida"):
+            _resolve_act(nome, data=data)
+        with pytest.raises(ValueError, match="data di riferimento non valida"):
+            resolve_atto(nome, data=data)

@@ -13,6 +13,7 @@ turn, and ``tests/unit/test_citation_gate.py`` checks that it pulls in no
 HTTP stack.
 """
 
+import bisect
 import re
 from dataclasses import dataclass
 
@@ -445,7 +446,8 @@ def leggi_regionali_nel_testo(testo: str) -> list[str]:
         if letta is None or not legge_regionale(letta[2]):
             continue
         dopo = letta[1]
-        if any(dopo <= inizio <= dopo + 40 for inizio in inizi):
+        i = bisect.bisect_left(inizi, dopo)  # inizi is sorted: finditer reads left to right
+        if i < len(inizi) and inizi[i] <= dopo + 40:
             continue
         aggiungi(re.split(r"[;.](?:\s|$)|,\s+(?:e|nonché|che)\b", letta[2].strip(), maxsplit=1)[0][:80])
     return trovate

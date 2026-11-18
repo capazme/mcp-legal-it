@@ -177,9 +177,16 @@ class FallbackReader:
     _CASS = re.compile(r"\bcass(?:azione)?\b[^\n]{0,80}?\bn\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})", re.I)
     _ATTO_PRIMA = re.compile(r"\b(?:d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m|reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:n\.?\s*)?$", re.I)
     _NUM = re.compile(r"(?<![\d/.])(\d{1,6})\s*/\s*((?:19|20)\d{2})(?![\d/])|\bn\.?\s*(\d{1,6})\s+del\s+((?:19|20)\d{2})", re.I)
-    # A regional law with a number after it, reduced: «l.r. Toscana 65/2014», «legge regionale … n. 3».
-    _REGIONALE = re.compile(r"\b(?:l\.?[ \t]?r\.?(?![a-zà-ù])|legge[ \t]+reg(?:ionale\b|\.))[^\n;]{0,40}?\d+(?:[ \t]*/[ \t]*\d{2,4})?",
-                            re.I)
+    # A regional law, reduced: a sigla with up to three words (the Region) and the act's number
+    # («l.r. Toscana 65/2014», «legge regionale n. 3», «L.R. 12 marzo 2015, n. 3»), or a State-like
+    # «L. 65/2014 della Regione Toscana». A bare count («la legge regionale prevede 3 casi») is not one.
+    _ESTREMI_RID = (r"(?:n\.?[ \t]*\d+|\d+[ \t]*/[ \t]*\d{2,4}\b|\d+[ \t]+del[ \t]+\d{4}\b"
+                    r"|\d{1,2}[ \t]+[a-z]+[ \t]+\d{4}[ \t,]*n\.?[ \t]*\d+)")
+    _REGIONALE = re.compile(
+        r"\b(?:(?:l\.?[ \t]?r\.?(?![a-zà-ù])|legge[ \t]+reg(?:ionale\b|\.))[ \t,]*(?:[a-zà-ù'’-]+[ \t,]+){0,3}?"
+        + _ESTREMI_RID
+        + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID
+        + r"[ \t,(]*(?:(?:della|dalla)[ \t]+)?(?:regione|reg\.|r\.)[ \t])", re.I)
 
     @staticmethod
     def normalizza_articolo(articolo):
@@ -205,6 +212,8 @@ class FallbackReader:
     def norme_nel_testo(self, testo):
         out = []
         for m in self._ART.finditer(testo):
+            if self._REGIONALE.match(m.group("atto").strip()):
+                continue  # a regional law's article: leggi_regionali_nel_testo lists the law
             atto = self._atto(m.group("atto"))
             if atto:
                 comma = m.group("comma")

@@ -560,7 +560,10 @@ async def _giurisprudenza_su_norma_impl(
     num_found = data.get("response", {}).get("numFound", 0)
     highlighting = data.get("highlighting", {})
     if not docs:
-        return SearchResult(success=False, source="italgiure", error_type="no_results", results_text=f"Nessuna decisione trovata per il riferimento: {riferimento}")
+        testo = f"Nessuna decisione trovata per il riferimento: {riferimento}"
+        if avviso := _avviso_sigla(riferimento):
+            testo += f"\n\n*Attenzione: {avviso}.*"
+        return SearchResult(success=False, source="italgiure", error_type="no_results", results_text=testo)
     start_idx = pagina * max_risultati + 1
     end_idx = start_idx + len(docs) - 1
     lines = [f"**Trovate {num_found} decisioni su**: _{riferimento}_ (mostro {start_idx}-{end_idx})\n"]

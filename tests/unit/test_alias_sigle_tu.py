@@ -2,9 +2,10 @@
 
 Each identity was checked on Normattiva on 11 November 2026 (the page's heading for type, date
 and number; the act's title for its subject; the act calling itself «testo unico» where the
-alias says so). Names more than one act answers are refused on purpose (``NOMI_AMBIGUI``):
-the fiscal reform's new testi unici (IVA, d.lgs. 10/2026; registro, d.lgs. 123/2025) make
-«TUIVA» and «T.U. registro» mean two acts each.
+alias says so). Names more than one act answers at the same date are refused on purpose
+(``NOMI_AMBIGUI``), «TUA» among them. «TUIVA» and «T.U. registro» are not ambiguous any more:
+they follow the date, the old act until the new testo unico applies (LI-086,
+test_sigle_datate_li086).
 """
 
 import pytest

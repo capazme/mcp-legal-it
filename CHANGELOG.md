@@ -488,17 +488,22 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `verifica_citazioni`, `fetch_full_act`, `fetch_act_index`, `download_law_pdf`,
   `giurisprudenza_su_norma`, `orientamento_su_norma` and `api.testo_articolo`. The date is today
   (`LEGAL_TODAY` pins it); the resolver also takes one (`resolve_atto(name, data=…)`), which no
-  MCP tool passes yet. With a date, «codice dei contratti pubblici», «codice degli appalti» and
-  «cod. app.» name the code in force that day (d.lgs. 163/2006, 50/2016, 36/2023); without one they
-  resolve as before. `api.catalogo_alias()` gives each dated sigla with today's act.
+  MCP tool passes yet; a malformed one is refused with `ValueError` whatever the name. With a
+  date, «codice dei contratti pubblici», «codice degli appalti» and «cod. app.» name the code in
+  force that day (d.lgs. 163/2006, 50/2016, 36/2023); without one they resolve as before.
+  **Library** (additive): `EsitoRiferimento.avvisi` and `IndiceAtto.avvisi` carry the notice, so
+  `api.leggi_riferimento`, `api.indice_atto` and `api.testo_atto` say it as `api.testo_articolo`
+  does; `api.catalogo_alias()` gives each dated sigla with today's act, and a preset whose text
+  is an annex of its decree carries `allegato` («tugt» now, «tuir» from 2027).
 - **«TUA» is now refused as ambiguous (decision LI-086).** It names both the codice dell'ambiente
   (d.lgs. 152/2006) and the testo unico accise (d.lgs. 504/1995) at the same date; the refusal
   names both. «codice dell'ambiente», «testo unico ambientale», «TU ambiente» and «d.lgs.
   152/2006» resolve as before.
 - **Regional laws are a source not covered (decision LI-086).** «l.r. Toscana 65/2014», «legge
   regionale 12 marzo 2015, n. 3», «L.R. n. 3/2015» answer «fonte non coperta» and are never read as
-  a State law: «legge 10 novembre 2014, n. 65 della Regione Toscana» no longer resolves to the
-  legge 65/2014. No Normattiva address is built or fetched for a regional act type. The citation
+  a State law, in any spelling of «legge» the State patterns read: «legge 10 novembre 2014, n. 65
+  della Regione Toscana», «L. 65/2014 (Toscana)», «legge 65/2014 Reg. Toscana» no longer resolve
+  to the legge 65/2014. No Normattiva address is built or fetched for a regional act type. The citation
   gate warns on every regional law an answer cites, with the advice to check it on the Region's
   official bulletin or database («fuori copertura» on the line lets it through). README, server
   instructions and the `fonti-diritto-italiano` reference state the limit.

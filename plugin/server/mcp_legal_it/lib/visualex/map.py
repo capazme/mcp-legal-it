@@ -469,15 +469,20 @@ _ESTREMI = (rf"(?:\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}[\s,]*n\
             r"|(?:n\.?\s*)?\d+\s*/\s*\d{2,4}\b"
             rf"|(?:n\.?\s*)?\d+\s+del\s+\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}"
             r"|(?:n\.?\s*)?\d+\s+del\s+\d{4}\b)")
-#: «Regione Toscana», «Regione autonoma della Sardegna», «della Toscana», «(Toscana)».
-_REGIONE = (rf"(?:(?:della|dalla)\s+)?(?:regione\s+(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?)?"
+#: «Regione Toscana», «Regione autonoma della Sardegna», «Reg. Toscana», «R. Toscana», «della
+#: Toscana», «(Toscana)».
+_REGIONE = (rf"(?:(?:della|dalla)\s+)?(?:(?:regione|reg\.|r\.)\s*(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?)?"
             rf"(?:{_REGIONI})\b")
+#: «legge» as the State patterns read it (core.riferimenti._TIPO_ALT): «legge», «L.», «L», «l.».
+#: Any spelling of «legge» they take must be read here too, or «L. 65/2014 della Regione Toscana»
+#: falls to the State's legge 65/2014.
+_LEGGE = r"(?:legge|l\b\.?)"
 #: A name that starts as a regional law does: a sigla, «legge (della) Regione …», or a State-like
-#: «legge 10 novembre 2014, n. 65 della Regione …» / «… n. 65 (Toscana)» (the forms that would
-#: fall to the State's act of that number).
+#: «legge 10 novembre 2014, n. 65 della Regione …», «L. 65/2014 (Toscana)», «legge 65/2014 Reg.
+#: Toscana» (the forms that would fall to the State's act of that number).
 _NOME_REGIONALE = re.compile(
-    rf"^(?:{_SIGLA_REGIONALE}(?![a-zà-ù])|legge\s+(?:della\s+)?regione\b"
-    rf"|legge\s+{_ESTREMI}[\s,(]*(?:(?:(?:della|dalla)\s+)?regione\b|{_REGIONE}))",
+    rf"^(?:{_SIGLA_REGIONALE}(?![a-zà-ù])|{_LEGGE}\s*(?:della\s+)?(?:regione|reg\.)(?![a-zà-ù])"
+    rf"|{_LEGGE}\s*{_ESTREMI}[\s,(]*(?:(?:(?:della|dalla)\s+)?(?:regione|reg\.)(?![a-zà-ù])|{_REGIONE}))",
     re.IGNORECASE,
 )
 #: A regional law cited in prose: a sigla or «legge della Regione X» with the act's extremes (after
@@ -485,9 +490,9 @@ _NOME_REGIONALE = re.compile(
 #: legge regionale» alone is not a citation.
 LEGGE_REGIONALE_NEL_TESTO = re.compile(
     rf"\b(?:{_SIGLA_REGIONALE}(?![a-zà-ù])[\s,]*(?:{_REGIONE}[\s,]*)?(?:{_ESTREMI}|n\.\s*\d+\b)"
-    rf"|legge\s+(?:della\s+)?regione\s+(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?(?:{_REGIONI})\b"
-    rf"[\s,]*{_ESTREMI}"
-    rf"|legge\s+{_ESTREMI}[\s,(]*{_REGIONE})",
+    rf"|{_LEGGE}\s*(?:della\s+)?(?:regione|reg\.)\s*(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?"
+    rf"(?:{_REGIONI})\b[\s,]*{_ESTREMI}"
+    rf"|{_LEGGE}\s*{_ESTREMI}[\s,(]*{_REGIONE})",
     re.IGNORECASE,
 )
 
@@ -628,22 +633,27 @@ SIGLE_DATATE_CON_DATA: dict[str, tuple] = dict.fromkeys(
     ("codice dei contratti pubblici", "codice degli appalti", "cod. app."), _CONTRATTI_PUBBLICI)
 
 
-def _data_esplicita(data: "date | str | None") -> "date | str | None":
-    """*data*, or None for an empty one ("", "  "): no date given."""
-    return None if isinstance(data, str) and not data.strip() else data
+def data_di_riferimento(data: "date | str | None") -> "date | None":
+    """The reference date a caller gave, as a date; None when none is given (None, "", "  ").
 
-
-def _giorno(data: "date | str | None") -> date:
-    """The reference date: the caller's (a date, a datetime or "YYYY-MM-DD"), else today
-    through ``_clock``."""
-    data = _data_esplicita(data)
-    if data is None:
-        return _clock.today()
+    A date, a datetime (its day) or "YYYY-MM-DD". Anything else raises ValueError, whatever the
+    name it comes with: a malformed date is the caller's error, never silently today.
+    """
+    if data is None or (isinstance(data, str) and not data.strip()):
+        return None
     if isinstance(data, datetime):
         return data.date()
     if isinstance(data, date):
         return data
-    return date.fromisoformat(str(data).strip())
+    try:
+        return date.fromisoformat(str(data).strip())
+    except ValueError:
+        raise ValueError(f"data di riferimento non valida: {data!r} (attesa AAAA-MM-GG)") from None
+
+
+def _giorno(data: "date | None") -> date:
+    """The reference date already read by ``data_di_riferimento``, else today through ``_clock``."""
+    return _clock.today() if data is None else data
 
 
 def _periodi(key: str, con_data: bool) -> "tuple | None":
@@ -671,9 +681,9 @@ def _alla_data(periodi: tuple, giorno: date) -> dict | None:
 
 def sigla_senza_atto(name: str, *, data: "date | str | None" = None) -> "str | None":
     """What cite_law answers for a dated sigla asked at a date before its first act, else None."""
-    if _data_esplicita(data) is None:
+    giorno = data_di_riferimento(data)
+    if giorno is None:
         return None
-    giorno = _giorno(data)
     for key in _candidate_keys(name):
         periodi = _periodi(key, True)
         if periodi and _alla_data(periodi, giorno) is None:
@@ -1558,9 +1568,9 @@ def resolve_atto(name: str, *, data: "date | str | None" = None) -> dict | None:
     ``SIGLE_DATATE_CON_DATA`` keep their undated resolution. A dated sigla's act carries
     its notice under "avviso" while one is due (LI-086).
     """
+    data = data_di_riferimento(data)  # first: a malformed date is refused for every name
     if legge_regionale(name):
         return None
-    data = _data_esplicita(data)
     con_data = data is not None
     for key in _candidate_keys(name):
         periodi = _periodi(key, con_data)

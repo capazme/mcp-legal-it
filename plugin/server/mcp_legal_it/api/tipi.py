@@ -140,6 +140,9 @@ class EsitoRiferimento:
     esito: EsitoNorma
     norma_data: tuple[NormaDati, ...] = ()
     errore: str | None = None
+    # What the reader must know about the act the citation names: a sigla that follows the date
+    # names one act today and another later (LI-086). Empty when nothing is to be said.
+    avvisi: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -378,6 +381,8 @@ class IndiceAtto:
     # An EU act: the consolidation indexed (as in TestoArticolo), None for the Official Journal text.
     consolidato: dict[str, Any] | None = None
     consolidato_verificato: bool | None = None
+    # The notice of a sigla that follows the date (LI-086), as in TestoArticolo.avvisi.
+    avvisi: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
