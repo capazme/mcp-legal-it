@@ -380,6 +380,16 @@ def _estratto(testo: str, start: int, end: int) -> str:
     return re.sub(r"\s+", " ", testo[start:end]).strip()[:80]
 
 
+def _dopo_gli_articoli(testo: str, m: "re.Match") -> "tuple[re.Match, int, str] | None":
+    """``(articles, end of their indicators, rest of the line)`` after an article heading *m*."""
+    lista = _LISTA_ARTICOLI.match(testo, m.end())
+    if not lista:
+        return None
+    dopo = _INDICATORI.match(testo, lista.end()).end()
+    fine_riga = testo.find("\n", dopo)
+    return lista, dopo, testo[dopo: (fine_riga if fine_riga != -1 else len(testo))][:200]
+
+
 def norme_nel_testo(testo: str) -> list[NormaCitata]:
     """Every article of an act cited in *testo*, resolved with the server's resolver.
 
@@ -390,12 +400,10 @@ def norme_nel_testo(testo: str) -> list[NormaCitata]:
     """
     trovate: list[NormaCitata] = []
     for m in _INTESTAZIONE.finditer(testo):
-        lista = _LISTA_ARTICOLI.match(testo, m.end())
-        if not lista:
+        letta = _dopo_gli_articoli(testo, m)
+        if letta is None:
             continue
-        dopo = _INDICATORI.match(testo, lista.end()).end()
-        fine_riga = testo.find("\n", dopo)
-        coda = testo[dopo: (fine_riga if fine_riga != -1 else len(testo))][:200]
+        lista, dopo, coda = letta
         if legge_regionale(coda):
             # An article of a regional law (LI-086): never read as a State act's, even where its
             # first words would resolve («legge 10 novembre 2014, n. 65 della Regione Toscana»).
@@ -419,12 +427,27 @@ def norme_nel_testo(testo: str) -> list[NormaCitata]:
 def leggi_regionali_nel_testo(testo: str) -> list[str]:
     """Every regional law cited in *testo* («l.r. Toscana 65/2014», «legge regionale 12 marzo 2015,
     n. 3»), as written, once each. No tool reads a regional law (LI-086): the gate warns on each."""
-    visti, trovate = set(), []
-    for m in LEGGE_REGIONALE_NEL_TESTO.finditer(testo):
-        estratto = re.sub(r"\s+", " ", m.group(0)).strip()
-        if estratto.lower() not in visti:
+    visti, trovate, inizi = set(), [], []
+
+    def aggiungi(estratto: str) -> None:
+        estratto = re.sub(r"\s+", " ", estratto).strip(" ,;:.")
+        if estratto and estratto.lower() not in visti:
             visti.add(estratto.lower())
             trovate.append(estratto)
+
+    for m in LEGGE_REGIONALE_NEL_TESTO.finditer(testo):
+        inizi.append(m.start())
+        aggiungi(m.group(0))
+    # An article whose act is a regional law (norme_nel_testo leaves it out) is never left
+    # silent: when the pattern above did not read its law, the start of what follows it is.
+    for m in _INTESTAZIONE.finditer(testo):
+        letta = _dopo_gli_articoli(testo, m)
+        if letta is None or not legge_regionale(letta[2]):
+            continue
+        dopo = letta[1]
+        if any(dopo <= inizio <= dopo + 40 for inizio in inizi):
+            continue
+        aggiungi(re.split(r"[;.](?:\s|$)|,\s+(?:e|nonché|che)\b", letta[2].strip(), maxsplit=1)[0][:80])
     return trovate
 
 

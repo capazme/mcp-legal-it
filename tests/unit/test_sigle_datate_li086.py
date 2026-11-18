@@ -73,6 +73,15 @@ class TestPassaggioAllaData:
         monkeypatch.setenv("LEGAL_TODAY", PRIMA)
         assert resolve_atto(nome, data=DAL) == nuovo
 
+    def test_an_empty_date_is_no_date_and_a_datetime_is_its_day(self, monkeypatch):
+        from datetime import datetime
+
+        monkeypatch.setenv("LEGAL_TODAY", PRIMA)
+        assert _senza_avviso(resolve_atto("TUIR", data="")) == _TUIR_VECCHIO
+        assert _resolve_act("codice degli appalti", data="  ") == {"tipo_atto": DLGS, "data": "2006-04-12",
+                                                                   "numero_atto": "163"}
+        assert resolve_atto("TUIR", data=datetime(2027, 1, 1, 9, 30)) == _TUIR_NUOVO
+
     def test_the_new_testo_unico_is_read_in_its_annex(self, monkeypatch):
         from mcp_legal_it.core.citazioni import identita_atto
 

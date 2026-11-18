@@ -94,7 +94,9 @@ class TestTestiUniciEcodici:
         ("t.u. immigrazione", "286"), ("t.u. enti locali", "267"), ("T.U. bancario", "385"),
         ("t.u. pubblico impiego", "165"), ("t.u. imposte redditi", "917"), ("t. u. edilizia", "380"),
     ])
-    def test_dotted_tu(self, nome, numero):
+    def test_dotted_tu(self, nome, numero, monkeypatch):
+        # «t.u. imposte redditi» is d.P.R. 917/1986 until the new TUIR applies (LI-086).
+        monkeypatch.setenv("LEGAL_TODAY", "2026-12-31")
         assert _resolve_act(nome)["numero_atto"] == numero
 
     def test_dotted_acronyms_keep_their_meaning(self):

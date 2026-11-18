@@ -178,7 +178,7 @@ class FallbackReader:
     _ATTO_PRIMA = re.compile(r"\b(?:d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m|reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:n\.?\s*)?$", re.I)
     _NUM = re.compile(r"(?<![\d/.])(\d{1,6})\s*/\s*((?:19|20)\d{2})(?![\d/])|\bn\.?\s*(\d{1,6})\s+del\s+((?:19|20)\d{2})", re.I)
     # A regional law with a number after it, reduced: «l.r. Toscana 65/2014», «legge regionale … n. 3».
-    _REGIONALE = re.compile(r"\b(?:l\.?[ \t]?r\.?|legge[ \t]+reg(?:ionale\b|\.))[^\n;]{0,40}?\d+(?:[ \t]*/[ \t]*\d{2,4})?",
+    _REGIONALE = re.compile(r"\b(?:l\.?[ \t]?r\.?(?![a-zà-ù])|legge[ \t]+reg(?:ionale\b|\.))[^\n;]{0,40}?\d+(?:[ \t]*/[ \t]*\d{2,4})?",
                             re.I)
 
     @staticmethod

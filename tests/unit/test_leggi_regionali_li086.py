@@ -41,6 +41,10 @@ REGIONALI = [
     "legge 10 novembre 2014, n. 65 della Regione Toscana",
     "legge 65/2014 della Regione Toscana",
     "legge 65/2014 (Regione Toscana)",
+    "legge 10 novembre 2014, n. 65 (Toscana)",
+    "legge 65/2014 della Toscana",
+    "legge 3/2015 della Regione autonoma della Sardegna",
+    "L.R. Toscana n. 65 del 10 novembre 2014",
     "della l.r. Toscana 65/2014",
 ]
 
@@ -127,8 +131,27 @@ class TestLettoreDelleCitazioni:
             "l.r. Toscana 65/2014", "legge regionale 12 marzo 2015, n. 3",
             "legge 10 novembre 2014, n. 65 della Regione Toscana"]
 
+    @pytest.mark.parametrize("testo, letta", [
+        ("Si veda la L.R. Toscana n. 65 del 10 novembre 2014.", "L.R. Toscana n. 65 del 10 novembre 2014"),
+        ("Ai sensi dell'art. 5 della legge regionale n. 3, si provvede.", "legge regionale n. 3"),
+        ("Lo prevede la l.r. n. 3.", "l.r. n. 3"),
+        ("Art. 3 della legge 3/2015 della Regione autonoma della Sardegna.",
+         "legge 3/2015 della Regione autonoma della Sardegna"),
+        ("Art. 4 della legge 10 novembre 2014, n. 65 (Toscana).", "legge 10 novembre 2014, n. 65 (Toscana"),
+    ])
+    def test_the_forms_the_review_found(self, testo, letta):
+        assert leggi_regionali_nel_testo(testo) == [letta]
+        assert norme_nel_testo(testo) == []
+
+    def test_an_article_of_a_regional_law_is_never_silent(self):
+        # A form the pattern does not read: the start of what follows the article is listed.
+        testo = "Si applica l'art. 5 della legge regionale Toscana numero tre del 2015, e altro."
+        assert norme_nel_testo(testo) == []
+        assert leggi_regionali_nel_testo(testo) == ["della legge regionale Toscana numero tre del 2015"]
+
     @pytest.mark.parametrize("testo", ["la legge regionale prevede 3 casi", "la s.r.l. 3/2020",
-                                       "l'art. 3 l. 65/2014", "le leggi regionali in materia"])
+                                       "l'art. 3 l. 65/2014", "le leggi regionali in materia",
+                                       "la l. recante norme n. 15/2005"])
     def test_prose_without_a_regional_citation(self, testo):
         assert leggi_regionali_nel_testo(testo) == []
 
@@ -168,6 +191,12 @@ class TestGate:
     def test_a_generic_mention_is_not_a_citation(self, tmp_path):
         t = session(tmp_path).prompt().say("La materia è disciplinata dalla legge regionale.")
         assert run({"transcript_path": str(t.write())}).returncode == SILENT
+
+    def test_the_fallback_reader_does_not_read_a_word_after_l(self, tmp_path, isolated_hook):
+        t = session(tmp_path).prompt().say("La l. recante norme n. 15/2005 si applica (fuori copertura).")
+        t.say("Ne parla la l. recante norme n. 15/2005.")
+        r = run({"transcript_path": str(t.write())}, python_args=("-I", "-S"), hook=isolated_hook)
+        assert "legge regionale" not in r.stderr
 
     def test_the_fallback_reader_warns_too(self, tmp_path, isolated_hook):
         t = session(tmp_path).prompt().say("Si applica la l.r. Toscana 65/2014.")

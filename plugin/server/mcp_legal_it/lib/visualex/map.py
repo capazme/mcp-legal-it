@@ -1,7 +1,7 @@
 """Resolution maps for Italian legal acts — URN generation, abbreviations, Brocardi URLs."""
 
 import re
-from datetime import date
+from datetime import date, datetime
 from typing import NamedTuple
 
 from .. import _clock
@@ -463,24 +463,31 @@ _REGIONI = (r"abruzzo|basilicata|calabria|campania|emilia[\s-]?romagna|friuli[\s
 #: «l.r.», «L.R.», «l. r.», «LR», «L.R.T.»; «l. reg.», «legge reg.», «legge regionale».
 _SIGLA_REGIONALE = r"(?:l\.?\s?r\.?(?:\s?t\.)?|l\.\s?reg\.|legge\s+reg(?:ionale\b|\.))"
 #: An act's number and date as a citation writes them: «10 novembre 2014, n. 65», «n. 3/2015»,
-#: «65/2014», «n. 3 del 2015». One separator class per gap (``[\s,]*``): «\s*,?\s*» splits a run
-#: of spaces two ways, and the gate reads long prose with these patterns.
+#: «65/2014», «n. 65 del 10 novembre 2014», «n. 3 del 2015». One separator class per gap
+#: (``[\s,]*``): «\s*,?\s*» splits a run of spaces two ways, and the gate reads long prose.
 _ESTREMI = (rf"(?:\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}[\s,]*n\.?\s*\d+"
-            r"|(?:n\.?\s*)?\d+\s*/\s*\d{2,4}\b|(?:n\.?\s*)?\d+\s+del\s+\d{4}\b)")
+            r"|(?:n\.?\s*)?\d+\s*/\s*\d{2,4}\b"
+            rf"|(?:n\.?\s*)?\d+\s+del\s+\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}"
+            r"|(?:n\.?\s*)?\d+\s+del\s+\d{4}\b)")
+#: «Regione Toscana», «Regione autonoma della Sardegna», «della Toscana», «(Toscana)».
+_REGIONE = (rf"(?:(?:della|dalla)\s+)?(?:regione\s+(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?)?"
+            rf"(?:{_REGIONI})\b")
 #: A name that starts as a regional law does: a sigla, «legge (della) Regione …», or a State-like
-#: «legge 10 novembre 2014, n. 65 della Regione …» (the form that would fall to the State's act).
+#: «legge 10 novembre 2014, n. 65 della Regione …» / «… n. 65 (Toscana)» (the forms that would
+#: fall to the State's act of that number).
 _NOME_REGIONALE = re.compile(
     rf"^(?:{_SIGLA_REGIONALE}(?![a-zà-ù])|legge\s+(?:della\s+)?regione\b"
-    rf"|legge\s+{_ESTREMI}[\s,(]*(?:della\s+|dalla\s+)?regione\b)",
+    rf"|legge\s+{_ESTREMI}[\s,(]*(?:(?:(?:della|dalla)\s+)?regione\b|{_REGIONE}))",
     re.IGNORECASE,
 )
-#: A regional law cited in prose: a sigla or «legge della Regione X» with the act's extremes, or
-#: the extremes followed by the Region. A number is required: «la legge regionale» alone is not
-#: a citation.
+#: A regional law cited in prose: a sigla or «legge della Regione X» with the act's extremes (after
+#: a sigla, «n. 3» alone too), or the extremes followed by the Region. A number is required: «la
+#: legge regionale» alone is not a citation.
 LEGGE_REGIONALE_NEL_TESTO = re.compile(
-    rf"\b(?:{_SIGLA_REGIONALE}[\s,]*(?:(?:della\s+)?(?:regione\s+)?(?:{_REGIONI})[\s,]*)?{_ESTREMI}"
-    rf"|legge\s+(?:della\s+)?regione\s+(?:{_REGIONI})[\s,]*{_ESTREMI}"
-    rf"|legge\s+{_ESTREMI}[\s,(]*(?:della\s+|dalla\s+)?regione\s+(?:{_REGIONI}))",
+    rf"\b(?:{_SIGLA_REGIONALE}(?![a-zà-ù])[\s,]*(?:{_REGIONE}[\s,]*)?(?:{_ESTREMI}|n\.\s*\d+\b)"
+    rf"|legge\s+(?:della\s+)?regione\s+(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?(?:{_REGIONI})\b"
+    rf"[\s,]*{_ESTREMI}"
+    rf"|legge\s+{_ESTREMI}[\s,(]*{_REGIONE})",
     re.IGNORECASE,
 )
 
@@ -621,10 +628,19 @@ SIGLE_DATATE_CON_DATA: dict[str, tuple] = dict.fromkeys(
     ("codice dei contratti pubblici", "codice degli appalti", "cod. app."), _CONTRATTI_PUBBLICI)
 
 
+def _data_esplicita(data: "date | str | None") -> "date | str | None":
+    """*data*, or None for an empty one ("", "  "): no date given."""
+    return None if isinstance(data, str) and not data.strip() else data
+
+
 def _giorno(data: "date | str | None") -> date:
-    """The reference date: the caller's (a date or "YYYY-MM-DD"), else today through ``_clock``."""
+    """The reference date: the caller's (a date, a datetime or "YYYY-MM-DD"), else today
+    through ``_clock``."""
+    data = _data_esplicita(data)
     if data is None:
         return _clock.today()
+    if isinstance(data, datetime):
+        return data.date()
     if isinstance(data, date):
         return data
     return date.fromisoformat(str(data).strip())
@@ -655,7 +671,7 @@ def _alla_data(periodi: tuple, giorno: date) -> dict | None:
 
 def sigla_senza_atto(name: str, *, data: "date | str | None" = None) -> "str | None":
     """What cite_law answers for a dated sigla asked at a date before its first act, else None."""
-    if data is None:
+    if _data_esplicita(data) is None:
         return None
     giorno = _giorno(data)
     for key in _candidate_keys(name):
@@ -1544,6 +1560,7 @@ def resolve_atto(name: str, *, data: "date | str | None" = None) -> dict | None:
     """
     if legge_regionale(name):
         return None
+    data = _data_esplicita(data)
     con_data = data is not None
     for key in _candidate_keys(name):
         periodi = _periodi(key, con_data)
