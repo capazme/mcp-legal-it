@@ -1,0 +1,175 @@
+"""Regional laws: a minimal guard (LI-086). Real coverage is the regions branch's (LI-076).
+
+- A regional citation answers «fonte non coperta», like ``FONTI_NON_COPERTE``, and is never
+  read as a State law: «l.r. 65/2014» or «legge 10 novembre 2014, n. 65 della Regione Toscana»
+  served as the legge 65/2014 would be the wrong act in silence.
+- No code path builds or fetches a Normattiva URN for a regional act: Normattiva's resolver
+  answers a regional URN with the State's act of the same year and number (act_dates.py).
+- The citation gate warns on every regional law the answer cites (no tool result can back one),
+  lets a line marked «fuori copertura» through, and respects ``LEGAL_CITATION_GATE=off``.
+"""
+
+import pathlib
+import re
+
+import httpx
+import pytest
+
+from mcp_legal_it.core.citazioni import leggi_regionali_nel_testo, norme_nel_testo
+from mcp_legal_it.core.riferimenti import _parse_reference, _resolve_act, _unresolved_act_error
+from mcp_legal_it.lib.visualex import Norma, NormaVisitata
+from mcp_legal_it.lib.visualex import scraper
+from mcp_legal_it.lib.visualex.map import legge_regionale, resolve_atto
+from mcp_legal_it.tools import legal_citations as lc
+from tests.unit.test_citation_gate import HOOK, NAGS, SILENT, isolated_hook, run, session  # noqa: F401
+
+SERVER = pathlib.Path(__file__).resolve().parents[2] / "plugin" / "server" / "mcp_legal_it"
+
+REGIONALI = [
+    "l.r. Toscana 65/2014",
+    "l.r. 65/2014",
+    "L.R. n. 3/2015",
+    "l. r. 65/2014",
+    "LR 65/2014",
+    "L.R.T. 65/2014",
+    "legge regionale 12 marzo 2015, n. 3",
+    "legge regionale n. 3/2015",
+    "legge reg. Lazio 3/2015",
+    "legge regionale Lombardia 12 marzo 2015, n. 3",
+    "legge della Regione Toscana 10 novembre 2014, n. 65",
+    "legge Regione Toscana 65/2014",
+    "legge 10 novembre 2014, n. 65 della Regione Toscana",
+    "legge 65/2014 della Regione Toscana",
+    "legge 65/2014 (Regione Toscana)",
+    "della l.r. Toscana 65/2014",
+]
+
+
+class TestResolver:
+    @pytest.mark.parametrize("nome", REGIONALI)
+    def test_a_regional_law_is_never_resolved(self, nome):
+        assert legge_regionale(nome)
+        assert resolve_atto(nome) is None
+        assert _resolve_act(nome) is None
+        assert _resolve_act(nome, data="2026-11-18") is None
+
+    @pytest.mark.parametrize("nome", REGIONALI)
+    def test_it_is_a_source_not_covered(self, nome):
+        out = _unresolved_act_error(nome)
+        assert out == ("**Errore**: fonte non coperta — le leggi regionali non sono coperte dai tool di "
+                       "questo server: verifica il testo sul Bollettino ufficiale o sulla banca dati della Regione")
+
+    @pytest.mark.parametrize("riferimento", [f"art. 3 {nome}" for nome in REGIONALI])
+    def test_an_article_of_it_is_parsed_but_not_resolved(self, riferimento):
+        articolo, atto = _parse_reference(riferimento)
+        assert articolo == "3" and _resolve_act(atto) is None
+
+    @pytest.mark.parametrize("nome", ["legge 65/2014", "L. 65/2014", "legge 10 novembre 2014, n. 65",
+                                      "legge 241/1990", "l. 3/2015"])
+    def test_the_state_laws_still_resolve(self, nome):
+        assert not legge_regionale(nome)
+        assert _resolve_act(nome)["tipo_atto"] == "legge"
+
+    @pytest.mark.parametrize("nome", ["legge costituzionale 3/2001", "legge fallimentare", "LRT", "lrt",
+                                      "regolamento (UE) 2016/679"])
+    def test_names_that_only_look_alike_are_not_regional(self, nome):
+        assert not legge_regionale(nome)
+
+
+class TestNessunUrnRegionale:
+    @pytest.mark.parametrize("tipo", ["legge regionale", "l.r.", "L.R.", "regione.toscana:legge",
+                                      "urn:nir:regione.toscana:legge", "legge della regione toscana"])
+    def test_the_urn_builder_gives_no_address(self, tipo):
+        norma = Norma(tipo_atto=tipo, data="2014-11-10", numero_atto="65")
+        assert norma.url() == "" and norma.url(article="3") == ""
+        assert NormaVisitata(norma=norma, numero_articolo="3").url() == ""
+
+    @pytest.mark.asyncio
+    async def test_fetch_article_refuses_without_a_request(self, monkeypatch):
+        def no_network(*a, **k):
+            raise AssertionError("no request for a regional act")
+
+        monkeypatch.setattr(httpx, "AsyncClient", no_network)
+        nv = NormaVisitata(norma=Norma(tipo_atto="legge regionale", data="2014", numero_atto="65"),
+                           numero_articolo="3")
+        result = await scraper.fetch_article(nv)
+        assert result["text"] == "" and result["url"] == ""
+        assert result["error"].startswith("fonte non coperta — le leggi regionali")
+
+    @pytest.mark.asyncio
+    async def test_fetch_law_article_and_cite_law_refuse_without_a_request(self, monkeypatch):
+        def no_network(*a, **k):
+            raise AssertionError("no request for a regional act")
+
+        monkeypatch.setattr(httpx, "AsyncClient", no_network)
+        out = await lc._fetch_law_article_impl("legge regionale", "3", "2014", "65")
+        assert "fonte non coperta" in out and "normattiva.it" not in out
+        for riferimento in ("art. 3 l.r. Toscana 65/2014", "art. 3 legge 65/2014 della Regione Toscana"):
+            out = await lc._cite_law_impl(riferimento)
+            assert out.startswith("**Errore**: fonte non coperta"), out
+
+    def test_no_source_file_builds_a_regional_normattiva_urn(self):
+        # A builder of «urn:nir:regione.…» would reach the State's act on Normattiva.
+        trovati = [str(p.relative_to(SERVER)) for p in SERVER.rglob("*.py")
+                   if re.search(r"urn:nir:regione|nir:regione\.", p.read_text(encoding="utf-8"))]
+        assert not trovati, trovati
+
+
+class TestLettoreDelleCitazioni:
+    TESTO = ("Ai sensi dell'art. 3 della l.r. Toscana 65/2014 e dell'art. 2 della legge regionale 12 marzo "
+             "2015, n. 3. Vedi anche l'art. 4 della legge 10 novembre 2014, n. 65 della Regione Toscana.")
+
+    def test_no_article_of_a_regional_law_is_read_as_a_state_act(self):
+        assert norme_nel_testo(self.TESTO) == []
+
+    def test_every_regional_law_is_found_once(self):
+        assert leggi_regionali_nel_testo(self.TESTO + " La l.r. Toscana 65/2014 resta.") == [
+            "l.r. Toscana 65/2014", "legge regionale 12 marzo 2015, n. 3",
+            "legge 10 novembre 2014, n. 65 della Regione Toscana"]
+
+    @pytest.mark.parametrize("testo", ["la legge regionale prevede 3 casi", "la s.r.l. 3/2020",
+                                       "l'art. 3 l. 65/2014", "le leggi regionali in materia"])
+    def test_prose_without_a_regional_citation(self, testo):
+        assert leggi_regionali_nel_testo(testo) == []
+
+    def test_the_state_law_next_to_it_is_still_read(self):
+        trovate = norme_nel_testo("L'art. 3 l. 65/2014 e l'art. 3 l.r. 65/2014.")
+        assert [(n.atto.rsplit("stato:", 1)[1], n.articolo) for n in trovate] == [("legge:2014;65", "3")]
+
+    @pytest.mark.asyncio
+    async def test_verifica_citazioni_says_not_covered(self):
+        verdetto, nota = await lc._verifica_norma("art. 3 l.r. Toscana 65/2014")
+        assert verdetto == "non trovata"
+        data, _ = await lc._cite_law_lookup("art. 3 l.r. Toscana 65/2014")
+        assert data["errore"].startswith("fonte non coperta — le leggi regionali")
+
+
+class TestGate:
+    def test_a_regional_law_in_the_answer_is_warned_on(self, tmp_path):
+        t = session(tmp_path).prompt().say("Si applica l'art. 3 della l.r. Toscana 65/2014.")
+        r = run({"transcript_path": str(t.write()), "hook_event_name": "Stop"})
+        assert r.returncode == NAGS
+        assert "l.r. Toscana 65/2014 (legge regionale: non coperta dai tool del server" in r.stderr
+        assert "Bollettino ufficiale o sulla banca dati della Regione" in r.stderr
+
+    def test_a_bare_mention_without_an_article_is_warned_on_too(self, tmp_path):
+        t = session(tmp_path).prompt().say("La legge regionale 12 marzo 2015, n. 3 disciplina la materia.")
+        assert run({"transcript_path": str(t.write())}).returncode == NAGS
+
+    def test_fuori_copertura_lets_it_through(self, tmp_path):
+        t = session(tmp_path).prompt().say("Si applica la l.r. Toscana 65/2014 (fuori copertura).")
+        assert run({"transcript_path": str(t.write())}).returncode == SILENT
+
+    def test_the_opt_out_is_respected(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("LEGAL_CITATION_GATE", "off")
+        t = session(tmp_path).prompt().say("Si applica la l.r. Toscana 65/2014.")
+        assert run({"transcript_path": str(t.write())}).returncode == SILENT
+
+    def test_a_generic_mention_is_not_a_citation(self, tmp_path):
+        t = session(tmp_path).prompt().say("La materia è disciplinata dalla legge regionale.")
+        assert run({"transcript_path": str(t.write())}).returncode == SILENT
+
+    def test_the_fallback_reader_warns_too(self, tmp_path, isolated_hook):
+        t = session(tmp_path).prompt().say("Si applica la l.r. Toscana 65/2014.")
+        r = run({"transcript_path": str(t.write())}, python_args=("-I", "-S"), hook=isolated_hook)
+        assert r.returncode == NAGS and "legge regionale: non coperta" in r.stderr

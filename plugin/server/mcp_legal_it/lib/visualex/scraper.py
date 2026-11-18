@@ -24,7 +24,7 @@ from .._http import note_source
 from . import act_dates, normattiva_html, note_normattiva, note_redazionali, pagine_eurlex, pagine_normattiva, parti_normattiva
 from .akn_parser import annex_id_of, comparable_article_key, normalize_article_key, position_hint
 from .models import Norma, NormaVisitata, names_an_annex, split_annex, url_in_part
-from .map import codice_urn, find_brocardi_url
+from .map import LEGGI_REGIONALI_NON_COPERTE, codice_urn, find_brocardi_url, tipo_regionale
 
 
 def _akn_disabled() -> bool:
@@ -607,6 +607,9 @@ async def _fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
     is_eurlex = nv.norma._is_eurlex()
     source = "eurlex" if is_eurlex else "normattiva"
     annex = split_annex(nv.numero_articolo)
+    if not is_eurlex and tipo_regionale(nv.norma.tipo_atto):
+        # A regional act: no request (LI-086). Normattiva would answer with the State's act.
+        return {"text": "", "url": "", "source": source, "error": f"fonte non coperta — {LEGGI_REGIONALI_NON_COPERTE}"}
 
     if is_eurlex:
         # The text in force of an amended act is its latest consolidation (issue #50).

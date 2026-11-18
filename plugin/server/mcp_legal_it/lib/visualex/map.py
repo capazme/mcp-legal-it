@@ -463,23 +463,24 @@ _REGIONI = (r"abruzzo|basilicata|calabria|campania|emilia[\s-]?romagna|friuli[\s
 #: «l.r.», «L.R.», «l. r.», «LR», «L.R.T.»; «l. reg.», «legge reg.», «legge regionale».
 _SIGLA_REGIONALE = r"(?:l\.?\s?r\.?(?:\s?t\.)?|l\.\s?reg\.|legge\s+reg(?:ionale\b|\.))"
 #: An act's number and date as a citation writes them: «10 novembre 2014, n. 65», «n. 3/2015»,
-#: «65/2014», «n. 3 del 2015».
-_ESTREMI = (rf"(?:\d{{1,2}}\s?[°º]?\s+(?:{_MESI_ESTESI})\s+\d{{4}}\s*,?\s*n\.?\s*\d+"
+#: «65/2014», «n. 3 del 2015». One separator class per gap (``[\s,]*``): «\s*,?\s*» splits a run
+#: of spaces two ways, and the gate reads long prose with these patterns.
+_ESTREMI = (rf"(?:\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}[\s,]*n\.?\s*\d+"
             r"|(?:n\.?\s*)?\d+\s*/\s*\d{2,4}\b|(?:n\.?\s*)?\d+\s+del\s+\d{4}\b)")
 #: A name that starts as a regional law does: a sigla, «legge (della) Regione …», or a State-like
 #: «legge 10 novembre 2014, n. 65 della Regione …» (the form that would fall to the State's act).
 _NOME_REGIONALE = re.compile(
     rf"^(?:{_SIGLA_REGIONALE}(?![a-zà-ù])|legge\s+(?:della\s+)?regione\b"
-    rf"|legge\s+{_ESTREMI}\s*,?\s*\(?\s*(?:della\s+|dalla\s+)?regione\b)",
+    rf"|legge\s+{_ESTREMI}[\s,(]*(?:della\s+|dalla\s+)?regione\b)",
     re.IGNORECASE,
 )
 #: A regional law cited in prose: a sigla or «legge della Regione X» with the act's extremes, or
 #: the extremes followed by the Region. A number is required: «la legge regionale» alone is not
 #: a citation.
 LEGGE_REGIONALE_NEL_TESTO = re.compile(
-    rf"\b(?:{_SIGLA_REGIONALE}\s*,?\s*(?:(?:della\s+)?(?:regione\s+)?(?:{_REGIONI})\s*,?\s*)?{_ESTREMI}"
-    rf"|legge\s+(?:della\s+)?regione\s+(?:{_REGIONI})\s*,?\s*{_ESTREMI}"
-    rf"|legge\s+{_ESTREMI}\s*,?\s*\(?\s*(?:della\s+|dalla\s+)?regione\s+(?:{_REGIONI}))",
+    rf"\b(?:{_SIGLA_REGIONALE}[\s,]*(?:(?:della\s+)?(?:regione\s+)?(?:{_REGIONI})[\s,]*)?{_ESTREMI}"
+    rf"|legge\s+(?:della\s+)?regione\s+(?:{_REGIONI})[\s,]*{_ESTREMI}"
+    rf"|legge\s+{_ESTREMI}[\s,(]*(?:della\s+|dalla\s+)?regione\s+(?:{_REGIONI}))",
     re.IGNORECASE,
 )
 
