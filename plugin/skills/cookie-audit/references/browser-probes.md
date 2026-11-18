@@ -294,12 +294,14 @@ Per i siti con newsletter: cosa viene detto e chiesto PRIMA di raccogliere l'ind
   const vis = el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
   const forms = [...document.querySelectorAll('form')].filter(f => f.querySelector('input[type="email"], input[name*="mail" i]'));
   const ctx = el => { let n = el; for (let i = 0; i < 3 && n; i++) { n = n.parentElement; const t = n && (n.innerText || '').replace(/\s+/g, ' ').trim(); if (t && t.length > 40) return t.slice(0, 500); } return ''; };
+  // read the attribute, not f.action: a child <input name="action"> (WordPress admin-ajax forms) shadows the property
+  const actionOf = f => { const a = f.getAttribute('action') || ''; try { return new URL(a, location.href).href; } catch (e) { return a; } };
   const out = forms.slice(0, 6).map(f => {
     const text = (f.innerText || '').replace(/\s+/g, ' ').trim(), around = ctx(f);
-    const email = f.querySelector('input[type="email"], input[name*="mail" i]');
+    const email = f.querySelector('input[type="email"], input[name*="mail" i]'), action = actionOf(f);
     return {
-      action: (f.action || '').slice(0, 160), visibile: vis(f),
-      piattaforma: ((f.action || '').match(PROVIDER) || [''])[0],
+      action: action.slice(0, 160), visibile: vis(f),
+      piattaforma: (action.match(PROVIDER) || [''])[0],
       caselle: [...f.querySelectorAll('input[type="checkbox"]')].map(c => {
         const l = c.closest('label') || (c.id && f.querySelector(`label[for="${CSS.escape(c.id)}"]`)) || c.parentElement;
         return { testo: ((l && l.innerText) || '').replace(/\s+/g, ' ').trim().slice(0, 300), preselezionata: c.defaultChecked || c.checked, obbligatoria: c.required, name: c.name || '' };
