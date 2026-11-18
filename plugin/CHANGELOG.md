@@ -27,7 +27,8 @@ entry, it is the same feature as ported to the 3.0 line.
   every «l.r.» or «legge regionale» an answer cites is listed, with the advice to check it on the
   Region's official bulletin or database; «fuori copertura» on the line lets it through, and
   `LEGAL_CITATION_GATE=off` switches it off with the rest of the gate. The server now answers
-  «fonte non coperta» for a regional law and never reads it as a State law.
+  «fonte non coperta» for a regional law and never reads it as a State law. The same for the laws
+  of the Province autonome di Trento e di Bolzano («l.p.», «legge provinciale»).
 - **The codice deontologico forense in `cite_law`**, read from the consolidated PDF the
   Consiglio nazionale forense publishes (not on Normattiva): «art. 68 codice deontologico
   forense», «art. 25-bis NCDF». The article comes with the CNF's notes on each amendment,

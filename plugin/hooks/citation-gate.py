@@ -15,9 +15,10 @@ What it reads (the turn: everything since the user's last prompt)
 Fenced and inline code is skipped. A line that says "fuori copertura" is the
 explicit escape for a source no tool covers (CDF, CEDU, allegati UE...).
 
-Regional laws («l.r. Toscana 65/2014», «legge regionale 12 marzo 2015, n. 3»): no
-tool reads one, so every one the turn cites is listed, with the hint to check it
-on the Region's official bulletin or database (LI-086). Like any other source no
+Regional laws («l.r. Toscana 65/2014», «legge regionale 12 marzo 2015, n. 3») and the
+laws of the autonomous provinces of Trento and Bolzano («l.p. 13/1997»): no tool reads
+one, so every one the turn cites is listed, with the hint to check it on the official
+bulletin or database (LI-086). Like any other source no
 tool covers, a line that says "fuori copertura" lets it through.
 
 How a citation is read
@@ -122,6 +123,10 @@ ESCAPE = "fuori copertura"
 # What the gate asks for a regional law: no tool of the server reads one (LI-086).
 HINT_REGIONALE = ("legge regionale: non coperta dai tool del server, verificala sul Bollettino "
                   "ufficiale o sulla banca dati della Regione e scrivi «fuori copertura»")
+# The same for a law of the Province autonome di Trento e di Bolzano.
+HINT_PROVINCIALE = ("legge provinciale: le leggi provinciali non sono coperte dai tool del server, "
+                    "verificala sul Bollettino ufficiale della Regione Trentino-Alto Adige/Südtirol o "
+                    "sulla banca dati della Provincia e scrivi «fuori copertura»")
 MAX_LISTED = 12
 # Characters of one turn the gate reads (about 150 pages): beyond that a turn is a
 # bulk export, and an advisory check must not slow every Stop down.
@@ -187,6 +192,16 @@ class FallbackReader:
         + _ESTREMI_RID
         + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID
         + r"[ \t,(]*(?:(?:della|dalla)[ \t]+)?(?:regione|reg\.|r\.)[ \t])", re.I)
+    # A law of the Province autonome di Trento e di Bolzano, reduced as the regional one: «l.p.
+    # 13/1997», «legge provinciale n. 3», «L. 13/1997 della Provincia autonoma di Trento», «… PAT».
+    # Never «l.p.a.» (a letter or a dot right after the sigla).
+    _PROVINCIALE = re.compile(
+        r"\b(?:(?:l\.?[ \t]?p\.?(?![a-zà-ù.])|l\.[ \t]?prov\.|legge[ \t]+prov(?:inciale\b|\.))[ \t,]*"
+        r"(?:[a-zà-ù'’/-]+[ \t,]+){0,4}?" + _ESTREMI_RID
+        + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID
+        + r"[ \t,(]*(?:(?:della|dalla)[ \t]+)?(?:(?:provincia|prov\.|p\.)[ \t]*(?:autonoma[ \t]+|aut\.[ \t]*|a\.[ \t]*)?"
+        r"(?:(?:di|della|del)[ \t]+)?(?:trento|bolzano|alto[ \t]+adige|s[üu]dtirol|bozen)|pa[tb]\b"
+        r"|provincia[ \t]+autonoma\b))", re.I)
 
     @staticmethod
     def normalizza_articolo(articolo):
@@ -212,8 +227,8 @@ class FallbackReader:
     def norme_nel_testo(self, testo):
         out = []
         for m in self._ART.finditer(testo):
-            if self._REGIONALE.match(m.group("atto").strip()):
-                continue  # a regional law's article: leggi_regionali_nel_testo lists the law
+            if self._REGIONALE.match(m.group("atto").strip()) or self._PROVINCIALE.match(m.group("atto").strip()):
+                continue  # a regional or provincial law's article: leggi_*_nel_testo list the law
             atto = self._atto(m.group("atto"))
             if atto:
                 comma = m.group("comma")
@@ -242,6 +257,9 @@ class FallbackReader:
 
     def leggi_regionali_nel_testo(self, testo):
         return list(dict.fromkeys(" ".join(m.group(0).split()) for m in self._REGIONALE.finditer(testo)))
+
+    def leggi_provinciali_nel_testo(self, testo):
+        return list(dict.fromkeys(" ".join(m.group(0).split()) for m in self._PROVINCIALE.finditer(testo)))
 
     def decisioni_nel_testo(self, testo):
         return [_Decisione("cass", str(int(m.group(1))), int(m.group(2)), m.group(0)[-60:])
@@ -747,14 +765,17 @@ def uncovered(session: Session) -> list:
             else:
                 hint = "cite_law"
             missing.append(f"{n.testo} ({hint})")
-        # Regional laws: no tool result can back one, so each one cited is listed (LI-086).
-        leggi_regionali = getattr(r, "leggi_regionali_nel_testo", None)
-        for legge in (leggi_regionali(prose) if leggi_regionali else []):
-            key = ("legge regionale", legge.lower())
-            if key in seen:
-                continue
-            seen.add(key)
-            missing.append(f"{legge} ({HINT_REGIONALE})")
+        # Regional and provincial laws: no tool result can back one, so each one cited is listed
+        # (LI-086).
+        for lettore, hint in (("leggi_regionali_nel_testo", HINT_REGIONALE),
+                              ("leggi_provinciali_nel_testo", HINT_PROVINCIALE)):
+            leggi = getattr(r, lettore, None)
+            for legge in (leggi(prose) if leggi else []):
+                key = (lettore, legge.lower())
+                if key in seen:
+                    continue
+                seen.add(key)
+                missing.append(f"{legge} ({hint})")
         for d in r.decisioni_nel_testo(prose):
             key = (d.corte, d.numero, d.anno)
             if key in session.decisions or key in seen:

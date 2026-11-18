@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from .article_suffixes import ARTICLE_SUFFIX_ALTERNATION
 from .map import (CODICE_DEONTOLOGICO_FORENSE, EURLEX, articolato_in_allegato, codice_urn, normalize_act_type,
-                  tipo_regionale)
+                  tipo_locale)
 
 
 _NORMATTIVA_BASE = "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:"
@@ -82,9 +82,9 @@ class Norma:
                 urn = _append_article(urn, article)
             return _NORMATTIVA_BASE + urn
 
-        # A regional act has no address here (LI-086): Normattiva's resolver would answer a
+        # A regional or provincial act has no address here (LI-086): Normattiva's resolver would answer a
         # regional URN, or a «stato» URN of a regional kind, with the State's act of that number.
-        if tipo_regionale(self.tipo_atto) or tipo_regionale(norm):
+        if tipo_locale(self.tipo_atto) or tipo_locale(norm):
             return ""
 
         # Normattiva: regular act

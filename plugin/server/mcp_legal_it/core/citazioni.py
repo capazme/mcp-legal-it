@@ -19,7 +19,8 @@ from dataclasses import dataclass
 
 from mcp_legal_it.core.riferimenti import _parse_reference, _resolve_act
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION
-from mcp_legal_it.lib.visualex.map import LEGGE_REGIONALE_NEL_TESTO, SIGLE_COME_MESI, legge_regionale
+from mcp_legal_it.lib.visualex.map import (LEGGE_PROVINCIALE_NEL_TESTO, LEGGE_REGIONALE_NEL_TESTO, SIGLE_COME_MESI,
+                                             fonte_locale, legge_provinciale, legge_regionale)
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, Norma
 
 # Cassazione decision shape: a decision number followed by a 4-digit year,
@@ -405,10 +406,10 @@ def norme_nel_testo(testo: str) -> list[NormaCitata]:
         if letta is None:
             continue
         lista, dopo, coda = letta
-        if legge_regionale(coda):
-            # An article of a regional law (LI-086): never read as a State act's, even where its
-            # first words would resolve («legge 10 novembre 2014, n. 65 della Regione Toscana»).
-            # leggi_regionali_nel_testo reads the law itself.
+        if fonte_locale(coda):
+            # An article of a regional or provincial law (LI-086): never read as a State act's,
+            # even where its first words would resolve («legge 10 novembre 2014, n. 65 della
+            # Regione Toscana»). leggi_regionali_nel_testo / leggi_provinciali_nel_testo read the law.
             continue
         info = _atto_dopo(coda)
         if info is None and not _GENITIVO.match(coda) and not _FONTE_NON_RISOLTA.match(coda):
@@ -428,6 +429,17 @@ def norme_nel_testo(testo: str) -> list[NormaCitata]:
 def leggi_regionali_nel_testo(testo: str) -> list[str]:
     """Every regional law cited in *testo* («l.r. Toscana 65/2014», «legge regionale 12 marzo 2015,
     n. 3»), as written, once each. No tool reads a regional law (LI-086): the gate warns on each."""
+    return _leggi_locali_nel_testo(testo, LEGGE_REGIONALE_NEL_TESTO, legge_regionale)
+
+
+def leggi_provinciali_nel_testo(testo: str) -> list[str]:
+    """Every law of the Province autonome di Trento e di Bolzano cited in *testo* («l.p. 13/1997»,
+    «legge 13/1997 della Provincia autonoma di Trento»), as written, once each, as the regional laws."""
+    return _leggi_locali_nel_testo(testo, LEGGE_PROVINCIALE_NEL_TESTO, legge_provinciale)
+
+
+def _leggi_locali_nel_testo(testo: str, pattern: "re.Pattern[str]", riconosce) -> list[str]:
+    """The laws *pattern* reads in *testo*, plus the act after any article *riconosce* as one."""
     visti, trovate, inizi = set(), [], []
 
     def aggiungi(estratto: str) -> None:
@@ -436,14 +448,14 @@ def leggi_regionali_nel_testo(testo: str) -> list[str]:
             visti.add(estratto.lower())
             trovate.append(estratto)
 
-    for m in LEGGE_REGIONALE_NEL_TESTO.finditer(testo):
+    for m in pattern.finditer(testo):
         inizi.append(m.start())
         aggiungi(m.group(0))
-    # An article whose act is a regional law (norme_nel_testo leaves it out) is never left
-    # silent: when the pattern above did not read its law, the start of what follows it is.
+    # An article whose act is such a law (norme_nel_testo leaves it out) is never left silent:
+    # when the pattern above did not read its law, the start of what follows it is.
     for m in _INTESTAZIONE.finditer(testo):
         letta = _dopo_gli_articoli(testo, m)
-        if letta is None or not legge_regionale(letta[2]):
+        if letta is None or not riconosce(letta[2]):
             continue
         dopo = letta[1]
         i = bisect.bisect_left(inizi, dopo)  # inizi is sorted: finditer reads left to right
