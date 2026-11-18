@@ -647,9 +647,10 @@ async def mappa_orientamento(
     archivio: str = "tutti",
     anno_da: int = 0,
 ) -> str:
-    """Mappa DESCRITTIVA completa: ancoraggio Brocardi + orientamenti Cassazione su un articolo.
+    """Mappa DESCRITTIVA completa degli orientamenti Cassazione su un articolo.
 
-    Workflow orchestrato:
+    Workflow orchestrato (il passo 1 solo con Brocardi attivo, che non lo è per impostazione
+    predefinita; altrimenti la mappa lo dice in una riga e parte dal passo 3):
     1. recupera le massime riportate da Brocardi per l'articolo (ancoraggio; le massime di
        Brocardi non misurano il consolidamento; se Brocardi non risponde o non ha massime
        la mappa lo dichiara)

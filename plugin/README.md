@@ -1,6 +1,6 @@
 # legal-it — Plugin per il Diritto Italiano
 
-Plugin legale italiano per Claude Code e Claude Desktop: **235 tool** MCP, **30 skill**, **9 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
+Plugin legale italiano per Claude Code e Claude Desktop: **233 tool** MCP (235 con Brocardi acceso), **30 skill**, **9 slash command**, **6 agenti specializzati** e **Legal Grounding Protocol**.
 
 ## Installazione
 
@@ -51,7 +51,7 @@ Il server gira **sul tuo computer** e non invia telemetria. Contatta soltanto:
   - Parlamento: `dati.senato.it`, `dati.camera.it`;
   - autorità: Garante privacy (`www.garanteprivacy.it`, `servizi.gpdp.it`), CONSOB (`www.consob.it`), ANAC (`www.anticorruzione.it`);
   - Unione europea: EUR-Lex (`eur-lex.europa.eu`), Ufficio delle pubblicazioni (`publications.europa.eu`), VIES della Commissione (`ec.europa.eu`), TMview (`www.tmdn.org`);
-  - fonte privata: Brocardi.it (`www.brocardi.it`), solo annotazioni e massime, mai il testo delle norme;
+  - fonte privata: Brocardi.it (`www.brocardi.it`), solo annotazioni e massime, mai il testo delle norme; spenta per default, contattata solo con `LEGAL_BROCARDI=on`;
   - `verifica_dpa_fornitore`: il sito pubblico del fornitore indicato dall'utente (solo indirizzi pubblici, verificati prima della richiesta).
 
 A queste fonti arrivano solo i parametri della ricerca (per esempio il numero di un articolo, le parole cercate, una partita IVA da verificare con VIES). L'elenco degli host è verificato dai test del progetto (`_egress.py`).
@@ -74,13 +74,13 @@ Controlla che la fonte sia stata letta, non che la risposta ne riporti correttam
 
 ## Cosa include
 
-### Server MCP (235 tool)
+### Server MCP (233 tool)
 
 Il plugin avvia automaticamente il server MCP locale — nessun server remoto richiesto. Al primo avvio crea un virtualenv in `~/.cache/mcp-legal-it/` e installa le dipendenze.
 
 | Categoria | Tool | Esempi |
 |-----------|:----:|--------|
-| Consultazione normativa | 8 | `cite_law`, `cerca_brocardi`, `verifica_citazioni` |
+| Consultazione normativa | 6 (+2 con Brocardi) | `cite_law`, `verifica_citazioni`, `download_law_pdf` |
 | Giurisprudenza Cassazione (Italgiure) | 5 | `leggi_sentenza`, `cerca_giurisprudenza`, `giurisprudenza_articolo` |
 | Giurisprudenza tributaria (CeRDEF) | 3 | `cerca_giurisprudenza_tributaria`, `cerdef_leggi_provvedimento` |
 | Giustizia amministrativa (TAR/CdS) | 4 | `cerca_giurisprudenza_amministrativa`, `leggi_provvedimento_amm` |
@@ -208,7 +208,7 @@ Calcola gli interessi di mora su un credito commerciale di 15.000 scaduto il 01/
 
 ## In English
 
-legal-it is a Claude Code plugin for Italian law: a local MCP server with 235 tools (statutes from Normattiva and EUR-Lex, case law from the Italian Supreme Court, administrative courts, Constitutional Court and CJEU, legal calculations, GDPR documents), 30 skills, 9 commands and 6 agents. The server runs on the user's machine through `uv run --frozen` with the versions pinned in `server/uv.lock`, sends no telemetry, and contacts only the public sources listed under «Rete e dati», with the parameters of each query.
+legal-it is a Claude Code plugin for Italian law: a local MCP server with 233 tools (235 with Brocardi switched on) (statutes from Normattiva and EUR-Lex, case law from the Italian Supreme Court, administrative courts, Constitutional Court and CJEU, legal calculations, GDPR documents), 30 skills, 9 commands and 6 agents. The server runs on the user's machine through `uv run --frozen` with the versions pinned in `server/uv.lock`, sends no telemetry, and contacts only the public sources listed under «Rete e dati», with the parameters of each query.
 
 ## Licenza
 

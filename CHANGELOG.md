@@ -475,6 +475,26 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **Brocardi.it is off by default (decision LI-079).** Brocardi.it is the server's only
+  private source (doctrinal notes and case-law abstracts, never the text of a norm), and it is
+  now off unless switched on; every other source stays on. With nothing set no request reaches
+  brocardi.it, `cerca_brocardi` and `fetch_law_annotations` are not listed (233 tools instead
+  of 235), and `cite_law(include_annotations=True)`, `giurisprudenza_articolo` and
+  `mappa_orientamento` say in one line, where the Brocardi part would have been, «Brocardi non
+  attivo in questa installazione». The server instructions, skills, agents and commands take
+  the Italgiure path by default (`giurisprudenza_su_norma`, `cerca_giurisprudenza` →
+  `leggi_sentenza`) and use Brocardi only if available. **To switch it on:**
+  `LEGAL_BROCARDI=on` (or `1`, `true`, `yes`) in the environment of the server or of Claude
+  Code (also the `env` block of `~/.claude/settings.json`), or in code
+  `crea_server(brocardi=True)`, `configurazione(brocardi=True)` or
+  `_brocardi_switch.set_default(True)`; `crea_server()` now follows the process
+  (`brocardi=None`). `LEGAL_BROCARDI=off` (or `0`, `false`, `no`) keeps it off and code cannot
+  switch it back on (`ValueError`); any other value counts as off, is reported on stderr at
+  start-up and named by `stato_server`, whose `brocardi.stato` says `spento_per_default`,
+  `acceso`, `spento_esplicito` or `valore_non_riconosciuto`. The stock server now hides the
+  `solo_brocardi` tools per request (a visibility transform), so a server built with
+  `crea_server(brocardi=True)` lists and calls them. `release.py` counts the default surface
+  (233) for the manifests.
 - **`analisi-sinistro`: patrimonial danno differenziale in workplace accidents (decision
   LI-072).** Section 2-bis now says that, against the employer, only the patrimonial
   differential is due, computed on homogeneous heads: the civil-law lucro cessante minus the

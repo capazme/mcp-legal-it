@@ -104,7 +104,9 @@ def test_the_stock_server_still_registers_every_tool_after_the_api_is_imported()
          "    async with Client(mcp) as c:\n"
          "        return len(await c.list_tools())\n"
          "print(asyncio.run(n()))"],
-        env={**os.environ, "PYTHONPATH": str(PACKAGE_ROOT)}, capture_output=True, text=True, timeout=120,
+        # Brocardi on, so that every registered tool is listed (off by default: 233).
+        env={**os.environ, "PYTHONPATH": str(PACKAGE_ROOT), "LEGAL_BROCARDI": "on"},
+        capture_output=True, text=True, timeout=120,
     )
     assert out.returncode == 0, out.stderr
     assert int(out.stdout.strip().splitlines()[-1]) == 235

@@ -40,11 +40,19 @@ def _kind(tool) -> str:
 
 
 def test_without_filters_it_is_the_stock_surface():
+    # Brocardi is off by default (LI-079): the stock surface is 233 tools.
     built = surface(crea_server())
     assert set(built["tools"]) == set(STOCK["tools"])
-    assert len(built["tools"]) == 235
+    assert len(built["tools"]) == 233
     assert built["prompts"] == STOCK["prompts"] == 23
     assert built["resources"] == STOCK["resources"] == 15
+
+
+def test_brocardi_true_adds_the_two_brocardi_tools(monkeypatch):
+    monkeypatch.delenv("LEGAL_BROCARDI", raising=False)
+    built = set(surface(crea_server(brocardi=True))["tools"])
+    assert built - set(STOCK["tools"]) == {"cerca_brocardi", "fetch_law_annotations"}
+    assert len(built) == 235
 
 
 def test_a_sources_subset_lists_no_calculator():
@@ -133,4 +141,4 @@ def test_bad_tags_are_refused(kwargs, error):
 
 
 def test_an_empty_exclusion_excludes_nothing():
-    assert len(surface(crea_server(exclude_tags=set()))["tools"]) == 235
+    assert len(surface(crea_server(exclude_tags=set()))["tools"]) == 233

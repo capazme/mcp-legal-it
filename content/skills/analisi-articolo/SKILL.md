@@ -1,7 +1,7 @@
 ---
 name: analisi-articolo
 description: Usa quando l'utente chiede di spiegare, analizzare o approfondire un articolo specifico (es. "spiegami l'art. 2043 c.c.") — testo vigente, ratio legis, giurisprudenza e norme collegate.
-tools: [cerca_brocardi, cite_law, ddl_su_norma, leggi_sentenza]
+tools: [cerca_brocardi, cite_law, ddl_su_norma, giurisprudenza_su_norma, leggi_sentenza]
 prompt: {"name": "analisi_articolo", "description": "Analisi approfondita di un singolo articolo di legge: testo, ratio, giurisprudenza e collegamenti", "args": [{"name": "riferimento_norma", "type": "str"}]}
 ---
 
@@ -17,9 +17,11 @@ Formati accettati per il riferimento: "art. 13 GDPR", "art. 2043 c.c.", "art. 6 
 
 Chiama `cite_law` con il riferimento normativo. Se modificato, recupera anche la versione precedente.
 
-### 2. Annotazioni e giurisprudenza
+### 2. Giurisprudenza e annotazioni
 
-Chiama `cerca_brocardi` (se disponibile) per:
+Chiama `giurisprudenza_su_norma` con il riferimento per le sentenze della Cassazione che citano l'articolo, poi `leggi_sentenza` per le decisioni chiave.
+
+Se `cerca_brocardi` è disponibile in questa installazione, usalo anche per:
 - Ratio legis
 - Spiegazione dottrinale
 - Massime giurisprudenziali
@@ -76,5 +78,5 @@ Indicazioni pratiche per l'applicazione della norma.
 ## Regole
 
 - Il testo dell'articolo DEVE provenire da `cite_law`, non dalla memoria.
-- Se Brocardi non ha annotazioni per questa norma, indicarlo espressamente.
+- Se le annotazioni Brocardi mancano (tool non disponibile o nessuna annotazione per questa norma), indicarlo espressamente: ratio e interpretazione vengono allora dal testo e dalla giurisprudenza letta.
 - Distinguere tra interpretazione consolidata e orientamenti minoritari.

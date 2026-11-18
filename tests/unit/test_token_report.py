@@ -56,7 +56,8 @@ def test_tools_report_covers_every_listed_tool(tmp_path):
                    env={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "LEGAL_CACHE": "off"})
     report = json.loads(out.read_text(encoding="utf-8"))
     names = {r["name"] for r in report["tools"]}
-    assert names == set(READ_ONLY | WRITES_FILES)
+    # The stock surface a default install lists: Brocardi is off by default (LI-079).
+    assert names == set(READ_ONLY | WRITES_FILES) - {"cerca_brocardi", "fetch_law_annotations"}
     t = report["totals"]
     assert t["tools"] == len(names)
     assert t["model_chars"] == sum(r["model_chars"] for r in report["tools"])
@@ -68,6 +69,16 @@ def test_tools_report_covers_every_listed_tool(tmp_path):
     assert report["blocks"]["additional_properties_false"]["count"] == 0
     assert report["blocks"]["anyof_null"]["count"] == 0
     assert report["blocks"]["accetta_precisione"]["count"] >= 1
+
+
+def test_tools_report_with_brocardi_on_covers_every_registered_tool(tmp_path):
+    out = tmp_path / "tools.json"
+    subprocess.run([sys.executable, str(REPO / "scripts" / "token_report.py"), "tools", "--json", str(out)],
+                   check=True, capture_output=True, text=True, cwd=REPO,
+                   env={"PATH": "/usr/bin:/bin", "HOME": str(tmp_path), "LEGAL_CACHE": "off",
+                        "LEGAL_BROCARDI": "on"})
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert {r["name"] for r in report["tools"]} == set(READ_ONLY | WRITES_FILES)
 
 
 def test_profile_narrows_the_surface(tmp_path):

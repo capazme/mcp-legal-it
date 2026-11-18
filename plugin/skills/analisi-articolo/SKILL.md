@@ -15,9 +15,11 @@ Formati accettati per il riferimento: "art. 13 GDPR", "art. 2043 c.c.", "art. 6 
 
 Chiama `legal-it:cite_law` con il riferimento normativo. Se modificato, recupera anche la versione precedente.
 
-### 2. Annotazioni e giurisprudenza
+### 2. Giurisprudenza e annotazioni
 
-Chiama `legal-it:cerca_brocardi` (se disponibile) per:
+Chiama `legal-it:giurisprudenza_su_norma` con il riferimento per le sentenze della Cassazione che citano l'articolo, poi `legal-it:leggi_sentenza` per le decisioni chiave.
+
+Se `legal-it:cerca_brocardi` è disponibile in questa installazione, usalo anche per:
 - Ratio legis
 - Spiegazione dottrinale
 - Massime giurisprudenziali
@@ -74,5 +76,5 @@ Indicazioni pratiche per l'applicazione della norma.
 ## Regole
 
 - Il testo dell'articolo DEVE provenire da `legal-it:cite_law`, non dalla memoria.
-- Se Brocardi non ha annotazioni per questa norma, indicarlo espressamente.
+- Se le annotazioni Brocardi mancano (tool non disponibile o nessuna annotazione per questa norma), indicarlo espressamente: ratio e interpretazione vengono allora dal testo e dalla giurisprudenza letta.
 - Distinguere tra interpretazione consolidata e orientamenti minoritari.

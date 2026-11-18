@@ -240,6 +240,18 @@ class TestBrocardi:
                 a = await api.annotazioni_brocardi("art. 2043 c.c.")
         assert a.esito == "brocardi_disattivato"
 
+    async def test_off_by_default_and_on_by_configuration(self):
+        from mcp_legal_it.lib.brocardi.client import BrocardiResult
+
+        with patch("mcp_legal_it.lib.brocardi.client.fetch_brocardi", side_effect=AssertionError("no request")):
+            a = await api.annotazioni_brocardi("art. 2043 c.c.")
+        assert a.esito == "brocardi_disattivato"
+        assert a.errore == "Brocardi non attivo in questa installazione: nessuna annotazione dottrinale né massima da brocardi.it"
+        r = BrocardiResult(url="https://www.brocardi.it/x", ratio="r")
+        with patch("mcp_legal_it.lib.brocardi.client.fetch_brocardi", AsyncMock(return_value=r)):
+            with api.configurazione(brocardi=True):
+                assert (await api.annotazioni_brocardi("art. 2043 c.c.")).esito == "trovato"
+
     def test_an_inherited_value_does_not_switch_a_context_off_back_on(self):
         from mcp_legal_it.lib import _brocardi_switch
 
@@ -252,8 +264,10 @@ class TestBrocardi:
                     pass
             assert _brocardi_switch.enabled() is False
 
-    async def test_found_with_structured_abstracts(self):
+    async def test_found_with_structured_abstracts(self, monkeypatch):
         from mcp_legal_it.lib.brocardi.client import BrocardiResult, Massima
+
+        monkeypatch.setenv("LEGAL_BROCARDI", "on")  # off by default (LI-079)
 
         r = BrocardiResult(url="https://www.brocardi.it/x", ratio="r", spiegazione="s", brocardi=["b"],
                            massime=[Massima(autorita="Cass. civ.", numero="100", anno="2024", testo="m")])

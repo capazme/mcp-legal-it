@@ -18,7 +18,7 @@ Costruisci una mappa DESCRITTIVA degli orientamenti della Cassazione.
 
 ### Fase 1 — Mappa orientamenti
 Se il riferimento è una NORMA, chiama `mappa_orientamento(riferimento=<riferimento>, archivio=<archivio>)`
-(orchestratore: ancora le massime Brocardi, recupera le decisioni successive, isola le Sezioni Unite).
+(orchestratore: recupera le decisioni che citano la norma, isola le Sezioni Unite; se Brocardi è attivo in questa installazione le ancora anche alle sue massime).
 In alternativa: `orientamento_su_norma(...)` per una norma o `orientamento_su_principio(principio="...")`
 per un principio espresso a parole.
 

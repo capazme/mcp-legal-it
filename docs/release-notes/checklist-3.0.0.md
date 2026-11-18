@@ -77,10 +77,13 @@ is shipped as it is today, stated as such in the release notes. None may be
 - [ ] `docs/migration/2.x-to-3.0.md` and `docs/release-notes/3.0.0.md` updated
       with what the migration PRs and the later fixes changed (§8), and with the
       outcome of every decision in §1 (or left «in attesa di decisione»).
-- [x] Counts are true everywhere: 235 tools (233 with `LEGAL_BROCARDI=off`),
-      30 skills, 9 slash commands, 6 agents, 23 prompts, 15 resources. Checked
-      on 2026-11-17: `release.py` `count_tools()` 235; the server's
-      `list_tools` 235 and 233 with `LEGAL_BROCARDI=off`; `content/` 30 skills,
+- [x] Counts are true everywhere: 233 tools by default, with Brocardi off
+      (LI-079), and 235 with `LEGAL_BROCARDI=on`; 30 skills, 9 slash commands,
+      6 agents, 23 prompts, 15 resources. Checked on 2026-11-17 after LI-079:
+      `release.py` `count_tools()` 233 (the default surface, so the manifests
+      keep it); the server's `list_tools` 233 by default and 235 with
+      `LEGAL_BROCARDI=on`; `content/tool-vocabulary.json` 235 (every registered
+      tool); `content/` 30 skills,
       9 commands, 6 agents; `plugin.json`, `marketplace.json`, README and the
       pages agree (`plugin/README.md` said 23 skills in English: fixed). The
       OpenAI bundle's 42 skills (28 + 6 agents + 8 commands) and the 2.x
@@ -127,12 +130,13 @@ release candidate:
 | | Mac (Apple silicon) | Mac (Intel) | Windows 11 |
 |---|---|---|---|
 | Plugin from the marketplace, following the published guide step by step | [ ] | [ ] | [ ] |
-| `/mcp` connected; 235 tools; `stato_server` says 3.0.0 | [ ] | [ ] | [ ] |
-| `LEGAL_BROCARDI=off claude` (Windows: `$env:LEGAL_BROCARDI="off"; claude`): 233 tools, `stato_server` says off | [ ] | [ ] | [ ] |
-| `"LEGAL_BROCARDI": "off"` in the `env` block of `~/.claude/settings.json`, app's Code tab (not started from a terminal): `stato_server` says off. The mechanism was verified on 2026-10-21 (Mac, Claude Code CLI, temporary HOME: a plugin MCP server received `off` with the block and an empty value without it); this row checks it end to end in the app | [ ] | [ ] | [ ] |
+| `/mcp` connected on a fresh install, nothing set; 233 tools; `stato_server` says 3.0.0 and `brocardi.stato` `spento_per_default` | [ ] | [ ] | [ ] |
+| `LEGAL_BROCARDI=on claude` (Windows: `$env:LEGAL_BROCARDI="on"; claude`): 235 tools, `cerca_brocardi` answers, `stato_server` says `acceso` | [ ] | [ ] | [ ] |
+| `LEGAL_BROCARDI=off claude`: 233 tools, `stato_server` says `spento_esplicito` | [ ] | [ ] | [ ] |
+| `"LEGAL_BROCARDI": "on"` in the `env` block of `~/.claude/settings.json`, app's Code tab (not started from a terminal): `stato_server` says `acceso`. The mechanism was verified on 2026-10-21 (Mac, Claude Code CLI, temporary HOME: a plugin MCP server received `off` with the block and an empty value without it); this row checks it end to end in the app | [ ] | [ ] | [ ] |
 | `.mcpb` in Claude Desktop: installs, tools answer, first start rebuilds once | [ ] | [ ] | [ ] |
 | `uvx --from git+https://github.com/capazme/mcp-legal-it@v3.0.0 mcp-legal-it --version` | [ ] | [ ] | [ ] |
-| Docker (`docker build .`, `docker run -p 8000:8000`), 235 tools on `/mcp` | [ ] | — | — |
+| Docker (`docker build .`, `docker run -p 8000:8000`), 233 tools on `/mcp` (235 with `-e LEGAL_BROCARDI=on`) | [ ] | — | — |
 | A generated DOCX lands in the private temp folder (0700 on Mac) | [ ] | [ ] | [ ] |
 | Time to `initialize`, cold / warm (2.x reference: plugin 1.8 s / 0.6 s) | | | |
 

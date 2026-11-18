@@ -22,6 +22,15 @@ from mcp_legal_it.lib.visualex.map import (
     resolve_atto,
 )
 
+
+@pytest.fixture(autouse=True)
+def _brocardi_on(monkeypatch):
+    """Every test in this file exercises Brocardi content: switch it on (off by default, LI-079).
+
+    Scoped to this file on purpose: the rest of the suite runs with the default.
+    """
+    monkeypatch.setenv("LEGAL_BROCARDI", "on")
+
 B = "https://www.brocardi.it"
 
 # Labels that carry no "(tipo giorno mese anno, n. N)" — matched by name only.

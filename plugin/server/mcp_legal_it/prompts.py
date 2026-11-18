@@ -19,9 +19,11 @@ Formati accettati per il riferimento: "art. 13 GDPR", "art. 2043 c.c.", "art. 6 
 
 Chiama `cite_law` con il riferimento normativo. Se modificato, recupera anche la versione precedente.
 
-### 2. Annotazioni e giurisprudenza
+### 2. Giurisprudenza e annotazioni
 
-Chiama `cerca_brocardi` (se disponibile) per:
+Chiama `giurisprudenza_su_norma` con il riferimento per le sentenze della Cassazione che citano l'articolo, poi `leggi_sentenza` per le decisioni chiave.
+
+Se `cerca_brocardi` è disponibile in questa installazione, usalo anche per:
 - Ratio legis
 - Spiegazione dottrinale
 - Massime giurisprudenziali
@@ -78,7 +80,7 @@ Indicazioni pratiche per l'applicazione della norma.
 ## Regole
 
 - Il testo dell'articolo DEVE provenire da `cite_law`, non dalla memoria.
-- Se Brocardi non ha annotazioni per questa norma, indicarlo espressamente.
+- Se le annotazioni Brocardi mancano (tool non disponibile o nessuna annotazione per questa norma), indicarlo espressamente: ratio e interpretazione vengono allora dal testo e dalla giurisprudenza letta.
 - Distinguere tra interpretazione consolidata e orientamenti minoritari.
 """
 
@@ -402,7 +404,7 @@ Sei un ricercatore giuridico specializzato. Conduci un'analisi degli orientament
 ## Fase 1 — Ricerca iniziale
 
 ### Se il tema riguarda un articolo specifico (es. "art. 2043 c.c.")
-1. Chiama `giurisprudenza_articolo(riferimento="art. 2043 c.c.")` — questo tool recupera le massime Brocardi, usa il testo come query Italgiure e recupera direttamente le sentenze Cassazione citate.
+1. Chiama `giurisprudenza_articolo(riferimento="art. 2043 c.c.")` — cerca su Italgiure le sentenze della Cassazione che citano l'articolo (come `giurisprudenza_su_norma`); se Brocardi è attivo in questa installazione parte anche dalle sue massime.
 
 ### Se il tema e' generico (es. "responsabilita' del medico")
 1. **Esplora**: `cerca_giurisprudenza(query="...", modalita="esplora")` per distribuzione materia/sezione/anno.
@@ -437,7 +439,7 @@ Leggi SOLO le sentenze selezionate:
 - GA: `leggi_provvedimento_amm(sede, nrg, nome_file)`
 - CGUE: `leggi_sentenza_cgue(cellar_uri)`
 
-Per articoli specifici: `cerca_brocardi(reference)` (se disponibile) per ratio legis.
+Per articoli specifici, se `cerca_brocardi` è disponibile in questa installazione: `cerca_brocardi(reference)` per la ratio legis.
 
 ## Fase 4 — Fallback web (se necessario)
 
@@ -995,7 +997,7 @@ Differenze, sovrapposizioni, prevalenza e coordinamento.
 
 ### 1. Recupero testi
 
-Chiama `cite_law` per ciascuna norma. Per annotazioni: `cerca_brocardi` (se disponibile).
+Chiama `cite_law` per ciascuna norma. Per annotazioni, solo se il tool è disponibile in questa installazione: `cerca_brocardi`.
 
 ### 2. Analisi comparativa
 
@@ -1221,7 +1223,7 @@ Costruisci una mappa DESCRITTIVA degli orientamenti della Cassazione.
 
 ### Fase 1 — Mappa orientamenti
 Se il riferimento è una NORMA, chiama `mappa_orientamento(riferimento=<riferimento>, archivio=<archivio>)`
-(orchestratore: ancora le massime Brocardi, recupera le decisioni successive, isola le Sezioni Unite).
+(orchestratore: recupera le decisioni che citano la norma, isola le Sezioni Unite; se Brocardi è attivo in questa installazione le ancora anche alle sue massime).
 In alternativa: `orientamento_su_norma(...)` per una norma o `orientamento_su_principio(principio="...")`
 per un principio espresso a parole.
 
@@ -1275,7 +1277,7 @@ Identifica:
 ## Step 2 — Verifica normativa
 Per OGNI norma che intendi citare nel parere:
 1. Chiama `cite_law` con il riferimento (es. "art. X legge Y") per ottenere il testo vigente
-2. Se serve approfondimento dottrinale: chiama `cerca_brocardi` (se disponibile)
+2. Se serve approfondimento dottrinale e il tool è disponibile in questa installazione: chiama `cerca_brocardi`
 
 MAI citare una norma a memoria. Ogni citazione deve avere un `cite_law` corrispondente.
 
@@ -1295,7 +1297,7 @@ Riassumi i fatti rilevanti come esposti dal cliente.
 Esponi il quadro normativo applicabile, citando:
 - Articoli di legge (con testo recuperato da `cite_law`)
 - Principi giurisprudenziali (con numero e anno delle sentenze)
-- Dottrina rilevante (se emersa da `cerca_brocardi`)
+- Dottrina rilevante (solo se emersa da `cerca_brocardi`; altrimenti ometti la voce)
 
 ### ANALISI
 Applica il diritto ai fatti:
@@ -1631,9 +1633,9 @@ Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transi
 
 ### 3. Giurisprudenza
 
-`cerca_brocardi` (se disponibile) per massime. `cerca_giurisprudenza` per approfondimento.
+Per le norme chiave, `giurisprudenza_su_norma` trova le sentenze della Cassazione che le citano; `leggi_sentenza` per le decisioni rilevanti. `cerca_giurisprudenza` per approfondire un tema.
 
-Per le norme chiave, chiama `cite_law` con `include_annotations=true` per recuperare da Brocardi:
+Se Brocardi è attivo in questa installazione, `cerca_brocardi` (o `cite_law` con `include_annotations=true`) aggiunge:
 - Massime di Cassazione e Corte Costituzionale
 - Orientamenti consolidati vs. questioni aperte
 - Posizioni dottrinali prevalenti

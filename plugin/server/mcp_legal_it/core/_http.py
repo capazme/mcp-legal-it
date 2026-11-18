@@ -226,11 +226,12 @@ def motivo_rifiuto_host(fonte: str, url: httpx.URL) -> str | None:
         return f"schema non consentito: {url.scheme!r}"
     if url.userinfo:
         return "credenziali nell'URL"
-    if fonte == "brocardi":
-        from mcp_legal_it.lib import _brocardi_switch
+    from mcp_legal_it.lib import _brocardi_switch
 
-        if not _brocardi_switch.enabled():
-            return "Brocardi è disattivato"
+    # Any Brocardi URL, whatever the source asking for it (a supplier probe pointed at
+    # brocardi.it included): while Brocardi is off nothing reaches it.
+    if _brocardi_switch.is_brocardi_url(str(url)) and not _brocardi_switch.enabled():
+        return "Brocardi non è attivo"
     ammessi = HOST_PER_FONTE.get(fonte, frozenset())
     if ammessi is not None and url.host not in ammessi:
         return f"host non previsto per la fonte: {url.host!r}"

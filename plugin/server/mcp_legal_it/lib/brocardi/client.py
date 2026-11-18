@@ -223,7 +223,7 @@ async def fetch_brocardi(
         numero_atto: Act number for disambiguation (e.g. "196", "231")
         data: Act date or year — D.lgs. 81/2008 and 81/2015 differ only by it
 
-    With Brocardi switched off (``LEGAL_BROCARDI=off``, see ``lib/_brocardi_switch.py``)
+    With Brocardi off (the default, see ``lib/_brocardi_switch.py``)
     nothing is fetched and the result carries the switch's note as its ``error``.
     """
     if not _brocardi_switch.enabled():

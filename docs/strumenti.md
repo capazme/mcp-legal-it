@@ -1,6 +1,6 @@
 # Guida agli strumenti
 
-mcp-legal-it espone 235 tool MCP. Questo documento è la guida discorsiva: per ogni tool
+mcp-legal-it espone 233 tool MCP per default, 235 con Brocardi acceso (`LEGAL_BROCARDI=on`). Questo documento è la guida discorsiva: per ogni tool
 trattato riporta parametri, uso tipico ed esempio concreto.
 
 > **Copertura**: 147 tool su 235. Mancano le schede dei moduli aggiunti dalla v2.6 in poi —
@@ -21,7 +21,7 @@ trattato riporta parametri, uso tipico ed esempio concreto.
 | Recupero credito | `interessi_mora` → `rivalutazione_monetaria` → `decreto_ingiuntivo` → `parcella_avvocato_civile` |
 | Causa civile | `contributo_unificato` → `scadenza_processuale` → `scadenze_impugnazioni` → `preventivo_civile` |
 | Successione | `calcolo_eredita` → `imposte_successione` → `calcolo_valore_catastale` |
-| Analisi norma | `cite_law` → `cerca_brocardi` → `cerca_giurisprudenza` → `leggi_sentenza` |
+| Analisi norma | `cite_law` → `giurisprudenza_su_norma` → `leggi_sentenza` (con Brocardi acceso anche `cerca_brocardi`) |
 | Privacy / GDPR | `cite_law` (art. GDPR) → `cerca_provvedimenti_garante` → `leggi_provvedimento_garante` |
 
 ---
@@ -1844,7 +1844,7 @@ _Recupero a basso livello con parametri espliciti (tipo atto, anno, numero) — 
 ---
 
 ### `fetch_law_annotations`
-_Recupera le annotazioni Brocardi per un articolo (ratio legis, spiegazione dottrinale, massime) con parametri espliciti._
+_Recupera le annotazioni Brocardi per un articolo (ratio legis, spiegazione dottrinale, massime) con parametri espliciti. Esposto solo con Brocardi acceso (`LEGAL_BROCARDI=on`)._
 
 **Parametri**: `act_type` (str, obbligatorio); `article` (str, obbligatorio); `date` (str, opzionale); `act_number` (str, opzionale).
 
@@ -1855,7 +1855,7 @@ _Recupera le annotazioni Brocardi per un articolo (ratio legis, spiegazione dott
 ---
 
 ### `cerca_brocardi`
-_Cerca annotazioni Brocardi da un riferimento in linguaggio naturale, restituendo anche i riferimenti strutturati alle sentenze della Cassazione utilizzabili con `leggi_sentenza`._
+_Cerca annotazioni Brocardi da un riferimento in linguaggio naturale, restituendo anche i riferimenti strutturati alle sentenze della Cassazione utilizzabili con `leggi_sentenza`. Esposto solo con Brocardi acceso (`LEGAL_BROCARDI=on`)._
 
 **Parametri**: `reference` (str, obbligatorio) — es. `"art. 2043 c.c."`, `"art. 575 c.p."`, `"art. 13 Costituzione"`.
 

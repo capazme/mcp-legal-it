@@ -1,7 +1,7 @@
 ---
 name: ricerca-normativa
 description: Usa quando l'utente chiede quali norme si applicano, il quadro normativo di un settore o una ricerca legislativa — tutte le fonti applicabili per gerarchia, giurisprudenza e quadro sanzionatorio.
-tools: [cerca_brocardi, cerca_ddl, cerca_delibere_consob, cerca_giurisprudenza, cerca_provvedimenti_garante, cite_law, ddl_su_norma, iter_ddl]
+tools: [cerca_brocardi, cerca_ddl, cerca_delibere_consob, cerca_giurisprudenza, cerca_provvedimenti_garante, cite_law, ddl_su_norma, giurisprudenza_su_norma, iter_ddl, leggi_sentenza]
 prompt: {"name": "ricerca_normativa", "description": "Ricerca normativa completa su un tema giuridico: norme applicabili, gerarchia delle fonti e coordinamento", "args": [{"name": "tema", "type": "str"}, {"name": "area_diritto", "type": "str"}]}
 ---
 
@@ -38,9 +38,9 @@ Per ogni norma primaria: attuazione, modifiche, abrogazioni, disposizioni transi
 
 ### 3. Giurisprudenza
 
-`cerca_brocardi` (se disponibile) per massime. `cerca_giurisprudenza` per approfondimento.
+Per le norme chiave, `giurisprudenza_su_norma` trova le sentenze della Cassazione che le citano; `leggi_sentenza` per le decisioni rilevanti. `cerca_giurisprudenza` per approfondire un tema.
 
-Per le norme chiave, chiama `cite_law` con `include_annotations=true` per recuperare da Brocardi:
+Se Brocardi è attivo in questa installazione, `cerca_brocardi` (o `cite_law` con `include_annotations=true`) aggiunge:
 - Massime di Cassazione e Corte Costituzionale
 - Orientamenti consolidati vs. questioni aperte
 - Posizioni dottrinali prevalenti

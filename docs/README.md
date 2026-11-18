@@ -1,8 +1,8 @@
 # mcp-legal-it — Documentazione
 
-MCP server con 235 tool di calcolo e consultazione per il diritto italiano.
+MCP server con 233 tool di calcolo e consultazione per il diritto italiano (235 con Brocardi acceso).
 Copre calcoli numerici (danni, interessi, fiscale, parcelle), consultazione normativa
-(Normattiva, EUR-Lex, Brocardi, Gazzetta Ufficiale) e ricerca giurisprudenziale
+(Normattiva, EUR-Lex, Gazzetta Ufficiale; Brocardi spento per default) e ricerca giurisprudenziale
 (Cassazione, Corte Costituzionale, tributaria, TAR/CdS, CGUE, Garante Privacy, CONSOB).
 
 ---
@@ -30,7 +30,7 @@ Client MCP (Claude Desktop / Claude Code)
         │
         │  import a livello di modulo → registrazione @mcp.tool()
         ▼
-  mcp_legal_it/tools/           37 moduli tool (235 tool totali)
+  mcp_legal_it/tools/           37 moduli tool (235 tool registrati, 233 esposti per default)
   │
   ├─ calcolo (16 moduli)
   │  ├── rivalutazioni_istat     ├── proprieta_successioni
@@ -123,7 +123,7 @@ romperebbe la registrazione dei tool senza preavviso.
 | File | Descrizione |
 |------|-------------|
 | [architecture.md](architecture.md) | Dettaglio layer, pattern `_impl`, profili, come aggiungere tool |
-| [tools-catalog.md](tools-catalog.md) | Catalogo dei 235 tool divisi per categoria |
+| [tools-catalog.md](tools-catalog.md) | Catalogo dei 235 tool registrati divisi per categoria (2 solo con Brocardi acceso) |
 | [tool-tags.md](tool-tags.md) | Etichette dei tool (tipo, organo, autorità, area), profili `LEGAL_PROFILE`, `crea_server`, interruttore Brocardi |
 | [strumenti.md](strumenti.md) | Scheda per tool con parametri ed esempi (copertura parziale, vedi nota nel file) |
 | [lib-reference.md](lib-reference.md) | Reference delle librerie interne di `mcp_legal_it/lib/` (15 moduli, 4 documentati in dettaglio) |

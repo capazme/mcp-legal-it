@@ -125,7 +125,7 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
   <header>
     <span class="eyebrow">Versione 3.0 · Claude Code · terminale e app Claude (scheda Code) · Mac e Windows</span>
     <h1>Installare Legal IT</h1>
-    <p class="lead">Legal IT è un plugin per Claude Code: 235 strumenti di diritto italiano (testo vigente da Normattiva ed EUR-Lex, Cassazione, Corte costituzionale, TAR e Consiglio di Stato, CGUE, calcoli di interessi, termini e parcelle), 30 procedure guidate, 9 comandi e 6 agenti specializzati. Funziona sul tuo computer. Servono circa dieci minuti.</p>
+    <p class="lead">Legal IT è un plugin per Claude Code: 233 strumenti di diritto italiano (testo vigente da Normattiva ed EUR-Lex, Cassazione, Corte costituzionale, TAR e Consiglio di Stato, CGUE, calcoli di interessi, termini e parcelle), 30 procedure guidate, 9 comandi e 6 agenti specializzati. Funziona sul tuo computer. Servono circa dieci minuti.</p>
     <p>Hai già Legal IT 2.x? Non serve reinstallare: vai a <a href="#upd-h">Aggiornare dalla versione 2</a>.</p>
   </header>
 
@@ -224,7 +224,7 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
     <p>Poi chiudi e riapri Claude Code. Il primo avvio della 3.0 scarica di nuovo i componenti, come alla prima installazione; dal secondo avvio parte in meno di un secondo. Per controllare la versione chiedi a Claude: <em>«Che versione di Legal IT sto usando?»</em> (risponde lo strumento <code>stato_server</code>).</p>
     <p>Cosa cambia per te:</p>
     <ul>
-      <li>Gli strumenti sono gli stessi, con gli stessi nomi. Alcune risposte che erano sbagliate senza avvisare ora sono corrette, oppure lo strumento si rifiuta e spiega perché (per esempio un intervallo come «art. 3-5 c.c.»: va chiesto un articolo alla volta).</li>
+      <li>Gli strumenti sono gli stessi, con gli stessi nomi, tranne i due di Brocardi.it, ora spenta per impostazione predefinita (vedi <a href="#opt-h">sotto</a>). Alcune risposte che erano sbagliate senza avvisare ora sono corrette, oppure lo strumento si rifiuta e spiega perché (per esempio un intervallo come «art. 3-5 c.c.»: va chiesto un articolo alla volta).</li>
       <li>Il controllo delle citazioni è più rigoroso e verifica anche le sentenze. Se ferma una risposta, Claude legge la fonte con lo strumento indicato e poi risponde.</li>
       <li>Chi usava l'estensione <code>.mcpb</code> in Claude Desktop: scarica il nuovo file dalla <a href="https://github.com/capazme/mcp-legal-it/releases/latest" target="_blank" rel="noopener">pagina delle release</a> e installalo con un doppio clic, come la prima volta. Sostituisce la versione precedente.</li>
     </ul>
@@ -232,12 +232,12 @@ footer { color: var(--muted); font-size: .9rem; display: grid; gap: .4rem; borde
   </section>
 
   <section style="display:grid;gap:1rem" aria-labelledby="opt-h">
-    <h2 id="opt-h">Usare Legal IT senza Brocardi</h2>
-    <p>Brocardi.it è l'unica fonte privata di Legal IT: note di dottrina e massime, mai il testo delle norme. Se preferisci non usarla, avvia Claude Code così:</p>
-    <div class="only-mac"><div class="cmd"><pre>LEGAL_BROCARDI=off claude</pre><button type="button">Copia</button></div></div>
-    <div class="only-win"><div class="cmd"><pre>$env:LEGAL_BROCARDI="off"; claude</pre><button type="button">Copia</button></div></div>
-    <p>Se usi la scheda Code dell'app Claude, che non parte dal Terminale, aggiungi la riga <code>"LEGAL_BROCARDI": "off"</code> nel blocco <code>"env"</code> del file <code>settings.json</code> della cartella <code>.claude</code> nella tua cartella utente, poi riapri l'app. Per controllare, chiedi a Claude: <em>«Brocardi è attivo in Legal IT?»</em> (risponde lo strumento <code>stato_server</code>).</p>
-    <p>Nessuna richiesta parte più verso Brocardi.it e due strumenti (<code>cerca_brocardi</code>, <code>fetch_law_annotations</code>) spariscono; gli altri funzionano e dicono che Brocardi è disattivato.</p>
+    <h2 id="opt-h">Brocardi (spento per default)</h2>
+    <p>Brocardi.it è l'unica fonte privata di Legal IT: note di dottrina e massime, mai il testo delle norme. Da questa versione è <strong>spenta per impostazione predefinita</strong>: nessuna richiesta parte verso Brocardi.it, due strumenti (<code>cerca_brocardi</code>, <code>fetch_law_annotations</code>) non compaiono e la giurisprudenza arriva dall'archivio della Cassazione. Tutte le altre fonti restano accese.</p>
+    <p>Per riaccenderla, avvia Claude Code così:</p>
+    <div class="only-mac"><div class="cmd"><pre>LEGAL_BROCARDI=on claude</pre><button type="button">Copia</button></div></div>
+    <div class="only-win"><div class="cmd"><pre>$env:LEGAL_BROCARDI="on"; claude</pre><button type="button">Copia</button></div></div>
+    <p>Se usi la scheda Code dell'app Claude, che non parte dal Terminale, aggiungi la riga <code>"LEGAL_BROCARDI": "on"</code> nel blocco <code>"env"</code> del file <code>settings.json</code> della cartella <code>.claude</code> nella tua cartella utente, poi riapri l'app. Per controllare, chiedi a Claude: <em>«Brocardi è attivo in Legal IT?»</em> (risponde lo strumento <code>stato_server</code>).</p>
   </section>
 
   <section style="display:grid;gap:1rem" aria-labelledby="fix-h">

@@ -130,13 +130,19 @@ JSON-ready data:
   the in-memory caches are shared by the process, so a per-request directory
   would split only the disk part.
 - **`cache=False`** turns the disk caches off, as `LEGAL_CACHE=off` does.
-- **`brocardi=False`** sends no request to brocardi.it, as `LEGAL_BROCARDI=off`
-  does.
+- **`brocardi`**: Brocardi.it is off by default (decision LI-079), so
+  `annotazioni_brocardi` answers `brocardi_disattivato` and no request reaches
+  brocardi.it unless `LEGAL_BROCARDI=on` is set or the caller passes
+  **`brocardi=True`** (`configura(brocardi=True)` for the process,
+  `configurazione(brocardi=True)` for a block). **`brocardi=False`** keeps it off
+  even where the environment says `on`.
 
 **An *off* wins.**
 
 - `cache=True` cannot override `LEGAL_CACHE=off`.
-- `brocardi=True` raises `ValueError` under `LEGAL_BROCARDI=off`. Inside
+- `brocardi=True` raises `ValueError` under `LEGAL_BROCARDI=off`, and under a
+  value of `LEGAL_BROCARDI` it does not recognise (accepted: `on`, `1`, `true`,
+  `yes`; `off`, `0`, `false`, `no`; anything else counts as off). Inside
   `configurazione` it also raises inside a context where Brocardi was switched
   off (`crea_server(brocardi=False)`, an enclosing `configurazione(brocardi=False)`).
 - A field a block does not pass is inherited and never overrides the switch of
@@ -1080,8 +1086,9 @@ Brocardi notes on an article: ratio, explanation, brocardi, case-law abstracts.
 
 - This is **third-party editorial content, never the norm**. Whether to show it
   is the consumer's call.
-- The Brocardi switch is honoured. When it is off, the answer is
-  `brocardi_disattivato` and no request is made.
+- The Brocardi switch is honoured, and Brocardi is off by default. When it is
+  off, the answer is `brocardi_disattivato` and no request is made; switch it on
+  with `LEGAL_BROCARDI=on` or `configurazione(brocardi=True)`.
 - **Esiti:** `trovato`, `brocardi_disattivato`, `riferimento_non_valido` (also
   when no article is given), `atto_non_riconosciuto`, `non_supportata`
   (annexes), `errore_fonte`, `testo_assente`.
