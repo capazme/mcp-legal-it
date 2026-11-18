@@ -34,6 +34,8 @@ from mcp_legal_it.lib.visualex.map import (
     ATTI_NOTI,
     EURLEX,
     NORMATTIVA_SEARCH,
+    SIGLE_DATATE,
+    resolve_atto,
     codice_urn,
     known_act_names,
     normalize_act_type,
@@ -1122,10 +1124,12 @@ def catalogo_alias() -> CatalogoAlias:
     """The act names the resolver knows (VisuaLex ``/fetch_alias_catalog`` shape). No network.
 
     ``presets`` are the hand-verified short names (GDPR, AI Act, TUB ...) with their
-    act; ``known_acts`` every name ``leggi_riferimento`` recognises.
+    act; ``known_acts`` every name ``leggi_riferimento`` recognises. The sigle that follow
+    the date (TUIR, TUGT ..., LI-086) are given with the act they name today.
     """
     presets: dict[str, dict[str, str]] = {}
-    for trigger, info in sorted(ATTI_NOTI.items()):
+    oggi = {nome: resolve_atto(nome) for nome in SIGLE_DATATE}
+    for trigger, info in sorted({**ATTI_NOTI, **{k: v for k, v in oggi.items() if v}}.items()):
         voce = {"act_type": info["tipo_atto"]}
         if info.get("numero_atto"):
             voce["act_number"] = info["numero_atto"]

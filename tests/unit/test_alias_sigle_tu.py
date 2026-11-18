@@ -91,7 +91,7 @@ def test_tue_stays_the_treaty():
 
 @pytest.mark.parametrize("nome", [
     "TUS", "T.U.S.", "decreto trasparenza", "decreto Semplificazioni", "riforma Cartabia",
-    "TUIVA", "TU IVA", "T.U. registro", "testo unico registro", "T.U. rinnovabili", "testo unico rinnovabili",
+    "TUA", "T.U.A.", "T.U. rinnovabili", "testo unico rinnovabili",
     "TUFER", "decreto FER", "decreto CER", "S.L.", "SL", "TUI", "L.P.A.", "LPA", "cod. app.",
     "testo unico dei servizi di media audiovisivi", "testo unico servizi media audiovisivi",
 ])
@@ -125,9 +125,11 @@ def test_tusma_and_tusmar_stay_distinct():
     assert _resolve_act("testo unico dei servizi di media audiovisivi e radiofonici")["numero_atto"] == "177"
 
 
-def test_the_ambiguous_fiscal_names_say_which_acts():
-    assert "d.lgs. 19 gennaio 2026, n. 10" in _unresolved_act_error("TUIVA")
-    assert "d.lgs. 1 agosto 2025, n. 123" in _unresolved_act_error("T.U. registro")
+def test_tua_names_both_acts():
+    # «TUA» is the codice dell'ambiente and the testo unico accise at the same date (LI-086):
+    # the refusal names both, so the reader can ask again with the full name.
+    out = _unresolved_act_error("TUA")
+    assert "d.lgs. 3 aprile 2006, n. 152" in out and "d.lgs. 26 ottobre 1995, n. 504" in out, out
 
 
 def test_an_unknown_sigla_stays_unresolved():

@@ -177,7 +177,9 @@ class TestRiferimenti:
         ("art. 1 TUF", "decreto.legislativo:1998-02-24;58~art1"),
         ("art. 1 testo unico sicurezza", "decreto.legislativo:2008-04-09;81~art1"),
     ])
-    def test_a_known_italian_act_carries_its_full_date(self, testo, urn):
+    def test_a_known_italian_act_carries_its_full_date(self, testo, urn, monkeypatch):
+        # «TUIR» names d.P.R. 917/1986 until the new testo unico applies (LI-086).
+        monkeypatch.setenv("LEGAL_TODAY", "2026-12-31")
         nd = api.leggi_riferimento(testo).norma_data[0]
         assert nd.data_risolta is True
         assert nd.urn == f"urn:nir:stato:{urn}"

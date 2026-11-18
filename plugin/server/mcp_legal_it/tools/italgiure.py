@@ -564,6 +564,8 @@ async def _giurisprudenza_su_norma_impl(
     start_idx = pagina * max_risultati + 1
     end_idx = start_idx + len(docs) - 1
     lines = [f"**Trovate {num_found} decisioni su**: _{riferimento}_ (mostro {start_idx}-{end_idx})\n"]
+    if avviso := _avviso_sigla(riferimento):
+        lines.append(f"*Attenzione: {avviso}.*\n")
     if not norma_is_qualified(riferimento):
         lines.append(
             "*Attenzione: il riferimento non indica il codice o l'atto. La ricerca trova ogni "
@@ -772,6 +774,13 @@ async def giurisprudenza_su_norma(
         anno_da=anno_da, anno_a=anno_a, max_risultati=max_risultati, pagina=pagina,
     )
     return result.to_str() if isinstance(result, SearchResult) else result
+
+
+def _avviso_sigla(riferimento: str) -> "str | None":
+    """The notice of a sigla that follows the date (LI-086) the reference names, else None."""
+    _, atto = _parse_articolo_riferimento(riferimento)
+    info = resolve_atto(atto) if atto else None
+    return (info or {}).get("avviso")
 
 
 def _parse_articolo_riferimento(riferimento: str) -> tuple[str, str]:

@@ -141,7 +141,9 @@ class TestTestoUnicoByName:
         "tugt",
         "T.U.G.T.",
     ])
-    def test_names_resolve_to_the_annex(self, nome):
+    def test_names_resolve_to_the_annex(self, nome, monkeypatch):
+        # From the day it applies (art. 131, LI-086); before it, the same act with a notice.
+        monkeypatch.setenv("LEGAL_TODAY", "2027-01-01")
         assert resolve_atto(nome) == {"tipo_atto": "decreto legislativo", "data": "2024-11-14",
                                       "numero_atto": "175", "allegato": "1"}
 

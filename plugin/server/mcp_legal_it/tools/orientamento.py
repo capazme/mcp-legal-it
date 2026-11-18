@@ -359,6 +359,9 @@ async def _orientamento_su_norma_impl(
             ),
         )
 
+    # A sigla that follows the date (LI-086): which act it names today, said under the count.
+    _, atto_str = _parse_articolo_riferimento(riferimento)
+    avviso = (resolve_atto(atto_str) or {}).get("avviso") if atto_str else None
     text = _assemble_map(
         titolo=f"Orientamento giurisprudenziale — {riferimento}",
         base_q=riferimento,
@@ -367,6 +370,7 @@ async def _orientamento_su_norma_impl(
         docs=docs,
         ss_uu_num=ss_uu_num,
         ss_uu_docs=ss_uu_docs,
+        extra_notes=[f"*Attenzione: {avviso}.*"] if avviso else None,
     )
     return SearchResult(
         success=True, source="italgiure", num_found=num_found, results_text=text,

@@ -416,7 +416,9 @@ class TestTuirNomeEsteso:
             "t.u.i.r.",
         ],
     )
-    def test_resolves(self, name):
+    def test_resolves(self, name, monkeypatch):
+        # The old TUIR until the new testo unico applies (LI-086, test_sigle_datate).
+        monkeypatch.setenv("LEGAL_TODAY", "2026-12-31")
         result = _resolve_act(name)
         assert result is not None, f"{name!r} non risolto"
         assert result["tipo_atto"] == "decreto del presidente della repubblica"

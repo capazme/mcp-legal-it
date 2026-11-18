@@ -21,7 +21,9 @@ import re
 import httpx
 import pytest
 
-from mcp_legal_it.lib.visualex.map import _ATTI_DENOMINATI_SPEC, ATTI_NOTI
+from mcp_legal_it.lib.visualex.map import (
+    _ATTI_DENOMINATI_SPEC, ATTI_NOTI, SIGLE_DATATE, SIGLE_DATATE_CON_DATA, codice_urn,
+)
 
 pytestmark = pytest.mark.live
 
@@ -169,4 +171,33 @@ class TestAttiDenominatiLive:
         failures = [p for p in problems if p]
         assert not failures, "\n".join(
             [f"{len(failures)}/{len(acts)} atti di ATTI_NOTI non corrispondono:"] + failures
+        )
+
+    async def test_every_act_of_a_dated_sigla_matches_normattiva(self):
+        # The old and the new act of each sigla that follows the date (LI-086), one request per
+        # distinct act, one at a time with a pause. A code keyed by name (the 2023 codice dei
+        # contratti pubblici) is checked with the codes, not here.
+        acts: dict[tuple[str, str, str], list[str]] = {}
+        for tabella in (SIGLE_DATATE, SIGLE_DATATE_CON_DATA):
+            for nome, periodi in tabella.items():
+                for periodo in periodi:
+                    atto = periodo.atto
+                    if codice_urn(atto["tipo_atto"]):
+                        continue
+                    acts.setdefault((atto["tipo_atto"], atto["data"], atto["numero_atto"]), []).append(nome)
+        assert acts, "no act in SIGLE_DATATE"
+        print(f"\nSIGLE_DATATE: {len(acts)} richieste a Normattiva, una alla volta")
+
+        problems = []
+        async with httpx.AsyncClient(
+            follow_redirects=True, timeout=45, headers=HEADERS
+        ) as client:
+            for i, ((tipo, data, numero), aliases) in enumerate(acts.items()):
+                if i:
+                    await asyncio.sleep(2)
+                problems.append(await _check_normattiva(client, tipo, data, numero, aliases))
+
+        failures = [p for p in problems if p]
+        assert not failures, "\n".join(
+            [f"{len(failures)}/{len(acts)} atti di SIGLE_DATATE non corrispondono:"] + failures
         )
