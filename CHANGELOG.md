@@ -508,7 +508,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   official bulletin or database («fuori copertura» on the line lets it through). README, server
   instructions and the `fonti-diritto-italiano` reference state the limit. The laws of the Province
   autonome di Trento e di Bolzano have the same guard: «l.p. 13/1997», «legge 13/1997 della
-  Provincia autonoma di Trento», «L. 13/1997 Prov. Trento», «… PAT» answer «fonte non coperta» and
+  Provincia autonoma di Trento», «L. 13/1997 Prov. Trento», «… PAT», «… TN», «… (BZ)» answer «fonte
+  non coperta» (TN and BZ only right after the number or in brackets) and
   no longer resolve to the State's legge 13/1997; the gate warns on them too. «l.p.a.» and «l.
   proc. amm.» keep their meaning. Both guards read a dash, a slash or a bracket before the Region
   or province and «dell'», «del», «di» («L. 65/2014 – Toscana», «legge 13/1997 dell'Alto Adige»).

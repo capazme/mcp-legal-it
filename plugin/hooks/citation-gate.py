@@ -185,28 +185,34 @@ class FallbackReader:
     # A regional law, reduced: a sigla with up to three words (the Region) and the act's number
     # («l.r. Toscana 65/2014», «legge regionale n. 3», «L.R. 12 marzo 2015, n. 3»), or a State-like
     # «L. 65/2014 della Regione Toscana». A bare count («la legge regionale prevede 3 casi») is not one.
-    _ESTREMI_RID = (r"(?:n\.?[ \t]*\d+|\d+[ \t]*/[ \t]*\d{2,4}\b|\d+[ \t]+del[ \t]+\d{4}\b"
-                    r"|\d{1,2}[ \t]+[a-z]+[ \t]+\d{4}[ \t,]*n\.?[ \t]*\d+)")
+    _ESTREMI_RID = (r"(?:(?:n\.?[ \t]*)?\d+[ \t]*/[ \t]*\d{2,4}\b|(?:n\.?[ \t]*)?\d+[ \t]+del[ \t]+\d{4}\b"
+                    r"|\d{1,2}[ \t]+[a-z]+[ \t]+\d{4}[ \t,]*n\.?[ \t]*\d+|n\.?[ \t]*\d+)")
+    # The preposition before a Region or province, outside the alternatives it introduces.
+    _PREP = r"(?:(?:della|dalla|del|di)[ \t]+|dell['’][ \t]?)"
+    _SEP_LOCALE = r"[ \t,(\[/–—-]*"
     _REGIONALE = re.compile(
         r"\b(?:(?:l\.?[ \t]?r\.?(?![a-zà-ù])|legge[ \t]+reg(?:ionale\b|\.))[ \t,]*(?:[a-zà-ù'’-]+[ \t,]+){0,3}?"
         + _ESTREMI_RID
-        + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID
-        + r"[ \t,(\[/–—-]*(?:(?:(?:della|dalla|del|di)[ \t]+|dell['’][ \t]?)?(?:regione|reg\.|r\.)[ \t]"
-        r"|(?:(?:della|dalla|del|di)[ \t]+|dell['’][ \t]?)?(?:abruzzo|basilicata|calabria|campania|emilia"
+        + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID + _SEP_LOCALE + _PREP + r"?"
+        r"(?:(?:regione|reg\.|r\.)[ \t]|abruzzo|basilicata|calabria|campania|emilia"
         r"|friuli|lazio|liguria|lombardia|marche|molise|piemonte|puglia|sardegna|sicilia|toscana"
-        r"|trentino[ \t-]*alto|umbria|valle[ \t]+d['’][ \t]?aosta|veneto)\b"
-        r"|regionale\b))", re.I)
+        r"|trentino[ \t\-–—/]*alto|umbria|valle[ \t]+d['’][ \t]?aosta|veneto|regionale\b))", re.I)
     # A law of the Province autonome di Trento e di Bolzano, reduced as the regional one: «l.p.
-    # 13/1997», «legge provinciale n. 3», «L. 13/1997 della Provincia autonoma di Trento», «… PAT».
-    # Never «l.p.a.» (a letter or a dot right after the sigla).
+    # 13/1997», «legge provinciale n. 3», «L. 13/1997 della Provincia autonoma di Trento», «… PAT»,
+    # «legge della Provincia autonoma di Trento 13/1997». Never «l.p.a.» (a letter or a dot right
+    # after the sigla), never «p.a. b)» (no blank before the t or b). «TN», «BZ» only right after
+    # the number or in brackets.
+    _PROVINCE_RID = (r"(?:trento|trentin[oa](?![ \t\-–—/]*alto)|bolzano|alto[ \t]+adige|altoatesin[oa]"
+                     r"|s(?:[üu]|ue)dtirol|bozen)")
+    _PROVINCIA_RID = (r"(?:" + _PREP + r"?(?:(?:provincia|prov\.|p\.)[ \t]*(?:(?:autonoma\b|aut\.)[ \t]*|a\.[ \t]*)?"
+                      + _PREP + r"?" + _PROVINCE_RID + r"\b|(?:provincia|prov\.)[ \t]*(?:autonoma\b|aut\.)"
+                      r"|" + _PROVINCE_RID + r"\b|p\.?[ \t]?a\.?[tb]\b\.?))")
     _PROVINCIALE = re.compile(
         r"\b(?:(?:l\.?[ \t]?p\.?(?![a-zà-ù.])|l\.[ \t]?prov\.|legge[ \t]+prov(?:inciale\b|\.))[ \t,]*"
         r"(?:[a-zà-ù'’/-]+[ \t,]+){0,4}?" + _ESTREMI_RID
         + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID
-        + r"[ \t,(\[/–—-]*(?:(?:(?:della|dalla|del|di)[ \t]+|dell['’][ \t]?)?(?:(?:provincia|prov\.|p\.)[ \t]*"
-        r"(?:autonoma[ \t]+|aut\.[ \t]*|a\.[ \t]*)?(?:(?:di|della|del)[ \t]+|dell['’][ \t]?)?)?"
-        r"(?:trento|trentin[oa](?![ \t-]*alto)|bolzano|alto[ \t]+adige|altoatesin[oa]|s[üu]dtirol|bozen)"
-        r"|p\.?[ \t]?a\.?[ \t]?[tb]\b\.?|provincia[ \t]+autonoma\b|provinciale\b))", re.I)
+        + r"(?:" + _SEP_LOCALE + r"(?:" + _PROVINCIA_RID + r"|provinciale\b)|(?:[ \t]+|[ \t]*\([ \t]*)(?:tn|bz)\b)"
+        + r"|(?:legge|l\b\.?)[ \t]*" + _PROVINCIA_RID + r"[ \t,]*" + _ESTREMI_RID + r")", re.I)
 
     @staticmethod
     def normalizza_articolo(articolo):
@@ -232,7 +238,11 @@ class FallbackReader:
     def norme_nel_testo(self, testo):
         out = []
         for m in self._ART.finditer(testo):
-            if self._REGIONALE.match(m.group("atto").strip()) or self._PROVINCIALE.match(m.group("atto").strip()):
+            # The whole rest of the line, not the 40 characters of «atto»: «… della Provincia
+            # autonoma di Trento» reaches the province past them.
+            fine = testo.find("\n", m.start("atto"))
+            resto = testo[m.start("atto"): fine if fine != -1 else len(testo)][:200].strip()
+            if self._REGIONALE.match(resto) or self._PROVINCIALE.match(resto):
                 continue  # a regional or provincial law's article: leggi_*_nel_testo list the law
             atto = self._atto(m.group("atto"))
             if atto:

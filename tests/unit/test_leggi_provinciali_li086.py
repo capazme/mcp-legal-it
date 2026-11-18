@@ -36,6 +36,8 @@ PROVINCIALI = [
     "L. 13/1997 — P.A.T.", "L. 13/1997/Trento", "legge 13/1997 [Trento]", "legge 13/1997 dell'Alto Adige",
     "legge 13/1997 del Trentino", "legge 13/1997 di Trento", "legge 13/1997 della provincia trentina",
     "legge 13/1997 provinciale",
+    # The short names, only right after the number or in brackets; «Suedtirol» (second review of #194).
+    "legge 13/1997 TN", "legge 13/1997 (BZ)", "legge 13/1997 Suedtirol",
 ]
 
 
@@ -56,14 +58,17 @@ class TestResolver:
 
     @pytest.mark.parametrize("nome", ["L. 13/1997", "legge 13/1997", "legge 241/1990 della provincia di Roma",
                                       "legge 56/2014 sulle province", "l. 3/2015", "legge 241/1990 - art. 3",
-                                      "L. 241/1990, di cui", "legge 13/1997 della Provincia di Milano"])
+                                      "L. 241/1990, di cui", "legge 13/1997 della Provincia di Milano",
+                                      "legge 241/1990 p.a. b) e c) prevede", "legge 241/1990, TN",
+                                      "legge 241/1990 della Tn"])
     def test_the_state_laws_still_resolve(self, nome):
         assert not legge_provinciale(nome)
         assert _resolve_act(nome)["tipo_atto"] == "legge"
 
-    def test_trentino_alto_adige_is_the_region(self):
-        assert legge_regionale("legge 65/2014 del Trentino-Alto Adige")
-        assert not legge_provinciale("legge 65/2014 del Trentino-Alto Adige")
+    @pytest.mark.parametrize("nome", ["legge 65/2014 del Trentino-Alto Adige", "legge 3/2000 Trentino–Alto Adige",
+                                      "legge 3/2000 Trentino/Alto Adige", "legge 3/2000 Trentino-Alto Adige/Suedtirol"])
+    def test_trentino_alto_adige_is_the_region(self, nome):
+        assert legge_regionale(nome) and not legge_provinciale(nome)
 
     def test_the_table_keys_keep_their_meaning(self):
         assert not legge_provinciale("l.p.a.") and not legge_provinciale("LPA")
@@ -125,8 +130,18 @@ class TestGate:
         t = session(tmp_path).prompt().say("Si applica la l.p. 13/1997.")
         assert run({"transcript_path": str(t.write())}).returncode == SILENT
 
-    @pytest.mark.parametrize("testo", ["L'art. 5 della L. 13/1997 – Provincia autonoma di Trento.",
-                                       "L'art. 2 della legge 13/1997 dell'Alto Adige."])
+    @pytest.mark.parametrize("testo", [
+        "L'art. 5 della L. 13/1997 – Provincia autonoma di Trento.",
+        "L'art. 2 della legge 13/1997 dell'Alto Adige.",
+        # The province past the fallback reader's 40 characters, and «Provincia autonoma» alone
+        # (second review of #194).
+        "Si applica l'art. 3 della legge 13/1997 della Provincia autonoma di Trento.",
+        "Si applica l'art. 3 della legge 13/1997 della Prov. autonoma di Bolzano.",
+        "Si applica l'art. 3 della legge 13/1997 della Provincia autonoma.",
+        "Si applica l'art. 2 della legge n. 13 del 1997 della Provincia autonoma di Trento.",
+        "Si applica l'art. 2 della legge della Provincia autonoma di Trento 13/1997.",
+        "Si applica l'art. 2 della legge 13/1997 TN.",
+    ])
     def test_a_dash_or_dell_is_still_a_provincial_law_for_both_readers(self, tmp_path, isolated_hook, testo):
         assert norme_nel_testo(testo) == [] and leggi_provinciali_nel_testo(testo)
         for args, hook in (((), HOOK), (("-I", "-S"), isolated_hook)):
@@ -136,7 +151,8 @@ class TestGate:
 
     @pytest.mark.parametrize("testo, avvisa", [("Si applica la L.P. Bolzano 13/1997.", True),
                                                 ("La legge provinciale prevede 3 casi.", False),
-                                                ("Vedi la l.p.a. 3/2020 (fuori copertura).", False)])
+                                                ("Vedi la l.p.a. 3/2020.", False),
+                                                ("La legge 241/1990 p.a. b) e c) prevede.", False)])
     def test_the_fallback_reader(self, tmp_path, isolated_hook, testo, avvisa):
         t = session(tmp_path).prompt().say(testo)
         r = run({"transcript_path": str(t.write())}, python_args=("-I", "-S"), hook=isolated_hook)

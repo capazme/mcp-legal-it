@@ -459,7 +459,7 @@ _MESI_ESTESI = ("gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|sette
 #: The twenty regions as a citation names them («l.r. Toscana», «legge della Regione Siciliana»).
 _REGIONI = (r"abruzzo|basilicata|calabria|campania|emilia[\s-]?romagna|friuli[\s-]?venezia[\s-]?giulia|"
             r"lazio|liguria|lombardia|marche|molise|piemonte|puglia|sardegna|sicilia(?:na)?|toscana|"
-            r"trentino[\s-]?alto[\s-]?adige(?:\s?/\s?s[üu]dtirol)?|umbria|valle\s+d['’]\s?aosta|veneto")
+            r"trentino[\s\-–—/]*alto[\s\-–—/]*adige(?:\s?/\s?s(?:[üu]|ue)dtirol)?|umbria|valle\s+d['’]\s?aosta|veneto")
 #: «l.r.», «L.R.», «l. r.», «LR», «L.R.T.»; «l. reg.», «legge reg.», «legge regionale».
 _SIGLA_REGIONALE = r"(?:l\.?\s?r\.?(?:\s?t\.)?|l\.\s?reg\.|legge\s+reg(?:ionale\b|\.))"
 #: An act's number and date as a citation writes them: «10 novembre 2014, n. 65», «n. 3/2015»,
@@ -527,8 +527,8 @@ LEGGI_PROVINCIALI_NON_COPERTE = (
 
 #: The two autonomous provinces as a citation names them («Trento», «Bolzano/Alto Adige», «Bozen»,
 #: «del Trentino», «provincia trentina»). «Trentino-Alto Adige» is the Region, never a province.
-_PROVINCE = (r"(?:trento|trentin[oa](?![\s-]*alto)|bolzano(?:\s?/\s?alto\s+adige)?"
-             r"|alto\s+adige(?:\s?/\s?s[üu]dtirol)?|altoatesin[oa]|s[üu]dtirol|bozen)")
+_PROVINCE = (r"(?:trento|trentin[oa](?![\s\-–—/]*alto)|bolzano(?:\s?/\s?alto\s+adige)?"
+             r"|alto\s+adige(?:\s?/\s?s(?:[üu]|ue)dtirol)?|altoatesin[oa]|s(?:[üu]|ue)dtirol|bozen)")
 #: «l.p.», «L.P.», «l. p.», «LP»; «l. prov.», «legge prov.», «legge provinciale». Never «l.p.a.»,
 #: «lpa» or «l. proc. amm.» (keys of the tables): neither a letter nor another dot right after
 #: the sigla, so «l.p.a.» cannot match as «l.p» either.
@@ -537,17 +537,19 @@ _SIGLA_PROVINCIALE = r"(?:l\.?\s?p\.?(?![a-zà-ù.])|l\.\s?prov\.|legge\s+prov(?
 #: «della Provincia autonoma». Only the two autonomous provinces make laws: a bare «della
 #: provincia» names none.
 _PROVINCIA = (rf"{_DI}?(?:(?:(?:provincia|prov\.|p\.)\s*(?:autonoma\s+|aut\.\s*|a\.\s*)?"
-              rf"{_DI}?)?{_PROVINCE}\b|provincia\s+autonoma\b|p\.?\s?a\.?\s?[tb]\.?(?![a-zà-ù]))")
+              rf"{_DI}?)?{_PROVINCE}\b|provincia\s+autonoma\b|p\.?\s?a\.?[tb]\.?(?![a-zà-ù]))")
+#: «TN», «BZ»: only right after the act's number («legge 13/1997 TN») or in brackets («(BZ)»).
+_TN_BZ = r"(?:\s+|\s*\(\s*)(?:tn|bz)\b"
 _NOME_PROVINCIALE = re.compile(
     rf"^(?:{_SIGLA_PROVINCIALE}(?![a-zà-ù])|{_LEGGE}\s*{_PROVINCIA}"
-    rf"|{_LEGGE}\s*{_ESTREMI}{_SEP_LOCALE}(?:{_PROVINCIA}|provinciale\b))",
+    rf"|{_LEGGE}\s*{_ESTREMI}(?:{_SEP_LOCALE}(?:{_PROVINCIA}|provinciale\b)|{_TN_BZ}))",
     re.IGNORECASE,
 )
 #: A provincial law cited in prose, with a number (as LEGGE_REGIONALE_NEL_TESTO).
 LEGGE_PROVINCIALE_NEL_TESTO = re.compile(
     rf"\b(?:{_SIGLA_PROVINCIALE}(?![a-zà-ù])[\s,]*(?:{_PROVINCIA}[\s,]*)?(?:{_ESTREMI}|n\.\s*\d+\b)"
     rf"|{_LEGGE}\s*{_PROVINCIA}[\s,]*{_ESTREMI}"
-    rf"|{_LEGGE}\s*{_ESTREMI}{_SEP_LOCALE}(?:{_PROVINCIA}|provinciale\b))",
+    rf"|{_LEGGE}\s*{_ESTREMI}(?:{_SEP_LOCALE}(?:{_PROVINCIA}|provinciale\b)|{_TN_BZ}))",
     re.IGNORECASE,
 )
 
