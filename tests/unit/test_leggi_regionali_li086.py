@@ -58,6 +58,14 @@ REGIONALI = [
     "L.65/2014 Regione Toscana",
     "legge n. 65 del 2014 della Regione Toscana",
     "l. Regione Toscana 65/2014",
+    # A dash, a slash or a bracket before the Region, «dell'», and «regionale» (review of #193).
+    "L. 65/2014 – Toscana",
+    "L. 65/2014 - Regione Toscana",
+    "legge 65/2014 dell'Emilia-Romagna",
+    "legge 65/2014 regionale",
+    "L. 65/2014/Toscana",
+    "legge 65/2014 [Toscana]",
+    "legge 65/2014 del Veneto",
 ]
 
 
@@ -224,6 +232,13 @@ class TestGate:
         t.say("Ne parla la l. recante norme n. 15/2005.")
         r = run({"transcript_path": str(t.write())}, python_args=("-I", "-S"), hook=isolated_hook)
         assert "legge regionale" not in r.stderr
+
+    @pytest.mark.parametrize("testo", ["Si applica l'art. 1 L. 65/2014 - Toscana.",
+                                       "Si applica l'art. 1 legge 65/2014 dell'Emilia-Romagna."])
+    def test_the_fallback_reader_reads_the_region_after_a_dash_or_dell(self, tmp_path, isolated_hook, testo):
+        r = run({"transcript_path": str(session(tmp_path).prompt().say(testo).write())},
+                python_args=("-I", "-S"), hook=isolated_hook)
+        assert r.returncode == NAGS and "legge regionale: non coperta" in r.stderr and "(cite_law)" not in r.stderr
 
     def test_the_fallback_reader_warns_too(self, tmp_path, isolated_hook):
         t = session(tmp_path).prompt().say("Si applica la l.r. Toscana 65/2014.")

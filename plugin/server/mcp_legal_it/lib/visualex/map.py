@@ -469,9 +469,15 @@ _ESTREMI = (rf"(?:\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}[\s,]*n\
             r"|(?:n\.?\s*)?\d+\s*/\s*\d{2,4}\b"
             rf"|(?:n\.?\s*)?\d+\s+del\s+\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}"
             r"|(?:n\.?\s*)?\d+\s+del\s+\d{4}\b)")
+#: What may sit between an act's extremes and its Region or province: blanks, commas, a bracket,
+#: a slash or a dash («L. 13/1997 – Trento», «L. 65/2014/Toscana», «legge 65/2014 [Toscana]»).
+#: One class, so a run of separators is read one way only.
+_SEP_LOCALE = r"[\s,(\[/–—-]*"
+#: The preposition before a Region or province: «della», «dalla», «del», «di», «dell'».
+_DI = r"(?:(?:della|dalla|del|di)\s+|dell['’]\s?)"
 #: «Regione Toscana», «Regione autonoma della Sardegna», «Reg. Toscana», «R. Toscana», «della
-#: Toscana», «(Toscana)».
-_REGIONE = (rf"(?:(?:della|dalla)\s+)?(?:(?:regione|reg\.|r\.)\s*(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?)?"
+#: Toscana», «dell'Emilia-Romagna», «(Toscana)».
+_REGIONE = (rf"{_DI}?(?:(?:regione|reg\.|r\.)\s*(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?)?"
             rf"(?:{_REGIONI})\b")
 #: «legge» as the State patterns read it (core.riferimenti._TIPO_ALT): «legge», «L.», «L», «l.».
 #: Any spelling of «legge» they take must be read here too, or «L. 65/2014 della Regione Toscana»
@@ -482,7 +488,7 @@ _LEGGE = r"(?:legge|l\b\.?)"
 #: Toscana» (the forms that would fall to the State's act of that number).
 _NOME_REGIONALE = re.compile(
     rf"^(?:{_SIGLA_REGIONALE}(?![a-zà-ù])|{_LEGGE}\s*(?:della\s+)?(?:regione|reg\.)(?![a-zà-ù])"
-    rf"|{_LEGGE}\s*{_ESTREMI}[\s,(]*(?:(?:(?:della|dalla)\s+)?(?:regione|reg\.)(?![a-zà-ù])|{_REGIONE}))",
+    rf"|{_LEGGE}\s*{_ESTREMI}{_SEP_LOCALE}(?:{_DI}?(?:regione|reg\.)(?![a-zà-ù])|{_REGIONE}|regionale\b))",
     re.IGNORECASE,
 )
 #: A regional law cited in prose: a sigla or «legge della Regione X» with the act's extremes (after
@@ -492,7 +498,7 @@ LEGGE_REGIONALE_NEL_TESTO = re.compile(
     rf"\b(?:{_SIGLA_REGIONALE}(?![a-zà-ù])[\s,]*(?:{_REGIONE}[\s,]*)?(?:{_ESTREMI}|n\.\s*\d+\b)"
     rf"|{_LEGGE}\s*(?:della\s+)?(?:regione|reg\.)\s*(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?"
     rf"(?:{_REGIONI})\b[\s,]*{_ESTREMI}"
-    rf"|{_LEGGE}\s*{_ESTREMI}[\s,(]*{_REGIONE})",
+    rf"|{_LEGGE}\s*{_ESTREMI}{_SEP_LOCALE}(?:{_REGIONE}|regionale\b))",
     re.IGNORECASE,
 )
 
@@ -519,9 +525,10 @@ LEGGI_PROVINCIALI_NON_COPERTE = (
     "o sulla banca dati della Provincia"
 )
 
-#: The two autonomous provinces as a citation names them («Trento», «Bolzano/Alto Adige», «Bozen»).
-_PROVINCE = (r"(?:trento|bolzano(?:\s?/\s?alto\s+adige)?|alto\s+adige(?:\s?/\s?s[üu]dtirol)?"
-             r"|s[üu]dtirol|bozen)")
+#: The two autonomous provinces as a citation names them («Trento», «Bolzano/Alto Adige», «Bozen»,
+#: «del Trentino», «provincia trentina»). «Trentino-Alto Adige» is the Region, never a province.
+_PROVINCE = (r"(?:trento|trentin[oa](?![\s-]*alto)|bolzano(?:\s?/\s?alto\s+adige)?"
+             r"|alto\s+adige(?:\s?/\s?s[üu]dtirol)?|altoatesin[oa]|s[üu]dtirol|bozen)")
 #: «l.p.», «L.P.», «l. p.», «LP»; «l. prov.», «legge prov.», «legge provinciale». Never «l.p.a.»,
 #: «lpa» or «l. proc. amm.» (keys of the tables): neither a letter nor another dot right after
 #: the sigla, so «l.p.a.» cannot match as «l.p» either.
@@ -529,17 +536,18 @@ _SIGLA_PROVINCIALE = r"(?:l\.?\s?p\.?(?![a-zà-ù.])|l\.\s?prov\.|legge\s+prov(?
 #: «Provincia autonoma di Trento», «Prov. Trento», «P.A. Bolzano», «PAT», «PAB», «(Trento)»,
 #: «della Provincia autonoma». Only the two autonomous provinces make laws: a bare «della
 #: provincia» names none.
-_PROVINCIA = (rf"(?:(?:della|dalla)\s+)?(?:(?:(?:provincia|prov\.|p\.)\s*(?:autonoma\s+|aut\.\s*|a\.\s*)?"
-              rf"(?:(?:di|della|del)\s+)?)?{_PROVINCE}\b|provincia\s+autonoma\b|p\.?\s?a\.?\s?[tb]\.?(?![a-zà-ù]))")
+_PROVINCIA = (rf"{_DI}?(?:(?:(?:provincia|prov\.|p\.)\s*(?:autonoma\s+|aut\.\s*|a\.\s*)?"
+              rf"{_DI}?)?{_PROVINCE}\b|provincia\s+autonoma\b|p\.?\s?a\.?\s?[tb]\.?(?![a-zà-ù]))")
 _NOME_PROVINCIALE = re.compile(
-    rf"^(?:{_SIGLA_PROVINCIALE}(?![a-zà-ù])|{_LEGGE}\s*{_PROVINCIA}|{_LEGGE}\s*{_ESTREMI}[\s,(]*{_PROVINCIA})",
+    rf"^(?:{_SIGLA_PROVINCIALE}(?![a-zà-ù])|{_LEGGE}\s*{_PROVINCIA}"
+    rf"|{_LEGGE}\s*{_ESTREMI}{_SEP_LOCALE}(?:{_PROVINCIA}|provinciale\b))",
     re.IGNORECASE,
 )
 #: A provincial law cited in prose, with a number (as LEGGE_REGIONALE_NEL_TESTO).
 LEGGE_PROVINCIALE_NEL_TESTO = re.compile(
     rf"\b(?:{_SIGLA_PROVINCIALE}(?![a-zà-ù])[\s,]*(?:{_PROVINCIA}[\s,]*)?(?:{_ESTREMI}|n\.\s*\d+\b)"
     rf"|{_LEGGE}\s*{_PROVINCIA}[\s,]*{_ESTREMI}"
-    rf"|{_LEGGE}\s*{_ESTREMI}[\s,(]*{_PROVINCIA})",
+    rf"|{_LEGGE}\s*{_ESTREMI}{_SEP_LOCALE}(?:{_PROVINCIA}|provinciale\b))",
     re.IGNORECASE,
 )
 

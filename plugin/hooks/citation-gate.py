@@ -191,7 +191,11 @@ class FallbackReader:
         r"\b(?:(?:l\.?[ \t]?r\.?(?![a-zà-ù])|legge[ \t]+reg(?:ionale\b|\.))[ \t,]*(?:[a-zà-ù'’-]+[ \t,]+){0,3}?"
         + _ESTREMI_RID
         + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID
-        + r"[ \t,(]*(?:(?:della|dalla)[ \t]+)?(?:regione|reg\.|r\.)[ \t])", re.I)
+        + r"[ \t,(\[/–—-]*(?:(?:(?:della|dalla|del|di)[ \t]+|dell['’][ \t]?)?(?:regione|reg\.|r\.)[ \t]"
+        r"|(?:(?:della|dalla|del|di)[ \t]+|dell['’][ \t]?)?(?:abruzzo|basilicata|calabria|campania|emilia"
+        r"|friuli|lazio|liguria|lombardia|marche|molise|piemonte|puglia|sardegna|sicilia|toscana"
+        r"|trentino[ \t-]*alto|umbria|valle[ \t]+d['’][ \t]?aosta|veneto)\b"
+        r"|regionale\b))", re.I)
     # A law of the Province autonome di Trento e di Bolzano, reduced as the regional one: «l.p.
     # 13/1997», «legge provinciale n. 3», «L. 13/1997 della Provincia autonoma di Trento», «… PAT».
     # Never «l.p.a.» (a letter or a dot right after the sigla).
@@ -199,9 +203,10 @@ class FallbackReader:
         r"\b(?:(?:l\.?[ \t]?p\.?(?![a-zà-ù.])|l\.[ \t]?prov\.|legge[ \t]+prov(?:inciale\b|\.))[ \t,]*"
         r"(?:[a-zà-ù'’/-]+[ \t,]+){0,4}?" + _ESTREMI_RID
         + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID
-        + r"[ \t,(]*(?:(?:della|dalla)[ \t]+)?(?:(?:provincia|prov\.|p\.)[ \t]*(?:autonoma[ \t]+|aut\.[ \t]*|a\.[ \t]*)?"
-        r"(?:(?:di|della|del)[ \t]+)?(?:trento|bolzano|alto[ \t]+adige|s[üu]dtirol|bozen)|pa[tb]\b"
-        r"|provincia[ \t]+autonoma\b))", re.I)
+        + r"[ \t,(\[/–—-]*(?:(?:(?:della|dalla|del|di)[ \t]+|dell['’][ \t]?)?(?:(?:provincia|prov\.|p\.)[ \t]*"
+        r"(?:autonoma[ \t]+|aut\.[ \t]*|a\.[ \t]*)?(?:(?:di|della|del)[ \t]+|dell['’][ \t]?)?)?"
+        r"(?:trento|trentin[oa](?![ \t-]*alto)|bolzano|alto[ \t]+adige|altoatesin[oa]|s[üu]dtirol|bozen)"
+        r"|p\.?[ \t]?a\.?[ \t]?[tb]\b\.?|provincia[ \t]+autonoma\b|provinciale\b))", re.I)
 
     @staticmethod
     def normalizza_articolo(articolo):
