@@ -475,6 +475,36 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **The sigle of the fiscal testi unici follow the date (decision LI-086).** «TUIR», «TUR» / «T.U.
+  registro», «TUIVA» / «TU IVA» / «testo unico iva» name the old act until the new testo unico
+  applies, with a one-line notice («dal 1° gennaio 2027 si applica il d.lgs. 19 giugno 2026, n. 117
+  (testo unico delle imposte sui redditi)»), and the new testo unico (the annex of its decree) from
+  that day: d.lgs. 117/2026 (TUIR), 123/2025 (registro), 10/2026 (IVA), all from 1 January 2027,
+  each date read on Normattiva. «TUIVA» and «T.U. registro» are no longer refused as ambiguous.
+  «TU successioni» keeps naming d.lgs. 346/1990, with the registro notice until 2027 (the new testo
+  unico repeals most of it, but the sigla is not its own). «TUGT» / «testo unico della giustizia
+  tributaria» keeps naming d.lgs. 175/2024 and says it applies from 1 January 2027 (art. 4 co. 3 d.l.
+  200/2025). The notice reaches `cite_law` (first line; first in `avvisi` in JSON),
+  `verifica_citazioni`, `fetch_full_act`, `fetch_act_index`, `download_law_pdf`,
+  `giurisprudenza_su_norma`, `orientamento_su_norma` and `api.testo_articolo`. The date is today
+  (`LEGAL_TODAY` pins it); the resolver also takes one (`resolve_atto(name, data=…)`), which no
+  MCP tool passes yet. With a date, «codice dei contratti pubblici», «codice degli appalti» and
+  «cod. app.» name the code in force that day (d.lgs. 163/2006, 50/2016, 36/2023); without one they
+  resolve as before. `api.catalogo_alias()` gives each dated sigla with today's act.
+- **«TUA» is now refused as ambiguous (decision LI-086).** It names both the codice dell'ambiente
+  (d.lgs. 152/2006) and the testo unico accise (d.lgs. 504/1995) at the same date; the refusal
+  names both. «codice dell'ambiente», «testo unico ambientale», «TU ambiente» and «d.lgs.
+  152/2006» resolve as before.
+- **Regional laws are a source not covered (decision LI-086).** «l.r. Toscana 65/2014», «legge
+  regionale 12 marzo 2015, n. 3», «L.R. n. 3/2015» answer «fonte non coperta» and are never read as
+  a State law: «legge 10 novembre 2014, n. 65 della Regione Toscana» no longer resolves to the
+  legge 65/2014. No Normattiva address is built or fetched for a regional act type. The citation
+  gate warns on every regional law an answer cites, with the advice to check it on the Region's
+  official bulletin or database («fuori copertura» on the line lets it through). README, server
+  instructions and the `fonti-diritto-italiano` reference state the limit.
+- **`opposizione_decreto_ingiuntivo`: the art. 645 co. 3 c.p.c. warning (decision LI-086).** The
+  provision is still quoted as written, and the warning adds that on Normattiva the art. 163-bis,
+  secondo comma, it refers to is shown as repealed by d.lgs. 149/2022, as amended by l. 197/2022.
 - **Brocardi.it is off by default (decision LI-079).** Brocardi.it is the server's only
   private source (doctrinal notes and case-law abstracts, never the text of a norm), and it is
   now off unless switched on; every other source stays on. With nothing set no request reaches
