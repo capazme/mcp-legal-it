@@ -510,7 +510,8 @@ described in those sections, not repeated here. Upgrading from 2.x:
   autonome di Trento e di Bolzano have the same guard: «l.p. 13/1997», «legge 13/1997 della
   Provincia autonoma di Trento», «L. 13/1997 Prov. Trento», «… PAT» answer «fonte non coperta» and
   no longer resolve to the State's legge 13/1997; the gate warns on them too. «l.p.a.» and «l.
-  proc. amm.» keep their meaning.
+  proc. amm.» keep their meaning. Both guards read a dash, a slash or a bracket before the Region
+  or province and «dell'», «del», «di» («L. 65/2014 – Toscana», «legge 13/1997 dell'Alto Adige»).
 - **`opposizione_decreto_ingiuntivo`: the art. 645 co. 3 c.p.c. warning (decision LI-086).** The
   provision is still quoted as written, and the warning adds that on Normattiva the art. 163-bis,
   secondo comma, it refers to is shown as repealed by d.lgs. 149/2022, as amended by l. 197/2022.
