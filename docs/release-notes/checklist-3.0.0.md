@@ -3,8 +3,8 @@
 Tick each box with the evidence (a command output, a link, a date). A box
 that cannot be ticked stops the release; it is not skipped.
 
-State last checked on 17 November 2026, on `develop` at `353325a`. Sections 1
-and 5 updated on 18 November 2026 with decision LI-086, on `develop` at
+State last checked on 17 November 2026, on `develop` at `353325a`. Sections 1,
+5 and 6 updated on 18 November 2026 with decision LI-086, on `develop` at
 `e109b44`.
 
 ## 1. Decisions to close first
@@ -63,7 +63,8 @@ is shipped as it is today, stated as such in the release notes. None may be
       new testi unici, «TUS», «TUIVA» and «T.U. registro» name more than one act
       and are refused as ambiguous («nome ambiguo»); which act each sigla
       resolves to, if any, is not decided. Decided (LI-086) and merged in #191:
-      the sigla follows the date. Before the new testo unico applies
+      «TUIR», «TUR», «TUIVA» and «T.U. registro» follow the date («TUS» stays
+      refused). Before the new testo unico applies
       (1/1/2027 for TUIR, TU IVA and TU registro, checked on Normattiva) it
       gives the old act with a warning naming the new one; from that date,
       the new act. «TUA» is refused as ambiguous (codice dell'ambiente or
@@ -72,8 +73,9 @@ is shipped as it is today, stated as such in the release notes. None may be
       declared limit. A regional law answers «fonte non coperta» and is never
       read as a State law; the citation gate warns on every regional law
       cited; no regional Normattiva URN is built. Real coverage comes later,
-      on the regions branch. The laws of the autonomous provinces get the
-      same guard in a follow-up PR.
+      on the regions branch.
+- [ ] The laws of the autonomous provinces (Trento, Bolzano) still read as
+      State laws: the same guard is to be added before beta.5 (#193).
 - [x] Codice deontologico forense (CNF): decided (LI-086), 7 April 2026, the
       date on the CNF's page, which the parser already reads (the PDF's notes
       to art. 25-bis say 6 April).
