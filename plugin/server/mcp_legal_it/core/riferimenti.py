@@ -11,7 +11,7 @@ import re
 
 from mcp_legal_it.lib.visualex import resolve_atto, strip_leading_particles, known_act_names
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION as _SUFFISSI
-from mcp_legal_it.lib.visualex.map import (data_di_riferimento, fonte_non_coperta, legge_regionale, nome_ambiguo,
+from mcp_legal_it.lib.visualex.map import (data_di_riferimento, fonte_locale, fonte_non_coperta, nome_ambiguo,
                                              sigla_senza_atto)
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference
 
@@ -323,12 +323,13 @@ def _resolve_act(act_name: str, *, data: "str | None" = None) -> dict | None:
     2. citation patterns — EU acts, then Italian acts in long and short form
 
     Returns None rather than guessing: a caller that cannot resolve an act must
-    say so, never cite a different one. A regional law is never resolved: its
-    number read as a State law's («legge 65/2014 della Regione Toscana») would
-    serve another act in silence.
+    say so, never cite a different one. A regional or provincial law is never
+    resolved: its number read as a State law's («legge 65/2014 della Regione
+    Toscana», «legge 13/1997 della Provincia autonoma di Trento») would serve
+    another act in silence.
     """
     data_di_riferimento(data)  # a malformed date is refused for every name, a regional one too
-    if legge_regionale(act_name):
+    if fonte_locale(act_name):
         return None
     result = resolve_atto(act_name, data=data)
     if result:

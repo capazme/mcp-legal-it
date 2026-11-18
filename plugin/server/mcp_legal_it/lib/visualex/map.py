@@ -428,10 +428,10 @@ def nome_ambiguo(name: str, *, data: "date | str | None" = None) -> "str | None"
 
 
 def fonte_non_coperta(name: str) -> "str | None":
-    """What cite_law answers for a source no tool reads (``FONTI_NON_COPERTE``, a regional law),
-    else None."""
-    if legge_regionale(name):
-        return LEGGI_REGIONALI_NON_COPERTE
+    """What cite_law answers for a source no tool reads (``FONTI_NON_COPERTE``, a regional or
+    provincial law), else None."""
+    if locale := fonte_locale(name):
+        return locale
     for key in _candidate_keys(name):
         if key in FONTI_NON_COPERTE:
             return FONTI_NON_COPERTE[key]
@@ -459,7 +459,7 @@ _MESI_ESTESI = ("gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|sette
 #: The twenty regions as a citation names them («l.r. Toscana», «legge della Regione Siciliana»).
 _REGIONI = (r"abruzzo|basilicata|calabria|campania|emilia[\s-]?romagna|friuli[\s-]?venezia[\s-]?giulia|"
             r"lazio|liguria|lombardia|marche|molise|piemonte|puglia|sardegna|sicilia(?:na)?|toscana|"
-            r"trentino[\s-]?alto[\s-]?adige(?:\s?/\s?s[üu]dtirol)?|umbria|valle\s+d['’]\s?aosta|veneto")
+            r"trentino[\s\-–—/]*alto[\s\-–—/]*adige(?:\s?/\s?s(?:[üu]|ue)dtirol)?|umbria|valle\s+d['’]\s?aosta|veneto")
 #: «l.r.», «L.R.», «l. r.», «LR», «L.R.T.»; «l. reg.», «legge reg.», «legge regionale».
 _SIGLA_REGIONALE = r"(?:l\.?\s?r\.?(?:\s?t\.)?|l\.\s?reg\.|legge\s+reg(?:ionale\b|\.))"
 #: An act's number and date as a citation writes them: «10 novembre 2014, n. 65», «n. 3/2015»,
@@ -469,9 +469,15 @@ _ESTREMI = (rf"(?:\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}[\s,]*n\
             r"|(?:n\.?\s*)?\d+\s*/\s*\d{2,4}\b"
             rf"|(?:n\.?\s*)?\d+\s+del\s+\d{{1,2}}(?:\s?[°º])?\s+(?:{_MESI_ESTESI})\s+\d{{4}}"
             r"|(?:n\.?\s*)?\d+\s+del\s+\d{4}\b)")
+#: What may sit between an act's extremes and its Region or province: blanks, commas, a bracket,
+#: a slash or a dash («L. 13/1997 – Trento», «L. 65/2014/Toscana», «legge 65/2014 [Toscana]»).
+#: One class, so a run of separators is read one way only.
+_SEP_LOCALE = r"[\s,(\[/–—-]*"
+#: The preposition before a Region or province: «della», «dalla», «del», «di», «dell'».
+_DI = r"(?:(?:della|dalla|del|di)\s+|dell['’]\s?)"
 #: «Regione Toscana», «Regione autonoma della Sardegna», «Reg. Toscana», «R. Toscana», «della
-#: Toscana», «(Toscana)».
-_REGIONE = (rf"(?:(?:della|dalla)\s+)?(?:(?:regione|reg\.|r\.)\s*(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?)?"
+#: Toscana», «dell'Emilia-Romagna», «(Toscana)».
+_REGIONE = (rf"{_DI}?(?:(?:regione|reg\.|r\.)\s*(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?)?"
             rf"(?:{_REGIONI})\b")
 #: «legge» as the State patterns read it (core.riferimenti._TIPO_ALT): «legge», «L.», «L», «l.».
 #: Any spelling of «legge» they take must be read here too, or «L. 65/2014 della Regione Toscana»
@@ -482,7 +488,7 @@ _LEGGE = r"(?:legge|l\b\.?)"
 #: Toscana» (the forms that would fall to the State's act of that number).
 _NOME_REGIONALE = re.compile(
     rf"^(?:{_SIGLA_REGIONALE}(?![a-zà-ù])|{_LEGGE}\s*(?:della\s+)?(?:regione|reg\.)(?![a-zà-ù])"
-    rf"|{_LEGGE}\s*{_ESTREMI}[\s,(]*(?:(?:(?:della|dalla)\s+)?(?:regione|reg\.)(?![a-zà-ù])|{_REGIONE}))",
+    rf"|{_LEGGE}\s*{_ESTREMI}{_SEP_LOCALE}(?:{_DI}?(?:regione|reg\.)(?![a-zà-ù])|{_REGIONE}|regionale\b))",
     re.IGNORECASE,
 )
 #: A regional law cited in prose: a sigla or «legge della Regione X» with the act's extremes (after
@@ -492,7 +498,7 @@ LEGGE_REGIONALE_NEL_TESTO = re.compile(
     rf"\b(?:{_SIGLA_REGIONALE}(?![a-zà-ù])[\s,]*(?:{_REGIONE}[\s,]*)?(?:{_ESTREMI}|n\.\s*\d+\b)"
     rf"|{_LEGGE}\s*(?:della\s+)?(?:regione|reg\.)\s*(?:autonoma\s+)?(?:(?:della|del|dell['’])\s*)?"
     rf"(?:{_REGIONI})\b[\s,]*{_ESTREMI}"
-    rf"|{_LEGGE}\s*{_ESTREMI}[\s,(]*{_REGIONE})",
+    rf"|{_LEGGE}\s*{_ESTREMI}{_SEP_LOCALE}(?:{_REGIONE}|regionale\b))",
     re.IGNORECASE,
 )
 
@@ -503,11 +509,77 @@ def legge_regionale(name: str) -> bool:
     return bool(_NOME_REGIONALE.match(_strip_leading_words(_normalize_key(name or ""))))
 
 
-def tipo_regionale(tipo_atto: str) -> bool:
-    """Whether an act type names a regional act: a regional law, or a URN kind of a Region
-    («regione.toscana:legge»). Norma builds no Normattiva address for it."""
+# ---------------------------------------------------------------------------
+# LEGGI PROVINCIALI — the autonomous provinces of Trento and Bolzano, as the regional laws
+# ---------------------------------------------------------------------------
+#
+# The laws of the Province autonome di Trento e di Bolzano have the regional laws' place: no
+# tool reads them, and «legge 13/1997 della Provincia autonoma di Trento» read through the State
+# patterns would be the State's legge 13/1997. The same guard: «fonte non coperta», never
+# resolved, no Normattiva address, a warning in the citation gate.
+
+#: What cite_law answers for a provincial law (one sentence, no promise of coverage).
+LEGGI_PROVINCIALI_NON_COPERTE = (
+    "le leggi provinciali delle Province autonome di Trento e di Bolzano non sono coperte dai tool di "
+    "questo server: verifica il testo sul Bollettino ufficiale della Regione Trentino-Alto Adige/Südtirol "
+    "o sulla banca dati della Provincia"
+)
+
+#: The two autonomous provinces as a citation names them («Trento», «Bolzano/Alto Adige», «Bozen»,
+#: «del Trentino», «provincia trentina»). «Trentino-Alto Adige» is the Region, never a province.
+_PROVINCE = (r"(?:trento|trentin[oa](?![\s\-–—/]*alto)|bolzano(?:\s?/\s?alto\s+adige)?"
+             r"|alto\s+adige(?:\s?/\s?s(?:[üu]|ue)dtirol)?|altoatesin[oa]|s(?:[üu]|ue)dtirol|bozen)")
+#: «l.p.», «L.P.», «l. p.», «LP»; «l. prov.», «legge prov.», «legge provinciale». Never «l.p.a.»,
+#: «lpa» or «l. proc. amm.» (keys of the tables): neither a letter nor another dot right after
+#: the sigla, so «l.p.a.» cannot match as «l.p» either.
+_SIGLA_PROVINCIALE = r"(?:l\.?\s?p\.?(?![a-zà-ù.])|l\.\s?prov\.|legge\s+prov(?:inciale\b|\.))"
+#: «Provincia autonoma di Trento», «Prov. Trento», «P.A. Bolzano», «PAT», «PAB», «(Trento)»,
+#: «della Provincia autonoma». Only the two autonomous provinces make laws: a bare «della
+#: provincia» names none.
+_PROVINCIA = (rf"{_DI}?(?:(?:(?:provincia|prov\.|p\.)\s*(?:autonoma\s+|aut\.\s*|a\.\s*)?"
+              rf"{_DI}?)?{_PROVINCE}\b|provincia\s+autonoma\b|p\.?\s?a\.?[tb]\.?(?![a-zà-ù]))")
+#: «TN», «BZ»: only right after the act's number («legge 13/1997 TN») or in brackets («(BZ)»).
+_TN_BZ = r"(?:\s+|\s*\(\s*)(?:tn|bz)\b"
+_NOME_PROVINCIALE = re.compile(
+    rf"^(?:{_SIGLA_PROVINCIALE}(?![a-zà-ù])|{_LEGGE}\s*{_PROVINCIA}"
+    rf"|{_LEGGE}\s*{_ESTREMI}(?:{_SEP_LOCALE}(?:{_PROVINCIA}|provinciale\b)|{_TN_BZ}))",
+    re.IGNORECASE,
+)
+#: A provincial law cited in prose, with a number (as LEGGE_REGIONALE_NEL_TESTO).
+LEGGE_PROVINCIALE_NEL_TESTO = re.compile(
+    rf"\b(?:{_SIGLA_PROVINCIALE}(?![a-zà-ù])[\s,]*(?:{_PROVINCIA}[\s,]*)?(?:{_ESTREMI}|n\.\s*\d+\b)"
+    rf"|{_LEGGE}\s*{_PROVINCIA}[\s,]*{_ESTREMI}"
+    rf"|{_LEGGE}\s*{_ESTREMI}(?:{_SEP_LOCALE}(?:{_PROVINCIA}|provinciale\b)|{_TN_BZ}))",
+    re.IGNORECASE,
+)
+
+
+def legge_provinciale(name: str) -> bool:
+    """Whether an act name is a law of the Province autonome di Trento or di Bolzano («l.p.
+    13/1997», «legge provinciale Trento 13/1997», «legge 13/1997 della Provincia autonoma di Trento»)."""
+    return bool(_NOME_PROVINCIALE.match(_strip_leading_words(_normalize_key(name or ""))))
+
+
+def fonte_locale(name: str) -> "str | None":
+    """What cite_law answers for a regional or provincial law's name, else None. Neither is ever
+    resolved: read as the State's act of the same number it would be the wrong act."""
+    if legge_regionale(name):
+        return LEGGI_REGIONALI_NON_COPERTE
+    if legge_provinciale(name):
+        return LEGGI_PROVINCIALI_NON_COPERTE
+    return None
+
+
+def tipo_locale(tipo_atto: str) -> "str | None":
+    """What to answer for an act type of a Region or an autonomous province (a regional or
+    provincial law, a URN kind «regione.toscana:legge», «provincia.trento:legge»), else None.
+    Norma builds no Normattiva address for it."""
     tipo = _normalize_key(tipo_atto or "")
-    return legge_regionale(tipo) or bool(re.match(r"^(?:urn:nir:)?regione\b", tipo))
+    if re.match(r"^(?:urn:nir:)?regione\b", tipo):
+        return LEGGI_REGIONALI_NON_COPERTE
+    if re.match(r"^(?:urn:nir:)?provincia\b", tipo):
+        return LEGGI_PROVINCIALI_NON_COPERTE
+    return fonte_locale(tipo)
 
 
 # ---------------------------------------------------------------------------
@@ -1561,7 +1633,7 @@ def resolve_atto(name: str, *, data: "date | str | None" = None) -> dict | None:
 
     Returns {"tipo_atto", "data", "numero_atto"} (and "allegato" for an act whose text is
     an annex) or None. Never guesses: an unrecognised name yields None so the caller can
-    report it rather than cite the wrong act. A regional law is never resolved.
+    report it rather than cite the wrong act. A regional or provincial law is never resolved.
 
     *data* is the reference date ("YYYY-MM-DD" or a date) for the sigle that follow it
     (``SIGLE_DATATE``); without it they are read at today's date (``_clock``), and the
@@ -1569,7 +1641,7 @@ def resolve_atto(name: str, *, data: "date | str | None" = None) -> dict | None:
     its notice under "avviso" while one is due (LI-086).
     """
     data = data_di_riferimento(data)  # first: a malformed date is refused for every name
-    if legge_regionale(name):
+    if fonte_locale(name):
         return None
     con_data = data is not None
     for key in _candidate_keys(name):
