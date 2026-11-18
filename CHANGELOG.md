@@ -1033,6 +1033,10 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`cookie-audit`: the newsletter-form probe reads the form's real address (#175).** It read
+  the form's `action` property, which a field named «action» inside the form hides (WordPress
+  forms posting to `admin-ajax.php` have one): the probe failed on those forms. It now reads the
+  `action` attribute, resolved against the page as the browser does.
 - **`cerca_ddl` and `ddl_su_norma`: a long search no longer reads as «Senato unreachable» (#185).**
   The dati.senato.it WAF answers 403 to any GET whose path and query string exceed 2048 bytes,
   whatever the query says (verified live: 2048 answers, 2049 does not), and POST is refused too.
