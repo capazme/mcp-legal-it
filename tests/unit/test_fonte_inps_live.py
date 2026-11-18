@@ -387,7 +387,7 @@ def test_costo_lavoro_scaglioni_irpef_2026_art_11_tuir():
     (50.000 - 49.945,50) / 22.000 = 0,002477 "si assume nelle prime quattro cifre decimali"
     (0,0024), so the deduction is 4,58 euro (not 4,73) and the IRPEF 13.677,44."""
     assert_parole(
-        "art. 11 TUIR",
+        "art. 11 d.P.R. 917/1986",  # TUIR (sigla: LI-086)
         "fino a 28.000 euro, 23 per cento",
         "oltre 28.000 euro e fino a 50.000 euro, 33 per cento",
         "oltre 50.000 euro, 43 per cento",
@@ -415,7 +415,7 @@ def test_costo_lavoro_irpef_30000_detrazioni_art_13_tuir_e_l_207_2024():
     35.000) + ulteriore detrazione 1.000 euro (art. 1 co. 6 lett. a L. 207/2024, reddito
     tra 20.000 e 32.000): IRPEF netta 3.221,63."""
     assert_parole(
-        "art. 13 TUIR",
+        "art. 13 d.P.R. 917/1986",  # TUIR (sigla: LI-086)
         "aumentata di un importo pari a 65 euro",
         "superiore a 25.000 euro ma non a 35.000 euro",
     )

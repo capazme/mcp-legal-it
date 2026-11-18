@@ -34,6 +34,8 @@ from mcp_legal_it.lib.visualex.map import (
     ATTI_NOTI,
     EURLEX,
     NORMATTIVA_SEARCH,
+    SIGLE_DATATE,
+    resolve_atto,
     codice_urn,
     known_act_names,
     normalize_act_type,
@@ -258,7 +260,8 @@ def leggi_riferimento(testo: str) -> EsitoRiferimento:
     if isinstance(letto, EsitoRiferimento):
         return letto
     act_info, article = letto
-    return EsitoRiferimento(esito="trovato", norma_data=(_norma_dati(act_info, article),))
+    return EsitoRiferimento(esito="trovato", norma_data=(_norma_dati(act_info, article),),
+                            avvisi=(act_info["avviso"],) if act_info.get("avviso") else ())
 
 
 def riferimento_da_parametri(
@@ -808,8 +811,30 @@ def _atto(atto: str | NormaDati) -> Norma | tuple[str, str]:
     return norma
 
 
+def _avvisi_sigla(atto: "str | NormaDati") -> tuple[str, ...]:
+    """The notice of a sigla that follows the date (LI-086) a citation names, as ``avvisi``."""
+    if not isinstance(atto, str):
+        return ()
+    _, act_name = norme._parse_reference(atto)
+    info = norme._resolve_act(act_name) if act_name else None
+    return (info["avviso"],) if info and info.get("avviso") else ()
+
+
+def _con_avvisi_sigla(atto: "str | NormaDati", risultato):
+    """*risultato* (an IndiceAtto or TestoAtto) with the sigla's notice first in ``avvisi``."""
+    avvisi = _avvisi_sigla(atto)
+    return dataclasses.replace(risultato, avvisi=avvisi + tuple(risultato.avvisi)) if avvisi else risultato
+
+
 async def indice_atto(atto: str | NormaDati) -> IndiceAtto:
-    """The article headings of an Italian act: VisuaLex's ``/fetch_rubriche``.
+    """The article headings of an Italian act: VisuaLex's ``/fetch_rubriche``. A sigla that
+    follows the date (LI-086) puts its notice in ``avvisi``.
+    """
+    return _con_avvisi_sigla(atto, await _indice_atto(atto))
+
+
+async def _indice_atto(atto: str | NormaDati) -> IndiceAtto:
+    """``indice_atto`` before the notice of a dated sigla.
 
     From the act's Akoma Ntoso export: ``title`` (presentable), ``rubriche`` of the act's
     main text (``count`` is ``len(rubriche)``), ``abrogati``, and ``parts``, one dict per
@@ -1047,7 +1072,13 @@ def dove_altrove(albero: AlberoAtto, articolo: str, allegato: str | None) -> str
 
 
 async def testo_atto(atto: str | NormaDati) -> TestoAtto:
-    """The whole text of an Italian act from Normattiva (EU acts: ``non_supportata``)."""
+    """The whole text of an Italian act from Normattiva (EU acts: ``non_supportata``). A sigla
+    that follows the date (LI-086) puts its notice first in ``avvisi``."""
+    return _con_avvisi_sigla(atto, await _testo_atto(atto))
+
+
+async def _testo_atto(atto: str | NormaDati) -> TestoAtto:
+    """``testo_atto`` before the notice of a dated sigla."""
     norma = _atto(atto)
     if isinstance(norma, tuple):
         return TestoAtto(esito=norma[0], errore=norma[1])
@@ -1122,15 +1153,21 @@ def catalogo_alias() -> CatalogoAlias:
     """The act names the resolver knows (VisuaLex ``/fetch_alias_catalog`` shape). No network.
 
     ``presets`` are the hand-verified short names (GDPR, AI Act, TUB ...) with their
-    act; ``known_acts`` every name ``leggi_riferimento`` recognises.
+    act; ``known_acts`` every name ``leggi_riferimento`` recognises. The sigle that follow
+    the date (TUIR, TUGT ..., LI-086) are given with the act they name today.
     """
     presets: dict[str, dict[str, str]] = {}
-    for trigger, info in sorted(ATTI_NOTI.items()):
+    oggi = {nome: resolve_atto(nome) for nome in SIGLE_DATATE}
+    for trigger, info in sorted({**ATTI_NOTI, **{k: v for k, v in oggi.items() if v}}.items()):
         voce = {"act_type": info["tipo_atto"]}
         if info.get("numero_atto"):
             voce["act_number"] = info["numero_atto"]
         if info.get("data"):
             voce["date"] = info["data"]
+        if info.get("allegato"):
+            # The act whose text is an annex of its decree (a testo unico, LI-086): without it
+            # a reader would take the decree's own articles.
+            voce["allegato"] = info["allegato"]
         presets[trigger] = voce
     return CatalogoAlias(presets=presets, known_acts=tuple(sorted(known_act_names())))
 

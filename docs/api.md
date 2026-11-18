@@ -226,6 +226,11 @@ Reads a citation (`"art. 2043 c.c."`, `"art. 6 GDPR"`, `"art. 2-bis D.Lgs. 196/2
 - **Resolution:** the same resolver as `cite_law`, hand-verified tables first
   (CLAUDE.md, "Risoluzione degli estremi normativi"). It never guesses: an
   unknown name is `atto_non_riconosciuto`, with the closest names in `errore`.
+  A regional law is `atto_non_riconosciuto`, «fonte non coperta» (LI-086).
+- **`avvisi`:** a sigla that follows the date (TUIR, TUR, TUIVA, TUGT …, LI-086)
+  names today's act and says when that changes («dal 1° gennaio 2027 si applica
+  il d.lgs. …»). `indice_atto`, `testo_atto` and `testo_articolo` put the same
+  notice first in their `avvisi`.
 
 ```python
 r = api.leggi_riferimento("art. 2043 c.c.")
@@ -1099,7 +1104,9 @@ The act names the resolver knows, in VisuaLex's `/fetch_alias_catalog` shape.
 No network.
 
 - `presets`: the hand-verified short names (`gdpr`, `ai act`, `tub` …) mapped to
-  `{act_type, act_number?, date?}`.
+  `{act_type, act_number?, date?, allegato?}`. `allegato` is the annex holding the
+  act's text (a testo unico approved as the annex of its decree). A sigla that
+  follows the date (TUIR …, LI-086) is given with today's act.
 - `known_acts`: every name `leggi_riferimento` recognises, sorted.
 
 ### Constants
@@ -1311,7 +1318,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | Type | Fields |
 |---|---|
 | `NormaDati` | `tipo_atto, data, numero_atto, url, allegato, numero_articolo, versione, data_versione, urn`, plus `descrizione, data_risolta`, and VisuaLex's `celex_consolidated` last |
-| `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore` |
+| `EsitoRiferimento` | `esito, norma_data: tuple[NormaDati, ...], errore, avvisi` |
 | `AttoRisolto` | `esito, tipo_atto, numero_atto, data, urn, url, precisione, errore, fonti` |
 | `ModificheArticolo` | `esito, norma_data, versioni, modifiche, url, completa, precisione, avvisi, versioni_non_lette, errore, fonti` |
 | `VersioneArticolo` | VisuaLex `validity` keys: `version_number, valid_from, valid_to` |
@@ -1322,7 +1329,7 @@ All results are frozen dataclasses (`mcp_legal_it/api/tipi.py`).
 | `NotaRedazionale` | `intestazione, testo, ordine`: one «Note all'art. N» section of the Gazzetta's editorial notes (§3, `testo_articolo`) |
 | `ParteArticolo` | `progressivo, commi_dal, commi_al, url`: one part of an article Normattiva splits (§3, `parte_articolo`) |
 | `Vigenza` | VisuaLex `validity`: `state, valid_from, valid_to, version_number, act_updated, request_in_window` |
-| `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato` |
+| `IndiceAtto` | `esito, title, rubriche, abrogati, parts, count`, plus `voci, codice_redazionale, data_gu, url, errore, fonti, consolidato, consolidato_verificato, avvisi` |
 | `AlberoAtto` | VisuaLex `/fetch_tree`: `esito, articles, count, metadata`, plus `url, errore, fonti, consolidato, consolidato_verificato` |
 | `ConsiderandiAtto` | VisuaLex `/fetch_recitals`: `esito, considerando` (`{number, text}`), plus `url, errore, fonti` |
 | `TestoAtto` | `esito, testo, titolo, url, errore, fonti, completo, avvisi` |

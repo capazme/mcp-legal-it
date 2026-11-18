@@ -196,6 +196,12 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
 # ---------------------------------------------------------------------------
 
 
+def _avviso_sigla(act_info: "dict | None", testo: str) -> str:
+    """*testo* with the notice of a sigla that follows the date (LI-086) as its first line, if any."""
+    avviso = (act_info or {}).get("avviso")
+    return f"**Attenzione**: {avviso}.\n\n{testo}" if avviso else testo
+
+
 async def _cite_law_impl(reference: str, include_annotations: bool = False, formato: str = "markdown",
                          versione: str = "vigente") -> str:
     """Implementation of cite_law (testable without MCP wrapper)."""
@@ -251,7 +257,7 @@ async def _cite_law_impl(reference: str, include_annotations: bool = False, form
         except Exception as e:
             brocardi_md = f"\n\n**Annotazioni Brocardi**: errore — {e}"
 
-    return _format_result(article_result) + brocardi_md
+    return _avviso_sigla(act_info, _format_result(article_result) + brocardi_md)
 
 
 async def _fetch_law_article_impl(act_type: str, article: str, date: str = "", act_number: str = "") -> str:
@@ -448,7 +454,7 @@ async def _cerca_brocardi_impl(reference: str) -> str:
     if result.error:
         return f"**Errore Brocardi**: {result.error}"
 
-    parts = [result.to_markdown()]
+    parts = [_avviso_sigla(act_info, result.to_markdown())]
 
     # Append Cassazione references for Italgiure cross-linking. Italgiure indexes only a moving
     # window of recent years: older decisions are listed apart, because leggi_sentenza cannot
@@ -534,7 +540,7 @@ async def _fetch_act_index_impl(reference: str) -> str:
     for entry in entries:
         lines.append(f"- {entry}")
     lines.append(f"\n*Codice redazionale*: `{result.get('codice_redazionale', '')}`")
-    return "\n".join(lines)
+    return _avviso_sigla(act_info, "\n".join(lines))
 
 
 @mcp.tool(tags={"normativa"}, output_schema=None)
@@ -722,8 +728,10 @@ async def _fetch_full_act_impl(reference: str, da_carattere: int = 1) -> str:
         f"**Dimensione**: {len(text):,} caratteri\n",
     ]
     # What the reading could not carry (parts not read, parts published as images only),
-    # in every window, before the text.
-    lines.extend(f"**Avviso**: {avviso}\n" for avviso in result.get("avvisi") or ())
+    # in every window, before the text; first, the notice of a sigla that follows the date
+    # (LI-086). «**Avviso**:», which the citation gate skips when it reads a window.
+    avvisi = ([act_info["avviso"]] if act_info.get("avviso") else []) + list(result.get("avvisi") or ())
+    lines.extend(f"**Avviso**: {avviso}\n" for avviso in avvisi)
     if da_carattere == 1 and len(text) <= _FULL_ACT_WINDOW:
         # Fits in one window: the answer is the one it has always been.
         lines.append(text)
@@ -907,14 +915,14 @@ async def _download_law_pdf_impl(reference: str) -> str:
         size = os.path.getsize(filepath)
 
         avvisi = "".join(f"\n**Avviso**: {avviso}" for avviso in result.get("avvisi") or ())
-        return (
+        return _avviso_sigla(act_info, (
             f"**PDF generato** ({title})\n\n"
             f"File: `{filepath}`\n"
             f"Fonte: Normattiva — {url}\n"
             f"Dimensione: {size:,} bytes\n"
             f"Nota: PDF generato dal testo ufficiale (non il PDF originale Normattiva)"
             f"{avvisi}"
-        )
+        ))
     except Exception as e:
         return f"**Errore** generazione PDF: {e}"
 
@@ -1095,7 +1103,20 @@ def _norma_misquote(reference: str, article_text: str) -> bool:
 
 
 async def _verifica_norma(reference: str) -> tuple[str, str]:
-    """Verify a NORMA reference. Returns (verdetto, nota)."""
+    """Verify a NORMA reference. Returns (verdetto, nota).
+
+    A sigla that follows the date (LI-086) adds its notice to the note, whatever the verdict.
+    """
+    verdetto, nota = await _verifica_norma_testo(reference)
+    _, act_name = _parse_reference(reference)
+    info = _resolve_act(act_name) if act_name else None
+    if info and info.get("avviso"):
+        nota += f" Attenzione: {info['avviso']}."
+    return verdetto, nota
+
+
+async def _verifica_norma_testo(reference: str) -> tuple[str, str]:
+    """``_verifica_norma`` before the notice of a dated sigla."""
     data, esito = await _cite_law_lookup(reference)
     if esito == ARTICLE_NOT_FOUND:
         return "inesistente", f"L'articolo non esiste nell'atto citato: {data['errore']}."

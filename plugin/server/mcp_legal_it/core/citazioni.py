@@ -13,12 +13,13 @@ turn, and ``tests/unit/test_citation_gate.py`` checks that it pulls in no
 HTTP stack.
 """
 
+import bisect
 import re
 from dataclasses import dataclass
 
 from mcp_legal_it.core.riferimenti import _parse_reference, _resolve_act
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION
-from mcp_legal_it.lib.visualex.map import SIGLE_COME_MESI
+from mcp_legal_it.lib.visualex.map import LEGGE_REGIONALE_NEL_TESTO, SIGLE_COME_MESI, legge_regionale
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, Norma
 
 # Cassazione decision shape: a decision number followed by a 4-digit year,
@@ -380,6 +381,16 @@ def _estratto(testo: str, start: int, end: int) -> str:
     return re.sub(r"\s+", " ", testo[start:end]).strip()[:80]
 
 
+def _dopo_gli_articoli(testo: str, m: "re.Match") -> "tuple[re.Match, int, str] | None":
+    """``(articles, end of their indicators, rest of the line)`` after an article heading *m*."""
+    lista = _LISTA_ARTICOLI.match(testo, m.end())
+    if not lista:
+        return None
+    dopo = _INDICATORI.match(testo, lista.end()).end()
+    fine_riga = testo.find("\n", dopo)
+    return lista, dopo, testo[dopo: (fine_riga if fine_riga != -1 else len(testo))][:200]
+
+
 def norme_nel_testo(testo: str) -> list[NormaCitata]:
     """Every article of an act cited in *testo*, resolved with the server's resolver.
 
@@ -390,12 +401,15 @@ def norme_nel_testo(testo: str) -> list[NormaCitata]:
     """
     trovate: list[NormaCitata] = []
     for m in _INTESTAZIONE.finditer(testo):
-        lista = _LISTA_ARTICOLI.match(testo, m.end())
-        if not lista:
+        letta = _dopo_gli_articoli(testo, m)
+        if letta is None:
             continue
-        dopo = _INDICATORI.match(testo, lista.end()).end()
-        fine_riga = testo.find("\n", dopo)
-        coda = testo[dopo: (fine_riga if fine_riga != -1 else len(testo))][:200]
+        lista, dopo, coda = letta
+        if legge_regionale(coda):
+            # An article of a regional law (LI-086): never read as a State act's, even where its
+            # first words would resolve («legge 10 novembre 2014, n. 65 della Regione Toscana»).
+            # leggi_regionali_nel_testo reads the law itself.
+            continue
         info = _atto_dopo(coda)
         if info is None and not _GENITIVO.match(coda) and not _FONTE_NON_RISOLTA.match(coda):
             inizio_riga = testo.rfind("\n", 0, m.start()) + 1
@@ -408,6 +422,34 @@ def norme_nel_testo(testo: str) -> list[NormaCitata]:
         comma = _comma_citato(testo, m.start(), lista.end(), dopo) if len(articoli) == 1 else None
         for articolo in articoli:
             trovate.append(NormaCitata(atto, normalizza_articolo(articolo), estratto, comma))
+    return trovate
+
+
+def leggi_regionali_nel_testo(testo: str) -> list[str]:
+    """Every regional law cited in *testo* («l.r. Toscana 65/2014», «legge regionale 12 marzo 2015,
+    n. 3»), as written, once each. No tool reads a regional law (LI-086): the gate warns on each."""
+    visti, trovate, inizi = set(), [], []
+
+    def aggiungi(estratto: str) -> None:
+        estratto = re.sub(r"\s+", " ", estratto).strip(" ,;:.")
+        if estratto and estratto.lower() not in visti:
+            visti.add(estratto.lower())
+            trovate.append(estratto)
+
+    for m in LEGGE_REGIONALE_NEL_TESTO.finditer(testo):
+        inizi.append(m.start())
+        aggiungi(m.group(0))
+    # An article whose act is a regional law (norme_nel_testo leaves it out) is never left
+    # silent: when the pattern above did not read its law, the start of what follows it is.
+    for m in _INTESTAZIONE.finditer(testo):
+        letta = _dopo_gli_articoli(testo, m)
+        if letta is None or not legge_regionale(letta[2]):
+            continue
+        dopo = letta[1]
+        i = bisect.bisect_left(inizi, dopo)  # inizi is sorted: finditer reads left to right
+        if i < len(inizi) and inizi[i] <= dopo + 40:
+            continue
+        aggiungi(re.split(r"[;.](?:\s|$)|,\s+(?:e|nonché|che)\b", letta[2].strip(), maxsplit=1)[0][:80])
     return trovate
 
 

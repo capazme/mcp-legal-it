@@ -15,6 +15,11 @@ What it reads (the turn: everything since the user's last prompt)
 Fenced and inline code is skipped. A line that says "fuori copertura" is the
 explicit escape for a source no tool covers (CDF, CEDU, allegati UE...).
 
+Regional laws («l.r. Toscana 65/2014», «legge regionale 12 marzo 2015, n. 3»): no
+tool reads one, so every one the turn cites is listed, with the hint to check it
+on the Region's official bulletin or database (LI-086). Like any other source no
+tool covers, a line that says "fuori copertura" lets it through.
+
 How a citation is read
 With the server's own code (mcp_legal_it.core.citazioni): the act is resolved
 by the resolver cite_law uses and identified by the URL cite_law would fetch,
@@ -114,6 +119,9 @@ PROSE_SUFFIXES = {"", ".md", ".markdown", ".txt", ".text", ".rtf", ".html", ".ht
                   ".tex", ".rst", ".adoc", ".org"}
 
 ESCAPE = "fuori copertura"
+# What the gate asks for a regional law: no tool of the server reads one (LI-086).
+HINT_REGIONALE = ("legge regionale: non coperta dai tool del server, verificala sul Bollettino "
+                  "ufficiale o sulla banca dati della Regione e scrivi «fuori copertura»")
 MAX_LISTED = 12
 # Characters of one turn the gate reads (about 150 pages): beyond that a turn is a
 # bulk export, and an advisory check must not slow every Stop down.
@@ -169,6 +177,16 @@ class FallbackReader:
     _CASS = re.compile(r"\bcass(?:azione)?\b[^\n]{0,80}?\bn\.?\s*(\d{1,6})\s*(?:/|\s+del\s+)\s*((?:19|20)\d{2})", re.I)
     _ATTO_PRIMA = re.compile(r"\b(?:d\.?\s?lgs|d\.?\s?l|l|legge|d\.?p\.?r|d\.?\s?m|reg(?:olamento)?|dir(?:ettiva)?)\.?\s*(?:n\.?\s*)?$", re.I)
     _NUM = re.compile(r"(?<![\d/.])(\d{1,6})\s*/\s*((?:19|20)\d{2})(?![\d/])|\bn\.?\s*(\d{1,6})\s+del\s+((?:19|20)\d{2})", re.I)
+    # A regional law, reduced: a sigla with up to three words (the Region) and the act's number
+    # («l.r. Toscana 65/2014», «legge regionale n. 3», «L.R. 12 marzo 2015, n. 3»), or a State-like
+    # «L. 65/2014 della Regione Toscana». A bare count («la legge regionale prevede 3 casi») is not one.
+    _ESTREMI_RID = (r"(?:n\.?[ \t]*\d+|\d+[ \t]*/[ \t]*\d{2,4}\b|\d+[ \t]+del[ \t]+\d{4}\b"
+                    r"|\d{1,2}[ \t]+[a-z]+[ \t]+\d{4}[ \t,]*n\.?[ \t]*\d+)")
+    _REGIONALE = re.compile(
+        r"\b(?:(?:l\.?[ \t]?r\.?(?![a-zà-ù])|legge[ \t]+reg(?:ionale\b|\.))[ \t,]*(?:[a-zà-ù'’-]+[ \t,]+){0,3}?"
+        + _ESTREMI_RID
+        + r"|(?:legge|l\b\.?)[ \t]*" + _ESTREMI_RID
+        + r"[ \t,(]*(?:(?:della|dalla)[ \t]+)?(?:regione|reg\.|r\.)[ \t])", re.I)
 
     @staticmethod
     def normalizza_articolo(articolo):
@@ -194,6 +212,8 @@ class FallbackReader:
     def norme_nel_testo(self, testo):
         out = []
         for m in self._ART.finditer(testo):
+            if self._REGIONALE.match(m.group("atto").strip()):
+                continue  # a regional law's article: leggi_regionali_nel_testo lists the law
             atto = self._atto(m.group("atto"))
             if atto:
                 comma = m.group("comma")
@@ -219,6 +239,9 @@ class FallbackReader:
             return False
         n, a, b = (int(x.group(1)) for x in numeri)
         return a <= n <= b
+
+    def leggi_regionali_nel_testo(self, testo):
+        return list(dict.fromkeys(" ".join(m.group(0).split()) for m in self._REGIONALE.finditer(testo)))
 
     def decisioni_nel_testo(self, testo):
         return [_Decisione("cass", str(int(m.group(1))), int(m.group(2)), m.group(0)[-60:])
@@ -724,6 +747,14 @@ def uncovered(session: Session) -> list:
             else:
                 hint = "cite_law"
             missing.append(f"{n.testo} ({hint})")
+        # Regional laws: no tool result can back one, so each one cited is listed (LI-086).
+        leggi_regionali = getattr(r, "leggi_regionali_nel_testo", None)
+        for legge in (leggi_regionali(prose) if leggi_regionali else []):
+            key = ("legge regionale", legge.lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            missing.append(f"{legge} ({HINT_REGIONALE})")
         for d in r.decisioni_nel_testo(prose):
             key = (d.corte, d.numero, d.anno)
             if key in session.decisions or key in seen:

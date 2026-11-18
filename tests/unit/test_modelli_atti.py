@@ -303,6 +303,16 @@ class TestCatalogoNormeVigenti:
         for tipo in ("opposizione_decreto_ingiuntivo", "relata_pec_opposizione_di"):
             assert "C. Cost. 120/1976" in " ".join(_CATALOGO[tipo]["avvertenze"]), tipo  # art. 650, nota (26)
         assert "art. 316 co. 1" in " ".join(_CATALOGO["opposizione_decreto_ingiuntivo"]["avvertenze"])
+        # LI-086, option (b): art. 645 co. 3 is quoted as written, and the warning says that the
+        # comma it refers to is shown as repealed on Normattiva. No other model quotes it.
+        avv_645 = [a for a in _CATALOGO["opposizione_decreto_ingiuntivo"]["avvertenze"] if "art. 645 co. 3" in a]
+        assert len(avv_645) == 1
+        assert "l'anticipazione di cui all'art. 163-bis, secondo comma" in avv_645[0]
+        assert avv_645[0].endswith("Su Normattiva l'art. 163-bis, secondo comma, c.p.c. risulta abrogato dal "
+                                   "D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, "
+                                   "n. 197")
+        assert [t for t, e in _CATALOGO.items() if "163-bis, secondo comma" in " ".join(e.get("avvertenze", []))] \
+            == ["opposizione_decreto_ingiuntivo"]
         avviso = _CATALOGO["avviso_543_5_cpc"]
         assert "debitore pignorato" not in avviso["descrizione"] and "terzo pignorato" in avviso["descrizione"]
         assert {"numero_ruolo", "data_udienza_comparizione"} <= set(avviso["campi_obbligatori"])

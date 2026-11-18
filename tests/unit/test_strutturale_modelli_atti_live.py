@@ -450,6 +450,10 @@ _AVVERTENZE_CORRETTE = [
      ["alle opposizioni previste dagli articoli 615, primo comma, 617, primo comma, e 645"]),
     ("opposizione_decreto_ingiuntivo", ["30 giorni dalla scadenza del termine minimo a comparire"], "art. 645 c.p.c.",
      ["non oltre trenta giorni dalla scadenza del termine minimo a comparire"]),
+    # LI-086: the comma art. 645 co. 3 refers to is shown as repealed on Normattiva, and the model says so.
+    ("opposizione_decreto_ingiuntivo", ["163-bis, secondo comma, c.p.c. risulta abrogato", "n. 149", "n. 197"],
+     "art. 163-bis c.p.c.", ["comma abrogato dal d.lgs. 10 ottobre 2022, n. 149 come modificato dalla l. 29 "
+                             "dicembre 2022, n. 197"]),
     ("relata_pec_opposizione_di", ["fissato nel decreto ingiuntivo", "fino a 10", "tra 30 e 120", "art. 650"],
      "art. 641 c.p.c.", ["ridotto sino a dieci giorni oppure aumentato a sessanta"]),
     # G-493: the notice goes to the third party, is deposited, and its lack makes the pignoramento inefficace.

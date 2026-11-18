@@ -44,7 +44,8 @@ _confronto = getattr(confronto_investimenti, "fn", confronto_investimenti)
 DL_66_2014 = "art. 3 D.L. 66/2014"
 DLGS_239_1996 = "art. 2 D.Lgs. 239/1996"
 DPR_601_1973 = "art. 31 D.P.R. 601/1973"
-TUIR_45 = "art. 45 TUIR"
+# By number: from 2027 the sigla «TUIR» names the new testo unico, numbered otherwise (LI-086).
+TUIR_45 = "art. 45 d.P.R. 917/1986"
 
 
 @functools.lru_cache(maxsize=None)

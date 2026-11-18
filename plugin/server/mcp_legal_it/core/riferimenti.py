@@ -11,7 +11,8 @@ import re
 
 from mcp_legal_it.lib.visualex import resolve_atto, strip_leading_particles, known_act_names
 from mcp_legal_it.lib.visualex.article_suffixes import ARTICLE_SUFFIX_ALTERNATION as _SUFFISSI
-from mcp_legal_it.lib.visualex.map import fonte_non_coperta, nome_ambiguo
+from mcp_legal_it.lib.visualex.map import (data_di_riferimento, fonte_non_coperta, legge_regionale, nome_ambiguo,
+                                             sigla_senza_atto)
 from mcp_legal_it.lib.visualex.models import ANNEX_ID, annex_reference
 
 # ---------------------------------------------------------------------------
@@ -313,17 +314,23 @@ def _split_eu_year_number(first: str, second: str) -> tuple[str, str]:
     return first, second
 
 
-def _resolve_act(act_name: str) -> dict | None:
+def _resolve_act(act_name: str, *, data: "str | None" = None) -> dict | None:
     """Resolve an act name to scraper parameters {tipo_atto, data, numero_atto}.
 
     Resolution chain:
-    1. resolve_atto() — hand-verified tables (ATTI_NOTI, codici, ATTI_DENOMINATI)
+    1. resolve_atto() — hand-verified tables (ATTI_NOTI, codici, ATTI_DENOMINATI, and the
+       sigle that follow the reference date *data*, today when None: SIGLE_DATATE)
     2. citation patterns — EU acts, then Italian acts in long and short form
 
     Returns None rather than guessing: a caller that cannot resolve an act must
-    say so, never cite a different one.
+    say so, never cite a different one. A regional law is never resolved: its
+    number read as a State law's («legge 65/2014 della Regione Toscana») would
+    serve another act in silence.
     """
-    result = resolve_atto(act_name)
+    data_di_riferimento(data)  # a malformed date is refused for every name, a regional one too
+    if legge_regionale(act_name):
+        return None
+    result = resolve_atto(act_name, data=data)
     if result:
         return result
 
@@ -368,16 +375,20 @@ def _suggest_acts(act_name: str, limit: int = 3) -> list[str]:
     )
 
 
-def _unresolved_act_error(act_name: str) -> str:
+def _unresolved_act_error(act_name: str, *, data: "str | None" = None) -> str:
     """Error text for an act the resolver could not identify, with near misses.
 
-    A source the resolver knows and no tool reads (``map.FONTI_NON_COPERTE``) is said to
-    be out of coverage, with no near miss: a nearby act is never its text.
+    A source the resolver knows and no tool reads (``map.FONTI_NON_COPERTE``, a regional
+    law) is said to be out of coverage, with no near miss: a nearby act is never its text.
+    *data* is the reference date ``_resolve_act`` was given.
     """
     non_coperta = fonte_non_coperta(act_name)
     if non_coperta:
         return f"**Errore**: fonte non coperta — {non_coperta}"
-    ambiguo = nome_ambiguo(act_name)
+    senza_atto = sigla_senza_atto(act_name, data=data)
+    if senza_atto:
+        return f"**Errore**: {senza_atto}."
+    ambiguo = nome_ambiguo(act_name, data=data)
     if ambiguo:
         # A near miss would be one of the acts the name may mean: none is suggested.
         return f"**Errore**: nome ambiguo — {ambiguo}."

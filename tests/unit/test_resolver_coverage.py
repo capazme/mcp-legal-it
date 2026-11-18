@@ -11,6 +11,13 @@ import pytest
 from mcp_legal_it.tools.legal_citations import _parse_reference, _resolve_act
 
 
+@pytest.fixture(autouse=True)
+def _prima_dei_nuovi_testi_unici(monkeypatch):
+    """«TUIR» here is d.P.R. 917/1986: the clock is pinned before the new testo unico applies
+    (1 January 2027, LI-086), so these rows do not change by themselves (test_sigle_datate_li086)."""
+    monkeypatch.setenv("LEGAL_TODAY", "2026-12-31")
+
+
 def assert_resolves(reference: str, tipo: str, numero: str, *, numero_optional: bool = False) -> None:
     """Assert a reference resolves to the intended act.
 

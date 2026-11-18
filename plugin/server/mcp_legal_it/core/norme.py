@@ -226,6 +226,7 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
                            canale: str = "html", comma: str | None = None,
                            progressivo: int | None = None, per: str = "mcp") -> tuple[dict, str | None]:
     """Fetch *nv* and fill *base* (see ``_cite_law_lookup``)."""
+    avviso_sigla = act_info.get("avviso")
     article = nv.numero_articolo
     base["articolo"] = article or ""
     base["atto"] = {
@@ -307,6 +308,9 @@ async def _lookup_visitata(base: dict, nv: NormaVisitata, act_info: dict, *,
         base["note_aggiornamento"] = list(result.get("note_aggiornamento") or [])
     note_redazionali(base, result)
     base.pop("chiave_pagina", None)
+    if avviso_sigla:
+        # A sigla that follows the date (LI-086): which act it names today, said first.
+        base["avvisi"] = [avviso_sigla] + list(base["avvisi"])
     return base, result.get("esito")
 
 

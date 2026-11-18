@@ -25,7 +25,7 @@
 
 Un avvocato che usa Claude non dovrebbe cercare manualmente testi di legge, ricalcolare interessi o compilare informative privacy a mano. **mcp-legal-it** e un server [Model Context Protocol](https://modelcontextprotocol.io/) che mette a disposizione **233 tool** di calcolo legale, consultazione normativa, ricerca giurisprudenziale e compliance — tutti accessibili direttamente da Claude.
 
-- **Normativa verificata** — testi vigenti da Normattiva ed EUR-Lex (no allucinazioni)
+- **Normativa verificata** — testi vigenti da Normattiva ed EUR-Lex (no allucinazioni); le leggi regionali non sono coperte e vanno verificate sul Bollettino ufficiale della Regione
 - **Giurisprudenza Cassazione** — ricerca full-text e testo sentenze da Italgiure
 - **Giurisprudenza Tributaria** — sentenze CTP/CTR/CGT e Cassazione tributaria da CeRDEF (def.finanze.it)
 - **Giustizia Amministrativa** — sentenze TAR e Consiglio di Stato (giustizia-amministrativa.it)

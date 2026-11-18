@@ -30,7 +30,7 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - PROPRIETÀ/SUCCESSIONI: eredità, IMU, usufrutto, compravendita, imposta registro
 - INVESTIMENTI: BOT, BTP, buoni postali, rendimento
 - UTILITÀ: codice fiscale, IBAN, scorporo IVA, patente, alcolemico, ATECO
-- NORMATIVA: cite_law() per testo vigente, PDF norme
+- NORMATIVA: cite_law() per testo vigente, PDF norme (le leggi regionali non sono coperte)
 - DOTTRINA (se disponibile): cerca_brocardi() ratio legis, spiegazione e massime da Brocardi
 - STORIA DI UNA NORMA: storia_norma() versioni e atti modificativi di un articolo (vigenza ≠ applicabilità)
 - VERIFICA CITAZIONI: verifica_citazioni() controlla esistenza e metadati di un elenco di norme e sentenze citate (NON verifica il merito)
