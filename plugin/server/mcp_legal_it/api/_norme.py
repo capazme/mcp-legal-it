@@ -91,10 +91,8 @@ TIPI_ATTO_VERIFICATI: tuple[str, ...] = (
 #: Italian act types Normattiva addresses by date and number (codes are known by name).
 _TIPI_NOTI = frozenset(v.lower() for v in NORMATTIVA_SEARCH.values()) | frozenset(norme._TIPO_CANONICO.values())
 
-_BROCARDI_SPENTO = (
-    "Brocardi disattivato (LEGAL_BROCARDI=off nell'ambiente, o configurazione(brocardi=False)): "
-    "nessuna richiesta a brocardi.it"
-)
+#: Neutral, like the tools' note: off is the default, and switching it on is for the docs.
+_BROCARDI_SPENTO = _brocardi_switch.DISABLED_NOTE
 
 # ---------------------------------------------------------------------------
 # Reference reading (no network)
@@ -708,7 +706,8 @@ async def _testo_articolo(riferimento: str | NormaDati, *, canale: Canale,
         validita, precisione, avvisi, successione, upcoming = _qualita(base, act_info, article)
         # The lookup already joined the source's own notices (an EU consolidation to come).
         avvisi, upcoming = tuple(base.get("avvisi") or avvisi), base.get("upcoming") or upcoming
-        if base.get("not_in_force"):
+        if base.get("not_in_force") or base.get("rinvio"):
+            # A text not in force yet, or one an entry into force deferred past today concerns (#172).
             precisione = "INDICATIVO"
         if validita is not None and validita.state == "not_yet":
             # «NON ANCORA ESISTENTE O VIGENTE»: the article did not exist on the day asked
@@ -1081,9 +1080,10 @@ async def testo_atto(atto: str | NormaDati) -> TestoAtto:
 async def annotazioni_brocardi(riferimento: str) -> AnnotazioniBrocardi:
     """Brocardi notes on an article: ratio, explanation, brocardi, case-law abstracts.
 
-    Third-party editorial content, never the norm. Honours the Brocardi switch:
-    off (``LEGAL_BROCARDI=off``, ``configurazione(brocardi=False)``) answers
-    ``brocardi_disattivato`` without any request.
+    Third-party editorial content, never the norm. Honours the Brocardi switch, off
+    by default: unless ``LEGAL_BROCARDI=on``, ``configurazione(brocardi=True)`` or
+    ``set_default(True)`` switch it on, it answers ``brocardi_disattivato`` without
+    any request.
     """
     from mcp_legal_it.lib.brocardi.client import fetch_brocardi
 

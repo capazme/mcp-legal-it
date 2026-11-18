@@ -39,17 +39,21 @@ Conteggi reali (`tests/unit/test_profiles.py` li tiene allineati al codice):
 
 | Profilo | Tool | Descrizione |
 |---------|------|-------------|
-| `sinistro` | 83 | Danno biologico, rivalutazione, interessi, normativa, giurisprudenza |
-| `credito` | 93 | Interessi mora, rivalutazione, decreto ingiuntivo, parcella avvocato |
-| `penale` | 55 | Prescrizione, calcolo pena, normativa, giurisprudenza |
+| `sinistro` | 81 | Danno biologico, rivalutazione, interessi, normativa, giurisprudenza |
+| `credito` | 91 | Interessi mora, rivalutazione, decreto ingiuntivo, parcella avvocato |
+| `penale` | 53 | Prescrizione, calcolo pena, normativa, giurisprudenza |
 | `fiscale` | 66 | IRPEF, detrazioni, TFR, successioni, IMU, CONSOB, crisi d'impresa, societario |
-| `normativa` | 77 | Testo leggi, giurisprudenza di tutte le corti, Garante, CONSOB, privacy |
-| `privacy` | 68 | GDPR, DPIA, registro, data breach, normativa e giurisprudenza |
+| `normativa` | 75 | Testo leggi, giurisprudenza di tutte le corti, Garante, CONSOB, privacy |
+| `privacy` | 66 | GDPR, DPIA, registro, data breach, normativa e giurisprudenza |
 | `studio` | 76 | Scadenze, atti giudiziari, parcelle, investimenti, lavoro |
-| `redattore` | 77 | Modelli di atti, atti giudiziari, parcelle, scadenze, normativa |
-| `cowork` | 81 | Set ridotto (normativa, giurisprudenza, privacy, parcelle) per host con contesto limitato |
+| `redattore` | 75 | Modelli di atti, atti giudiziari, parcelle, scadenze, normativa |
+| `cowork` | 79 | Set ridotto (normativa, giurisprudenza, privacy, parcelle) per host con contesto limitato |
 | `calcoli` | 144 | Solo calcoli e diagnostica, nessuna connessione di rete |
-| `full` | 235 | Tutti gli strumenti (consigliato per Claude Code, che carica i tool on-demand) |
+| `full` | 233 | Tutti gli strumenti (consigliato per Claude Code, che carica i tool on-demand) |
+
+I conteggi valgono con Brocardi spento, come per default: con `LEGAL_BROCARDI=on` i profili che
+includono `normativa` (`full`, `sinistro`, `credito`, `penale`, `normativa`, `privacy`, `redattore`,
+`cowork`) espongono anche `cerca_brocardi` e `fetch_law_annotations` (`full`: 235).
 
 Prompt guidati (23) e risorse `legal://` (15) restano disponibili in ogni profilo.
 
@@ -252,7 +256,7 @@ curl -s -X POST http://localhost:8000/mcp -H 'Content-Type: application/json' \
 | `MCP_PATH` | `/mcp` | Path dell'endpoint Streamable HTTP |
 | `LEGAL_PROFILE` | `full` | Profilo tool: vedi tabella sopra |
 | `LEGAL_PREVIGENTE` | *(attivo)* | `off`: nasconde i tool a normativa previgente (tag `previgente`) |
-| `LEGAL_BROCARDI` | *(attivo)* | `off` (anche `0`, `false`, `no`): nessuna richiesta a brocardi.it, `cerca_brocardi` e `fetch_law_annotations` non esposti (233 tool), i tool misti rispondono senza Brocardi e lo dicono. Vedi [tool-tags.md](tool-tags.md) |
+| `LEGAL_BROCARDI` | *(spento)* | Brocardi.it, l'unica fonte privata, è spenta per default: nessuna richiesta a brocardi.it, `cerca_brocardi` e `fetch_law_annotations` non esposti (233 tool), i tool misti rispondono senza Brocardi e lo dicono in una riga. `on` (anche `1`, `true`, `yes`) la accende (235 tool); `off` (anche `0`, `false`, `no`) la spegne anche per il codice (`crea_server(brocardi=True)` solleva `ValueError`); qualunque altro valore vale come `off` e il server lo segnala all'avvio su stderr e in `stato_server`. Vedi [tool-tags.md](tool-tags.md) |
 | `MCP_CACHE_DIR` | `~/.cache/mcp-legal-it` | Directory delle cache su disco (atti AKN, URL Brocardi, massime Consulta, determinazioni DPA, verbale) |
 | `LEGAL_CACHE` | *(attiva)* | `off` (anche `no`, `false`, `0`, `none`, `disabled`): nessuna lettura o scrittura su disco, cache solo in memoria per la vita del processo |
 | `LEGAL_TODAY` / `LEGAL_NOW` | *(orologio reale)* | Pinnano la data/ora vista dal server (`YYYY-MM-DD` / ISO 8601): riproducibilità dei calcoli «a oggi», usati dai golden test |

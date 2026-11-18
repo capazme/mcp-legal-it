@@ -59,14 +59,20 @@ questo documento. Le due liste non possono divergere.
 **Brocardi è l'unica fonte non istituzionale**, ed è una scelta deliberata da
 conoscere. Fornisce annotazioni dottrinali e massime; **non fornisce mai il
 testo di una norma**, che arriva sempre da Normattiva o da EUR-Lex (per il codice
-deontologico forense, dal Consiglio nazionale forense). Se questa
-dipendenza non ti va bene, spegnila:
+deontologico forense, dal Consiglio nazionale forense). **È spenta per default**
+(decisione LI-079): un'installazione standard non la contatta mai. Si accende
+solo in modo esplicito:
 
 ```bash
-LEGAL_BROCARDI=off mcp-legal-it        # oppure crea_server(brocardi=False) in codice
+LEGAL_BROCARDI=on mcp-legal-it         # oppure crea_server(brocardi=True) in codice
+LEGAL_BROCARDI=off mcp-legal-it        # spento esplicito: il codice non può riaccenderla
 ```
 
-Con Brocardi spento:
+Valori accettati: `on`, `1`, `true`, `yes` per accendere; `off`, `0`, `false`, `no`
+per spegnere. Un valore diverso vale come spento esplicito (fail closed) ed è
+segnalato all'avvio su stderr e in `stato_server`.
+
+Con Brocardi spento (il default):
 
 - **nessuna richiesta parte verso `www.brocardi.it`**: i due scraper che costruiscono
   URL Brocardi (`mcp_legal_it/lib/brocardi/client.py`, `mcp_legal_it/lib/visualex/scraper.py`)
@@ -76,7 +82,9 @@ Con Brocardi spento:
 - `cerca_brocardi` e `fetch_law_annotations` (tag `solo_brocardi`) non sono esposti;
 - `cite_law(include_annotations=True)`, `giurisprudenza_articolo` e `mappa_orientamento`
   (tag `brocardi`) rispondono senza Brocardi e lo dichiarano nella risposta;
-- uno *spento* nell'ambiente non può essere riacceso dal codice.
+- uno *spento* nell'ambiente (o un valore non riconosciuto) non può essere riacceso dal
+  codice: `crea_server(brocardi=True)`, `configurazione(brocardi=True)` e
+  `set_default(True)` sollevano `ValueError`.
 
 Questo controllo è **a runtime**, non solo statico:
 `tests/unit/test_brocardi_switch.py` sostituisce la rete con un finto client che

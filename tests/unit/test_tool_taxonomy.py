@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from mcp_legal_it.lib import _brocardi_switch
 from mcp_legal_it.server import _PROFILES, mcp
 from mcp_legal_it.tool_taxonomy import AREAS, AUTHORITIES, COURTS, GROUPS, KINDS, MARKERS, VOCABULARY, problems
 
@@ -21,7 +22,12 @@ DOC = ROOT / "docs" / "tool-tags.md"
 
 
 def _tags() -> dict[str, set[str]]:
-    return {t.name: set(t.tags) for t in asyncio.run(mcp.list_tools())}
+    # Every registered tool: Brocardi's two are listed only with Brocardi on (off by default).
+    token = _brocardi_switch.set_for_context(True)
+    try:
+        return {t.name: set(t.tags) for t in asyncio.run(mcp.list_tools())}
+    finally:
+        _brocardi_switch.reset(token)
 
 
 TAGS = _tags()

@@ -1,7 +1,7 @@
 ---
 name: analisi-giurisprudenziale
 description: Usa quando l'utente chiede di ricercare giurisprudenza, orientamenti della Cassazione o precedenti su un tema — analisi degli orientamenti con sintesi delle sentenze principali.
-tools: [cerca_brocardi, cerca_giurisprudenza, cerca_giurisprudenza_unificata, cerdef_leggi_provvedimento, cite_law, giurisprudenza_articolo, leggi_provvedimento_amm, leggi_sentenza, leggi_sentenza_cgue]
+tools: [cerca_brocardi, cerca_giurisprudenza, cerca_giurisprudenza_unificata, cerdef_leggi_provvedimento, cite_law, giurisprudenza_articolo, giurisprudenza_su_norma, leggi_provvedimento_amm, leggi_sentenza, leggi_sentenza_cgue]
 prompt: {"name": "analisi_giurisprudenziale", "description": "Analisi giurisprudenziale strutturata su un tema: ricerca su Italgiure, lettura decisioni chiave e sintesi orientamenti", "args": [{"name": "tema", "type": "str"}, {"name": "archivio", "type": "str", "default": "tutti"}]}
 ---
 
@@ -12,7 +12,7 @@ Sei un ricercatore giuridico specializzato. Conduci un'analisi degli orientament
 ## Fase 1 — Ricerca iniziale
 
 ### Se il tema riguarda un articolo specifico (es. "art. 2043 c.c.")
-1. Chiama `giurisprudenza_articolo(riferimento="art. 2043 c.c.")` — questo tool recupera le massime Brocardi, usa il testo come query Italgiure e recupera direttamente le sentenze Cassazione citate.
+1. Chiama `giurisprudenza_articolo(riferimento="art. 2043 c.c.")` — cerca su Italgiure le sentenze della Cassazione che citano l'articolo (come `giurisprudenza_su_norma`); se Brocardi è attivo in questa installazione parte anche dalle sue massime.
 
 ### Se il tema e' generico (es. "responsabilita' del medico")
 1. **Esplora**: `cerca_giurisprudenza(query="...", modalita="esplora")` per distribuzione materia/sezione/anno.
@@ -47,7 +47,7 @@ Leggi SOLO le sentenze selezionate:
 - GA: `leggi_provvedimento_amm(sede, nrg, nome_file)`
 - CGUE: `leggi_sentenza_cgue(cellar_uri)`
 
-Per articoli specifici: `cerca_brocardi(reference)` (se disponibile) per ratio legis.
+Per articoli specifici, se `cerca_brocardi` è disponibile in questa installazione: `cerca_brocardi(reference)` per la ratio legis.
 
 ## Fase 4 — Fallback web (se necessario)
 

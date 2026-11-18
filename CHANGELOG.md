@@ -475,6 +475,26 @@ described in those sections, not repeated here. Upgrading from 2.x:
   `docs/tool-tags.md`.
 
 ### Changed
+- **Brocardi.it is off by default (decision LI-079).** Brocardi.it is the server's only
+  private source (doctrinal notes and case-law abstracts, never the text of a norm), and it is
+  now off unless switched on; every other source stays on. With nothing set no request reaches
+  brocardi.it, `cerca_brocardi` and `fetch_law_annotations` are not listed (233 tools instead
+  of 235), and `cite_law(include_annotations=True)`, `giurisprudenza_articolo` and
+  `mappa_orientamento` say in one line, where the Brocardi part would have been, «Brocardi non
+  attivo in questa installazione». The server instructions, skills, agents and commands take
+  the Italgiure path by default (`giurisprudenza_su_norma`, `cerca_giurisprudenza` →
+  `leggi_sentenza`) and use Brocardi only if available. **To switch it on:**
+  `LEGAL_BROCARDI=on` (or `1`, `true`, `yes`) in the environment of the server or of Claude
+  Code (also the `env` block of `~/.claude/settings.json`), or in code
+  `crea_server(brocardi=True)`, `configurazione(brocardi=True)` or
+  `_brocardi_switch.set_default(True)`; `crea_server()` now follows the process
+  (`brocardi=None`). `LEGAL_BROCARDI=off` (or `0`, `false`, `no`) keeps it off and code cannot
+  switch it back on (`ValueError`); any other value counts as off, is reported on stderr at
+  start-up and named by `stato_server`, whose `brocardi.stato` says `spento_per_default`,
+  `acceso`, `spento_esplicito` or `valore_non_riconosciuto`. The stock server now hides the
+  `solo_brocardi` tools per request (a visibility transform), so a server built with
+  `crea_server(brocardi=True)` lists and calls them. `release.py` counts the default surface
+  (233) for the manifests.
 - **`analisi-sinistro`: patrimonial danno differenziale in workplace accidents (decision
   LI-072).** Section 2-bis now says that, against the employer, only the patrimonial
   differential is due, computed on homogeneous heads: the civil-law lucro cessante minus the
@@ -911,6 +931,16 @@ described in those sections, not repeated here. Upgrading from 2.x:
   Sunday 15/03/2026 instead of Monday 16/03/2026. The result carries a `nota`.
 
 ### Security
+- **Three dependencies of the plugin lock past advisories published on 16 November 2026.**
+  dnspython 2.9.0 → 2.9.2 (CVE-2026-128089), opentelemetry-api 1.45.1 → 1.45.2
+  (CVE-2026-126360), soupsieve 3.0.3 → 4.0.1 (CVE-2026-126190, fixed in 4.0). All three are
+  transitive (email-validator, fastmcp-slim, beautifulsoup4), so only `plugin/server/uv.lock`
+  moves, and only in those three entries: the lock was written with uv 0.11.24, which keeps its
+  format (revision 3) and markers. soupsieve 4 is a major: its breaking changes concern
+  `<template>` contents and `iframe` documents, which none of the scraped pages and none of our
+  selectors rely on; every scraping test passes with it. The README now states the minimum uv
+  the plugin needs, 0.4.16 (the first with `--project`, which the launcher passes to `uv run`
+  and `uv sync`).
 - **The citation hook and the local server no longer use the opened folder's Python
   environment.** The hook and the server's launchers (the `.mcpb`, the Codex
   configuration of the OpenAI bundle, the documented examples) started `uv` from the
@@ -968,6 +998,115 @@ described in those sections, not repeated here. Upgrading from 2.x:
   server runs without the disk cache.
 
 ### Fixed
+- **`cerca_ddl` and `ddl_su_norma`: a long search no longer reads as «Senato unreachable» (#185).**
+  The dati.senato.it WAF answers 403 to any GET whose path and query string exceed 2048 bytes,
+  whatever the query says (verified live: 2048 answers, 2049 does not), and POST is refused too.
+  With words of average length, a search of thirteen terms, or six with every filter on, crossed it
+  and came back as `source_down`. The SPARQL queries now travel with their whitespace collapsed,
+  which leaves room for one or two terms more with the same results (checked live against the
+  previous queries). A search that
+  still does not fit is refused before the request, with the reason and what to shorten, and so
+  is an `iter_ddl` atto with an absurd run of suffixes («S.1-B-B-B…»). A bare
+  string passed to `search_ddl` in place of a list of term groups, which turned «codice della
+  strada» into seventeen one-letter clauses, now raises `TypeError`. New live tests run the real
+  `search_ddl` and pin the 2048-byte limit.
+- `plugin/README.md` said 23 skills in its English summary: the plugin ships 30 (and 235 tools, 9 commands, 6 agents).
+- **Act models whose warnings cost the act or the right (G-493, from the 2.17.2 hotfix).** Each was
+  reread on the text in force on Normattiva. Only these models were reread; the others are unchanged
+  (the istanza di esecutorietà model, for one, still counts «40 giorni + 10»).
+  - `opposizione_decreto_ingiuntivo` and `relata_pec_opposizione_di` gave «40 giorni dalla notifica».
+    The term is the one the decree fixes (art. 641 co. 1-2 c.p.c.): 40 days, down to 10 or up to 60
+    for giusti motivi; 50 days, down to 20, for a debtor in another EU State; 60, between 30 and
+    120, elsewhere. A late opposition is admitted only under art. 650: no timely knowledge of the
+    decree (irregular notification, caso fortuito, forza maggiore) or, after C. Cost. 120/1976,
+    knowledge of it but no way to oppose in time for caso fortuito or forza maggiore; never past ten
+    days from the first act of execution. The opposition model is now the atto introduttivo
+    (before the giudice di pace, ricorso semplificato, art. 316 co. 1; before the tribunale,
+    citazione, or ricorso in the rito semplificato, art. 281-decies co. 3), with the art. 645 co. 3
+    hearing and a field for the term in the decree. The `decreto_ingiuntivo` tool's
+    `termini.opposizione` says the same, and so do the `legal://riferimenti/termini-processuali`
+    table and the `legal://riferimenti/checklist-decreto-ingiuntivo` checklist, whose istanza di
+    esecutorietà no longer waits «40 giorni» but the term fixed in the decree.
+  - `avviso_543_5_cpc` was addressed to the debtor. It is notified to the third party, with the
+    numero di ruolo, and, notified, deposited in the file, both by the hearing date; otherwise the
+    pignoramento is inefficace (towards the third parties whose notice is not notified or
+    deposited, art. 543 co. 5 c.p.c.). Fields for the numero di ruolo and the hearing date.
+  - `vendita_immobili` asked to attach an expert valuation (art. 568) and pointed to the catasto
+    calculator. The judge sets the market value on the parties' elements and the art. 569 expert's;
+    what the creditor deposits, within the art. 497 term, is the catasto extract and the
+    twenty-year certificates, or a notarial certificate, on pain of inefficacia, with the
+    transcription cancelled and, without other goods, the process extinguished (art. 567 co. 2-3).
+    The art. 501 ten-day wait is stated too.
+  - The live test that certified «40 giorni» as correct now checks the decree's term, with rows for
+    the other models; `cite_law` names an annex as «Testo tratto da: …» (it read «dall'CODICE
+    CIVILE» for a part without «Allegato» in its name).
+- **The legge Basevi cited as a «d.lgs.» was refused.** A D.Lgs.C.P.S. is a decreto legislativo of the
+  Capo provvisorio dello Stato, and «art. 26 d.lgs. 1577/1947» is how it is cited; since its heading
+  type was measured (G-440) the page counted as another act's, and only «D.Lgs.C.P.S. 1577/1947» or
+  «legge Basevi» read it. A «d.lgs.» now also takes the heading «DECRETO LEGISLATIVO DEL CAPO
+  PROVVISORIO DELLO STATO», dated by its title like any d.lgs.; cited as a legge, or another type, it
+  is still another act. No cache holds the refusal: a date not found is never kept.
+- **Amendments whose entry into force was deferred, served as in force (#172).** Normattiva dated the
+  versions carrying art. 27 of d.lgs. 116/2017 (giudice di pace reform) by superseded dates of its
+  entry-into-force chain (31/10/2021, 2025) and served them as the text in force, `ESATTO`, although
+  the articles' own update notes defer them to 31/10/2027 (d.l. 100/2026). The notes' dated
+  entry-into-force clauses are now read (`lib/visualex/vigenza_differita.py`; the latest note of each
+  provision wins). When one falls after today, the article's table of updates decides: the latest
+  version carries only the deferred act and the acts that deferred it, so the previous version is
+  served as the text in force (case A, e.g. art. 7 c.p.c., version 01/01/2023-30/10/2025); the
+  article itself was inserted by the deferred act, so it is not in force yet (art. 15-bis c.p.c.);
+  otherwise no version is the text in force and it is said (case B, art. 543 c.p.c.). Always
+  `INDICATIVO`, with a notice naming the note and the date, and `upcoming` {amended, 2027-10-31};
+  `cite_law` JSON carries `rinvio`, and `verifica_citazioni` says it, also when the table of updates
+  could not be read (or was read only in part) to tell which text is in force. `storia_norma` and
+  `api.modifiche_articolo` name the version Normattiva wrongly gives as in force, `INDICATIVO`, from
+  the notes of the page the walk already reads (no request more). Checked live on the 20 articles of
+  the c.p.c. and c.c. that carry the note.
+- **A false deferral notice on the articles of the 2005-2006 esecuzioni reform (#177).** Since #179,
+  arts. 567 and 569 c.p.c. (and every article d.l. 35/2005 touched) came out `INDICATIVO` with «non è
+  stato possibile leggere sull'art. 2, comma 3-sexies … se quella data è stata rinviata ancora». Their
+  notes move that entry into force from 1/1/2006 to 1/3/2006, a chain read live as possibly stale.
+  The comma defers part of an article («Le disposizioni di cui ai commi 3, lettera e) …»), so it was
+  «not known» before its dates were looked at, and each reading also walked the article's versions
+  since 2005. A comma all of whose dates have passed (every date it states, with an entry-into-force
+  formula or not) and with no exception or derogation now defers nothing, whatever part it names:
+  the articles are `ESATTO` again with no notice, and no table is read. A comma with an exception
+  or derogation («salvo», «fatte salve», «ad eccezione», «ad esclusione», «eccettuati», «fuorché»,
+  «fermo restando», «in deroga», «diversamente disposto/previsto/stabilito» …) stays not known even
+  with past dates, since it may defer
+  elsewhere; so does a spent comma with a date still to come in other words («si applicano a
+  decorrere dal …»). A date to come is taken only when the comma states no other date, past or
+  future: two dates in one comma may belong to different articles.
+- **Two more provisions of art. 27 d.lgs. 116/2017 served as in force, and a case B notice that
+  said too much (#177).** A scan of all 32 provisions art. 27 amends found:
+  - art. 765 c.p.c. served `ESATTO` with «cancelliere del giudice di pace». Normattiva's notes on that
+    page stop at 31/10/2026, never updated to 2027. A chain of notes whose date was moved later and
+    has now passed is checked against the provision that sets it: art. 32, comma 3 of d.lgs.
+    116/2017, read live as in force today (the page is kept a day). Never a date written in the
+    code.
+    - One date in that comma still to come: the deferral. The chain also takes the acts of the
+      provision's latest table of updates (d.l. 100/2026).
+    - All its dates passed, or the comma repealed: nothing is deferred.
+    - The provision not readable, or its date not known: a notice without a date, `INDICATIVO`,
+      whenever a version read carries the deferred act. The date is not known when the comma has
+      no date or more than one future date, or when it may not be the date of what the chain
+      defers: an exception («salvo», «ad eccezione», «in deroga» …), only part of an article, or
+      another article than the one the notes name.
+
+    Case A now also covers the versions after the deferred one when they carry only the acts that
+    deferred it: version 4 (art. 27), then version 5 (d.l. 162/2019), so version 3 («cancelliere del
+    tribunale») is served. The deferred act in more than one version stays a case B.
+  - art. 73-bis disp. att. c.c. served as repealed, `ESATTO`. Its notes word the deferral «la proroga
+    al 31 ottobre 2027 dell'entrata in vigore della presente abrogazione», with or without «che»,
+    and that wording is now read. A repealed page goes through case A: version 2 is served with the
+    notice, `upcoming` {abrogated, 2027-10-31} and `successione` dated 2027-10-31, `INDICATIVO`.
+  - case B notice: it no longer says the text «already contains» the deferred amendments.
+    Normattiva may have rewritten them since (art. 518 and 521-bis c.p.c., d.lgs. 164/2024) or never
+    applied them (art. 17 l. 108/1996). It now says Normattiva applied later amendments on top, so
+    the text may hold them in whole or in part and is not verified as the text in force.
+
+  `storia_norma` and `api.modifiche_articolo` give the same answers. The AKN channel is unchanged
+  (#177, point 2).
 - **«c.g.c.» was refused as ambiguous.** The key «cgc» of `NOMI_AMBIGUI` caught «c.g.c.» through the
   dotted-acronym collapse, so «art. 190 c.g.c.» (d.lgs. 174/2016) was refused by callers that ask
   for ambiguity first. «cgc» is dropped (no second act was ever named for it) and a name the tables

@@ -32,7 +32,7 @@ Il plugin `legal-it` aggiunge a Claude Code:
   "plugins": [{
     "name": "legal-it",
     "source": "./plugin",
-    "description": "Plugin legale italiano completo: 235 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Brocardi/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE, Corte dei conti), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 30 skill, 9 slash command, 6 agenti specializzati."
+    "description": "Plugin legale italiano completo: 233 tool di calcolo e ricerca, normativa (Normattiva/EUR-Lex/Gazzetta Ufficiale), giurisprudenza (Cassazione, Corte Costituzionale, CeRDEF tributario, TAR/CdS, CGUE, Corte dei conti), orientamenti e contrasti, recepimento UE→IT, verifica citazioni, CONSOB, compliance GDPR, diritto del lavoro, crisi d'impresa, societario, export DOCX/PDF. 30 skill, 9 slash command, 6 agenti specializzati."
   }]
 }
 ```
@@ -146,7 +146,7 @@ Avvocato civilista esperto in contratti, responsabilità civile, successioni, di
 **Regole fondamentali**:
 1. Chiama `cite_law()` prima di citare qualsiasi norma
 2. Usa `cerca_giurisprudenza(archivio="civile")` → `leggi_sentenza()` per i precedenti
-3. Usa `cerca_brocardi()` per ratio legis e massime
+3. Se Brocardi è acceso (`LEGAL_BROCARDI=on`), `cerca_brocardi()` per ratio legis e massime
 
 **Struttura risposte**: FATTO → DIRITTO → ANALISI → CONCLUSIONI
 

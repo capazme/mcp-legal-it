@@ -12,6 +12,9 @@ Endpoint quirks the tests pin down:
   FILTER(CONTAINS(...)) with &&/|| — test_no_bif_contains_ever
 - literals are typed xsd:string; plain-literal matching silently returns 0 rows
 - dataLegge carries the sentinel 2100-01-01 for pending constitutional laws
+- the WAF also 403s any GET whose request target (path + encoded query)
+  exceeds 2048 bytes (#185): queries are compacted and an over-long one is
+  refused before the request — TestExecuteSenato, TestLiveEndpoints
 """
 
 import copy
@@ -177,6 +180,40 @@ class TestBuildSearchQuery:
         q = _build_search_query([], legislatura=19)
         assert "CONTAINS(LCASE" not in q
 
+    def test_bare_string_groups_raise(self):
+        """A bare string iterates as characters: "codice della strada" used to
+        become 17 one-letter CONTAINS clauses and a URL the WAF refuses (#185)."""
+        with pytest.raises(TypeError):
+            _build_search_query("codice della strada", legislatura=19)
+        with pytest.raises(TypeError):
+            _build_search_query([["codice"], "strada"], legislatura=19)
+
+    def test_generator_groups_are_not_exhausted_by_the_check(self):
+        groups = (g for g in [["codice della strada"], ["285", "1992"]])
+        q = _build_search_query(groups, legislatura=19)
+        assert 'CONTAINS(LCASE(STR(?titolo)), "codice della strada")' in q
+        assert 'CONTAINS(LCASE(STR(?titolo)), "1992")' in q
+
+    def test_whitespace_collapsed_outside_literals(self):
+        q = _build_search_query([["x"]], legislatura=19, stato="all'esame assemblea", solo_pendenti=True)
+        assert "\n" not in q and "  " not in q
+        assert '"all\'esame assemblea"^^xsd:string' in q
+        assert '"rinviato ass.->comm."^^xsd:string' in q
+
+    def test_compact_leaves_literals_untouched(self):
+        from mcp_legal_it.lib.parlamento.client import _compact
+
+        assert _compact('SELECT ?s\n  WHERE { ?s ?p "a  b\tc" }\n') == 'SELECT ?s WHERE { ?s ?p "a  b\tc" }'
+
+    def test_thirteen_terms_fit_in_the_waf_limit(self):
+        """Thirteen OR-ed terms were refused (403) before the queries were
+        compacted: they now fit in the 2048 bytes the WAF accepts."""
+        from mcp_legal_it.lib.parlamento.client import SENATO_MAX_REQUEST_TARGET, senato_request_target
+
+        words = "strada ambiente lavoro scuola energia rifiuti salute pesca caccia turismo sport cultura difesa"
+        q = _build_search_query([[w] for w in words.split()], legislatura=19, limit=50)
+        assert len(senato_request_target(q)) <= SENATO_MAX_REQUEST_TARGET
+
 
 class TestBuildIterQuery:
     def test_fase_branch_uses_typed_string_and_legislatura(self):
@@ -196,6 +233,39 @@ class TestBuildIterQuery:
         assert "osr:idDdl 55442 ." in q
         assert '"55442"' not in q
         assert "?leg" in q
+
+
+class TestCompactPreconditions:
+    """_compact collapses whitespace outside '"[^"]*"' spans: it is correct only
+    while literals carry no '"' or backslash, and the query text outside the
+    literals holds no '#' comment (it would swallow the rest of the one-line
+    query) and no single-quoted literal (its whitespace would be collapsed)."""
+
+    @staticmethod
+    def _queries():
+        from mcp_legal_it.lib.parlamento.client import _build_iter_query
+
+        return [
+            _build_search_query(
+                [['a"b\\c'], ["dell'ambiente", "x"]], legislatura=19,
+                ramo="S", stato='all\'esame "assemblea"\\', solo_pendenti=True,
+            ),
+            _build_iter_query(fase="S.562-B", legislatura=19),
+            _build_iter_query(id_ddl="55442"),
+        ]
+
+    def test_outside_literals_no_comment_and_no_single_quotes(self):
+        import re
+
+        for q in self._queries():
+            outside = re.sub(r"<[^>]*>", "", re.sub(r'"[^"]*"', "", q))  # the # of an IRI is no comment
+            assert "#" not in outside, q
+            assert "'" not in outside, q
+
+    def test_literals_carry_no_quote_or_backslash(self):
+        for q in self._queries():
+            assert q.count('"') % 2 == 0, q
+            assert "\\" not in q, q
 
 
 class TestParseAttoInput:
@@ -267,6 +337,46 @@ class TestExecuteSenato:
         with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
             with pytest.raises(httpx.RequestError):
                 await _execute_sparql_senato("SELECT ?s WHERE { ?s ?p ?o }")
+
+    @staticmethod
+    def _query_with_target(size: int) -> str:
+        from mcp_legal_it.lib.parlamento.client import senato_request_target
+
+        query = "SELECT ?s WHERE { ?s ?p ?o } LIMIT 1 #"
+        while len(senato_request_target(query)) < size:
+            query += "x"
+        assert len(senato_request_target(query)) == size
+        return query
+
+    async def test_query_over_the_waf_limit_is_refused_before_the_request(self):
+        """Sent anyway it would come back as a 403 page, read as "Senato
+        unreachable", while the cause is the length of the search (#185)."""
+        from mcp_legal_it.lib.parlamento.client import QueryTooLong, _execute_sparql_senato
+
+        client = _make_client(get_json=_SENATO_SEARCH)
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+            with pytest.raises(QueryTooLong, match="2049 byte"):
+                await _execute_sparql_senato(self._query_with_target(2049))
+        client.get.assert_not_awaited()
+
+    async def test_query_at_the_waf_limit_is_sent(self):
+        from mcp_legal_it.lib.parlamento.client import _execute_sparql_senato
+
+        client = _make_client(get_json=_SENATO_SEARCH)
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+            await _execute_sparql_senato(self._query_with_target(2048))
+        assert client.get.await_count == 1
+
+    def test_measured_target_is_the_one_the_client_sends(self):
+        """The guard measures the same bytes httpx puts on the request line."""
+        from mcp_legal_it.lib.parlamento.client import (
+            SENATO_SPARQL_URL, _senato_params, senato_request_target,
+        )
+
+        q = _build_search_query([["codice dell'ambiente"], ["152", "2006"]], legislatura=19, solo_pendenti=True)
+        with httpx.Client() as client:  # build_request is shared with AsyncClient; nothing is sent
+            sent = client.build_request("GET", SENATO_SPARQL_URL, params=_senato_params(q))
+        assert senato_request_target(q) == sent.url.raw_path
 
 
 # ---------------------------------------------------------------------------
@@ -510,6 +620,19 @@ class TestCercaDdlImpl:
         assert result.error_type == "no_results"
         client.get.assert_not_awaited()
 
+    async def test_too_many_terms_explained_without_network(self):
+        """Thirty comma-separated terms do not fit in the URL the Senato WAF
+        accepts: the user reads why, not "Senato unreachable"."""
+        client = _make_client(get_json=_SENATO_SEARCH)
+        terms = ", ".join(f"termine{i}" for i in range(30))
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+            result = await _cerca_ddl_impl(terms)
+
+        assert not result.success
+        assert result.error_type == "invalid_input"
+        assert "troppo lunga" in result.to_str()
+        client.get.assert_not_awaited()
+
     async def test_html_body_on_200_is_source_down_not_no_results(self):
         """A 200 with an HTML error page (the senato.it WAF failure mode, and
         the exact shape of issue #32) raises JSONDecodeError — a ValueError
@@ -563,6 +686,18 @@ class TestIterDdlImpl:
         result = await _iter_ddl_impl("pippo")
         assert not result.success
         assert "pippo" in result.to_str()
+
+    async def test_query_too_long_is_invalid_input_without_network(self):
+        """parse_atto_input admits any number of suffix segments: an absurd one
+        outgrows the URL the WAF accepts and must not read as "Senato down"."""
+        client = _make_client(get_json=_SENATO_ITER)
+        with patch("mcp_legal_it.lib.parlamento.client.httpx.AsyncClient", return_value=client):
+            result = await _iter_ddl_impl("S.1" + "-B" * 600)
+
+        assert not result.success
+        assert result.error_type == "invalid_input"
+        assert "troppo lunga" in result.to_str()
+        client.get.assert_not_awaited()
 
     async def test_not_found(self):
         client = _make_client(get_json=_EMPTY)
@@ -629,6 +764,52 @@ class TestLiveEndpoints:
         fasi = await search_ddl([["intelligenza artificiale"]], legislatura=19, limit=2)
         assert fasi
         assert all(f.fase[0] in "SC" for f in fasi)
+
+    async def test_senato_search_by_title_phrase(self):
+        """The real search_ddl on the case of issue #185: every hit carries the
+        phrase in its title, newest stato first, legislature from the data."""
+        from mcp_legal_it.lib.parlamento.client import search_ddl
+
+        fasi = await search_ddl([["codice della strada"]], legislatura=19, limit=20)
+        assert fasi
+        assert all("codice della strada" in f.titolo.lower() for f in fasi)
+        assert all(f.legislatura == 19 for f in fasi)
+        date = [f.data_stato for f in fasi]
+        assert date == sorted(date, reverse=True)
+
+    async def test_senato_thirteen_terms_answer(self):
+        """Thirteen OR-ed terms got a 403 before the queries were compacted."""
+        from mcp_legal_it.lib.parlamento.client import search_ddl
+
+        words = "strada ambiente lavoro scuola energia rifiuti salute pesca caccia turismo sport cultura difesa"
+        fasi = await search_ddl([[w] for w in words.split()], legislatura=19, limit=5)
+        assert fasi
+
+    async def test_senato_waf_limit_is_2048_bytes(self):
+        """SENATO_MAX_REQUEST_TARGET rests on this: 2048 bytes of request target
+        answer 200, 2049 answer 403 (verified 2026-11-17). If either changes,
+        the WAF changed and the limit deserves a fresh look."""
+        import asyncio
+
+        from mcp_legal_it.lib.parlamento.client import (
+            _HEADERS, SENATO_SPARQL_URL, _senato_params, senato_request_target,
+        )
+
+        def query_with_target(size: int) -> str:
+            phrase = "disposizioni"
+            while len(senato_request_target(_build_search_query([[phrase]], legislatura=19, limit=1))) < size:
+                phrase += "x"
+            return _build_search_query([[phrase]], legislatura=19, limit=1)
+
+        statuses = []
+        async with httpx.AsyncClient(timeout=30.0, headers=_HEADERS) as client:
+            for size in (2048, 2049):
+                query = query_with_target(size)
+                assert len(senato_request_target(query)) == size
+                resp = await client.get(SENATO_SPARQL_URL, params=_senato_params(query))
+                statuses.append(resp.status_code)
+                await asyncio.sleep(2)  # a public site: one request at a time
+        assert statuses == [200, 403], statuses
 
     async def test_senato_post_is_still_blocked(self):
         """The GET-only design rests on this: if POST starts working, the WAF

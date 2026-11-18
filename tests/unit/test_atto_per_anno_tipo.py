@@ -414,9 +414,9 @@ class TestTipoConTitolo:
         assert any("~art3" in u for u in chieste)
 
     async def test_a_measured_historical_heading_is_another_act(self):
+        # A decreto luogotenenziale's heading: never a d.lgs. (a D.Lgs.C.P.S.'s is, the legge Basevi).
         storica = L241.replace("<title>LEGGE 7 agosto 1990, n. 241 - Normattiva</title>",
-                               "<title>DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 7 agosto 1990, n. 241"
-                               " - Normattiva</title>")
+                               "<title>DECRETO LUOGOTENENZIALE 7 agosto 1990, n. 241 - Normattiva</title>")
         r, chieste = await self._con_normattiva(
             lambda: scraper.fetch_article(NormaVisitata(norma=self.DLGS, numero_articolo="3")),
             routes={self.URL: storica})
@@ -496,9 +496,30 @@ class TestIntestazioniStoriche:
         assert r.esito == "trovato" and r.data == data, r
         assert r.urn == f"urn:nir:stato:{url.split(':')[0]}:{data};{args[1]}"
 
+    async def test_the_basevi_law_cited_as_a_dlgs_is_found(self):
+        """A D.Lgs.C.P.S. is a decreto legislativo of the Capo provvisorio dello Stato, and is cited
+        as a «d.lgs.» (art. 26 d.lgs. 1577/1947): its heading is the act cited, dated by its title
+        (review of the 2.17.2 port, G-493). Cited as a legge it is still another act."""
+        r, _ = await _risolvi({"decreto.legislativo:1947-01-01;1577": self.DLGSCPS1577}, "decreto legislativo",
+                              "1577", "1947")
+        assert r.esito == "trovato" and r.data == "1947-12-14", r
+        scraper.controlla_intestazione(f"{N2LS}decreto.legislativo:1947-12-14;1577~art26", self.DLGSCPS1577)
+        r, _ = await _risolvi({"legge:1947-01-01;1577": self.DLGSCPS1577}, "legge", "1577", "1947")
+        assert r.esito == "atto_non_trovato"
+        assert "DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO 14 dicembre 1947, n. 1577" in r.errore
+
+    async def test_a_dlgs_never_takes_a_dcps_heading(self):
+        """A decreto del Capo provvisorio dello Stato is not legislative: a «d.lgs. 659/1946» that
+        gets the D.C.P.S. 6 settembre 1946, n. 659 is another act, by year and by full date."""
+        r, _ = await _risolvi({"decreto.legislativo:1946-01-01;659": self.DCPS659}, "decreto legislativo",
+                              "659", "1946")
+        assert r.esito == "atto_non_trovato"
+        assert "DECRETO DEL CAPO PROVVISORIO DELLO STATO 6 settembre 1946, n. 659" in r.errore
+        with pytest.raises(scraper.AttoNonVerificato, match="DECRETO DEL CAPO PROVVISORIO DELLO STATO"):
+            scraper.controlla_intestazione(f"{N2LS}decreto.legislativo:1946-09-06;659~art1", self.DCPS659)
+
     @pytest.mark.parametrize("tipo, kind", [
         ("decreto luogotenenziale", "decreto.luogotenenziale"),
-        ("decreto legislativo", "decreto.legislativo"),
         ("decreto del capo provvisorio dello stato", "decreto.del.capo.provvisorio.dello.stato"),
     ])
     async def test_the_basevi_law_cited_as_another_type_is_not_found(self, tipo, kind):

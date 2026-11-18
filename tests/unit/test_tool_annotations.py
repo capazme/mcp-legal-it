@@ -12,6 +12,7 @@ import subprocess
 import sys
 
 from fastmcp import Client
+from mcp_legal_it.lib import _brocardi_switch
 from mcp_legal_it.server import mcp
 from mcp_legal_it.tool_annotations import CACHE_WRITES, READ_ONLY, WRITES_FILES, annotations_for
 
@@ -19,11 +20,16 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 
 
 def _tools():
-    async def run():
-        async with Client(mcp) as client:
-            return await client.list_tools()
+    # Every registered tool: Brocardi's two are listed only with Brocardi on (off by default).
+    token = _brocardi_switch.set_for_context(True)
+    try:
+        async def run():
+            async with Client(mcp) as client:
+                return await client.list_tools()
 
-    return asyncio.run(run())
+        return asyncio.run(run())
+    finally:
+        _brocardi_switch.reset(token)
 
 
 def test_policy_covers_every_registered_tool():

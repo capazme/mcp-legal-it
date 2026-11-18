@@ -1,13 +1,16 @@
-"""MCP Legal IT — 234 Italian legal tools: calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE, Corte dei conti), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, ANAC, document generation."""
+"""MCP Legal IT — 233 Italian legal tools (235 with Brocardi switched on): calculations, normative citations, case law (Cassazione, Corte Costituzionale, CeRDEF, TAR/CdS, CGUE, Corte dei conti), Gazzetta Ufficiale, parliamentary bills (Senato/Camera open data), EU→IT transposition, GDPR compliance, CONSOB, ANAC, document generation."""
 
 import asyncio
 import os
 import re
+import sys
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import NotFoundError
 from fastmcp.server.middleware import Middleware
+from fastmcp.server.transforms import Transform
 
 from mcp_legal_it._profilo import profilo_richiesto
 from mcp_legal_it.cli_version import package_version
@@ -27,7 +30,8 @@ Strumenti di diritto italiano. Cerca i tool di questo server quando l'utente chi
 - PROPRIETÀ/SUCCESSIONI: eredità, IMU, usufrutto, compravendita, imposta registro
 - INVESTIMENTI: BOT, BTP, buoni postali, rendimento
 - UTILITÀ: codice fiscale, IBAN, scorporo IVA, patente, alcolemico, ATECO
-- NORMATIVA: cite_law() per testo vigente, Brocardi per dottrina, PDF norme
+- NORMATIVA: cite_law() per testo vigente, PDF norme
+- DOTTRINA (se disponibile): cerca_brocardi() ratio legis, spiegazione e massime da Brocardi
 - STORIA DI UNA NORMA: storia_norma() versioni e atti modificativi di un articolo (vigenza ≠ applicabilità)
 - VERIFICA CITAZIONI: verifica_citazioni() controlla esistenza e metadati di un elenco di norme e sentenze citate (NON verifica il merito)
 - GAZZETTA UFFICIALE: cerca_gazzetta_ufficiale, leggi_atto_gazzetta, sommario_gazzetta, ultime_gazzette, scarica_pdf_gazzetta — atti pubblicati in GU (leggi, decreti, ELI)
@@ -55,7 +59,7 @@ WORKFLOW:
 Sinistro → danno_biologico_* → danno_non_patrimoniale → rivalutazione_monetaria → interessi_legali
 Credito → interessi_mora → rivalutazione_monetaria → decreto_ingiuntivo → parcella_avvocato_civile
 Procure/quotazioni seriali → genera_procura_liti_docx + genera_quotazione_docx (tipo in base alla fase: monitorio | esecuzione | opposizione)
-Norma → cite_law → cerca_brocardi → giurisprudenza_su_norma → leggi_sentenza
+Norma → cite_law → giurisprudenza_su_norma → leggi_sentenza
 Orientamento → orientamento_su_norma/orientamento_su_principio → mappa_orientamento (conformi/contrasti/SS.UU.)
 Costituzionale → cerca_pronuncia_costituzionale → leggi_pronuncia_costituzionale | pronunce_cost_su_norma → cite_law
 Gazzetta → ultime_gazzette/cerca_gazzetta_ufficiale → leggi_atto_gazzetta → cite_law
@@ -206,14 +210,63 @@ if _previgenti_nascosti(os.environ.get(_PREVIGENTE_SWITCH)):
     mcp.disable(tags={_PREVIGENTE_TAG})
 
 # ---------------------------------------------------------------------------
-# Brocardi switch: on by default; LEGAL_BROCARDI=off hides the tools whose answer
-# is Brocardi content only (tag `solo_brocardi`), and the scrapers refuse every
-# request to brocardi.it, so the mixed tools (tag `brocardi`) answer without it
-# and say so (see mcp_legal_it/lib/_brocardi_switch.py). Applied last, like the
-# regime switch, so no profile can bring the group back.
+# Brocardi switch: off by default (LI-079); LEGAL_BROCARDI=on switches it on. While
+# it is off the tools whose answer is Brocardi content only (tag `solo_brocardi`)
+# are not listed nor callable, and the scrapers refuse every request to
+# brocardi.it, so the mixed tools (tag `brocardi`) answer without it and say so
+# (see mcp_legal_it/lib/_brocardi_switch.py). The decision is taken per request,
+# not once at import: a static disable() here could not be undone by a server that
+# mounts this one, and crea_server(brocardi=True) must list the group again.
+# Applied last, like the regime switch, so no profile can bring the group back.
 # ---------------------------------------------------------------------------
-if _brocardi_switch.off_by_environment():
-    mcp.disable(tags={_brocardi_switch.TAG_SOLO})
+class _BrocardiVisibility(Transform):
+    """Leave the ``solo_brocardi`` tools out of the listing while Brocardi is off for the request.
+
+    Only the listing: a lookup by name through a mount does not run the mounted server's
+    middleware (FastMCP's provider calls ``get_tool`` directly), so a filter here would
+    hide the tools from a host that mounts ``crea_server(brocardi=True)`` while that
+    server lists them. The call is refused by ``_BrocardiCallGate`` instead.
+    """
+
+    async def list_tools(self, tools):
+        if _brocardi_switch.enabled():
+            return tools
+        return [t for t in tools if _brocardi_switch.TAG_SOLO not in (t.tags or set())]
+
+
+def _registered_with_tag(tag: str) -> frozenset[str]:
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        tools = pool.submit(asyncio.run, mcp.local_provider.list_tools()).result()
+    return frozenset(t.name for t in tools if tag in (t.tags or set()))
+
+
+class _BrocardiCallGate(Middleware):
+    """Refuse a call to a ``solo_brocardi`` tool while Brocardi is off, as an unknown tool.
+
+    It runs inside the stock server's own ``call_tool``, so after the middleware of a
+    ``crea_server`` that mounts it has set the switch for the request.
+    """
+
+    def __init__(self, names: frozenset[str]) -> None:
+        self.names = names
+
+    async def on_call_tool(self, context, call_next):
+        name = context.message.name
+        if name in self.names and not _brocardi_switch.enabled():
+            raise NotFoundError(f"Unknown tool: {name!r}")
+        return await call_next(context)
+
+
+mcp.add_transform(_BrocardiVisibility())
+mcp.add_middleware(_BrocardiCallGate(_registered_with_tag(_brocardi_switch.TAG_SOLO)))
+
+if _brocardi_switch.unrecognised_value() is not None:
+    # stderr only: stdout carries the protocol, and tools never say how to switch Brocardi on.
+    print(
+        f"mcp-legal-it: {_brocardi_switch.ENV_SWITCH}={_brocardi_switch.unrecognised_value()!r} non è un valore "
+        f"riconosciuto: Brocardi resta spento (valori ammessi: {_brocardi_switch.accepted_values()})",
+        file=sys.stderr,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -248,8 +301,6 @@ def _instructions_for(available: set[str], text: str = _STOCK_INSTRUCTIONS) -> s
         return text
     lines = []
     for line in text.split("\n"):
-        if "cerca_brocardi" in hidden:
-            line = line.replace(", Brocardi per dottrina", "")
         if " → " in line:
             steps = line.split(" → ")
             kept = [s for s in steps if s.strip() not in hidden]
@@ -262,7 +313,10 @@ def _instructions_for(available: set[str], text: str = _STOCK_INSTRUCTIONS) -> s
     return "\n".join(lines)
 
 
-if _brocardi_switch.off_by_environment():
+# Taken once, at import: the stock server's instructions follow the environment (and a
+# set_default() made before the import), not a later set_default(), so the «DOTTRINA (se
+# disponibile)» line stays as the import found it. crea_server() computes its own.
+if not _brocardi_switch.enabled():
     mcp.instructions = _instructions_for(_visible_tool_names(mcp))
 
 
@@ -271,15 +325,31 @@ if _brocardi_switch.off_by_environment():
 # its own surface: an application that needs the sources (norms, case law) and
 # none of the calculators, or a commercial deployment that must leave Brocardi out.
 # ---------------------------------------------------------------------------
-class _BrocardiOffMiddleware(Middleware):
-    """Run every tool call of one server with Brocardi switched off."""
+class _BrocardiMiddleware(Middleware):
+    """Run every listing and tool call of one server with Brocardi switched on or off.
 
-    async def on_call_tool(self, context, call_next):
-        token = _brocardi_switch.set_for_context(False)
+    On never undoes an off already set for the request (an enclosing ``disabled()``,
+    ``configurazione(brocardi=False)``, a host built with ``brocardi=False`` that mounts
+    this server): an off wins, as everywhere else.
+    """
+
+    def __init__(self, value: bool) -> None:
+        self.value = value
+
+    async def _with_switch(self, context, call_next):
+        if self.value and _brocardi_switch.context_value() is False:
+            return await call_next(context)
+        token = _brocardi_switch.set_for_context(self.value)
         try:
             return await call_next(context)
         finally:
             _brocardi_switch.reset(token)
+
+    async def on_list_tools(self, context, call_next):
+        return await self._with_switch(context, call_next)
+
+    async def on_call_tool(self, context, call_next):
+        return await self._with_switch(context, call_next)
 
 
 def _checked_tags(tags: Iterable[str] | None, argument: str) -> set[str]:
@@ -300,7 +370,7 @@ def _checked_tags(tags: Iterable[str] | None, argument: str) -> set[str]:
 def crea_server(
     include_tags: Iterable[str] | None = None,
     exclude_tags: Iterable[str] | None = None,
-    brocardi: bool = True,
+    brocardi: bool | None = None,
     *,
     name: str = "Legal IT",
     prompts: bool = True,
@@ -320,10 +390,13 @@ def crea_server(
             ``brocardi`` drops every tool that can show Brocardi content,
             ``cite_law`` included; to keep those tools without Brocardi, use
             ``brocardi=False``.
-        brocardi: ``False`` hides the ``solo_brocardi`` tools and runs every call
-            of this server with Brocardi off, so no request reaches brocardi.it and
-            the mixed tools say Brocardi is off. ``True`` follows the process
-            (``LEGAL_BROCARDI=off`` in the environment still wins).
+        brocardi: Brocardi is off by default (LI-079). ``None`` follows the process:
+            off unless ``LEGAL_BROCARDI=on`` or ``set_default(True)``. ``True``
+            lists the ``solo_brocardi`` tools and runs every listing and call of this
+            server with Brocardi on; it raises ``ValueError`` when ``LEGAL_BROCARDI``
+            is off or unrecognised (an operator's off wins). ``False`` hides the
+            ``solo_brocardi`` tools and runs every call with Brocardi off, so no
+            request reaches brocardi.it and the mixed tools say Brocardi is off.
         name: the server name reported to clients.
         prompts: keep the prompts and the ``legal://`` resources (they are not
             tagged, so the tag filters never touch them). The prompts name tools:
@@ -334,7 +407,11 @@ def crea_server(
 
     The process-level switches still apply underneath, because they act on the
     stock server: ``LEGAL_PROFILE``, ``LEGAL_PREVIGENTE=off`` and
-    ``LEGAL_BROCARDI=off`` can only narrow what this factory selects.
+    ``LEGAL_BROCARDI=off`` can only narrow what this factory selects (with
+    ``LEGAL_BROCARDI`` off or unrecognised, ``brocardi=True`` raises).
+    ``brocardi=True`` is the one exception to "only narrow": Brocardi is off by
+    default, and the stock server hides the ``solo_brocardi`` tools per request,
+    so this server lists them again for its own requests.
 
     Example::
 
@@ -355,9 +432,12 @@ def crea_server(
         server.enable(tags=include, only=True)
     if exclude:
         server.disable(tags=exclude)
-    if not brocardi:
+    if brocardi:
+        _brocardi_switch.check_can_switch_on()
+        server.add_middleware(_BrocardiMiddleware(True))
+    elif brocardi is False:
         server.disable(tags={_brocardi_switch.TAG_SOLO})
-        server.add_middleware(_BrocardiOffMiddleware())
+        server.add_middleware(_BrocardiMiddleware(False))
     if prompts:
         server.enable(components=_PROMPTS_AND_RESOURCES)
     else:

@@ -1,0 +1,680 @@
+{
+ "_nota": "Output of aggiornamenti.leggi_aggiornamenti(dal=2017-07-13, max_versioni=20) on 2026-11-16 for artt. 7, 15-bis and 543 c.p.c., whole: versions, windows, rows with acts and dispositions, and the article page's notes (#172).",
+ "7": {
+  "esito": "trovato",
+  "versioni": {
+   "10": [
+    "2025-10-31",
+    null
+   ],
+   "9": [
+    "2023-01-01",
+    "2025-10-30"
+   ],
+   "8": [
+    "2022-10-18",
+    "2022-12-31"
+   ],
+   "7": [
+    "2009-07-04",
+    "2022-10-17"
+   ],
+   "6": null,
+   "5": null,
+   "4": null,
+   "3": null,
+   "2": null,
+   "1": null
+  },
+  "righe": {
+   "10": [
+    {
+     "progressivo": 1,
+     "data_gu": "2017-07-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 27, comma 1, lettera a)",
+         "tipo": "modifica",
+         "parti": "commi 1, 2, 3, numeri 1) e 2) l'introduzione dei numeri 3-ter) 3-quater) 3-quinquies) 3-sexies) 3-septies) 3-octies) 3-novies) 3-decies) 3-undecies) all'art. 7, comma 3 e dei commi 4 e 5 all'art. 7",
+         "testo": "ha disposto (con l'art. 27, comma 1, lettera a)) la modifica dell'art. 7, commi 1, 2, 3, numeri 1) e 2) l'introduzione dei numeri 3-ter) 3-quater) 3-quinquies) 3-sexies) 3-septies) 3-octies) 3-novies) 3-decies) 3-undecies) all'art. 7, comma 3 e dei commi 4 e 5 all'art. 7"
+        }
+       ]
+      },
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 32, comma 5",
+         "tipo": "modifica",
+         "parti": "commi 1, 2, 3, numeri 1) 2) 3-ter) 3-quater) 3-quinquies) 3-sexies) 3-septies) 3-octies) 3-novies) 3-decies) 3-undecies) 4 e 5",
+         "testo": "ha disposto (con l'art. 32, comma 5) la modifica dell'art. 7, commi 1, 2, 3, numeri 1) 2) 3-ter) 3-quater) 3-quinquies) 3-sexies) 3-septies) 3-octies) 3-novies) 3-decies) 3-undecies) 4 e 5"
+        }
+       ],
+       "continua": true
+      }
+     ]
+    },
+    {
+     "progressivo": 2,
+     "data_gu": "2025-08-08",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2025-08-08",
+        "numero_atto": "117",
+        "gazzetta": "G.U. 08/08/2025, n.183",
+        "data_gu": "2025-08-08",
+        "descrizione": "Il DECRETO-LEGGE 8 agosto 2025, n. 117 (in G.U. 08/08/2025, n.183) convertito con modificazioni dalla L. 3 ottobre 2025, n. 148 (in G.U. 07/10/2025, n. 233) nel modificare l'art. 32, comma 3 del D.Lgs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 6, comma 2, lettera b)",
+         "tipo": "modifica",
+         "parti": null,
+         "testo": "ha conseguentemente disposto (con l'art. 6, comma 2, lettera b)) la modifica dell'art. 7"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 3,
+     "data_gu": "2025-10-07",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2025-10-03",
+        "numero_atto": "148",
+        "gazzetta": "G.U. 07/10/2025, n.233",
+        "data_gu": "2025-10-07",
+        "descrizione": "La LEGGE 3 ottobre 2025, n. 148 (in G.U. 07/10/2025, n.233)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 1",
+         "tipo": "conversione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 1, comma 1) la conversione, con modificazioni, del D.L. 8 agosto 2025, n. 117 (in G.U. 08/08/2025, n. 183)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 4,
+     "data_gu": "2026-06-12",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2026-06-12",
+        "numero_atto": "100",
+        "gazzetta": "G.U. 12/06/2026, n.134",
+        "data_gu": "2026-06-12",
+        "descrizione": "Il DECRETO-LEGGE 12 giugno 2026, n. 100 (in G.U. 12/06/2026, n.134) nel modificare l'art. 49, comma 1 del D.Lgs. 10 ottobre 2022, n. 149 (in S.O. n. 38 relativo alla G.U. 17/10/2022, n. 243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 5, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": null,
+         "testo": "ha conseguentemente disposto (con l'art. 5, comma 1, lettera b)) la modifica dell'art. 7"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "9": [
+    {
+     "progressivo": 1,
+     "data_gu": "2022-12-29",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2022-12-29",
+        "numero_atto": "197",
+        "gazzetta": "SO n.43, relativo alla G.U. 29/12/2022, n.303",
+        "data_gu": "2022-12-29",
+        "descrizione": "La LEGGE 29 dicembre 2022, n. 197 (in SO n.43, relativo alla G.U. 29/12/2022, n.303) nel modificare l'art. 35, comma 1 del D.Lgs. 10 ottobre 2022, n. 149 (in S.O. n. 38, relativo alla G.U. 17/10/2022, n. 243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 380, lettera a)",
+         "tipo": "modifica",
+         "parti": "commi 1 e 2",
+         "testo": "ha conseguentemente disposto (con l'art. 1, comma 380, lettera a)) la modifica dell'art. 7, commi 1 e 2"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "8": [
+    {
+     "progressivo": 1,
+     "data_gu": "2022-10-17",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2022-10-10",
+        "numero_atto": "149",
+        "gazzetta": "SO n.38, relativo alla G.U. 17/10/2022, n.243",
+        "data_gu": "2022-10-17",
+        "descrizione": "Il DECRETO LEGISLATIVO 10 ottobre 2022, n. 149 (in SO n.38, relativo alla G.U. 17/10/2022, n.243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 3, comma 1, lettera a)",
+         "tipo": "modifica",
+         "parti": "comma 1",
+         "testo": "ha disposto (con l'art. 3, comma 1, lettera a)) la modifica dell'art. 7, comma 1"
+        },
+        {
+         "disposizione": "art. 3, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": "comma 2",
+         "testo": "ha disposto (con l'art. 3, comma 1, lettera b)) la modifica dell'art. 7, comma 2"
+        }
+       ]
+      },
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2022-10-10",
+        "numero_atto": "149",
+        "gazzetta": "SO n.38, relativo alla G.U. 17/10/2022, n.243",
+        "data_gu": "2022-10-17",
+        "descrizione": "Il DECRETO LEGISLATIVO 10 ottobre 2022, n. 149 (in SO n.38, relativo alla G.U. 17/10/2022, n.243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 35, comma 1",
+         "tipo": "modifica",
+         "parti": "commi 1 e 2",
+         "testo": "ha disposto (con l'art. 35, comma 1) la modifica dell'art. 7, commi 1 e 2"
+        }
+       ],
+       "continua": true
+      }
+     ]
+    }
+   ]
+  },
+  "mancanti": [],
+  "oltre_tetto": [],
+  "vuote": [],
+  "storia_certa": true,
+  "nota_v1": null,
+  "errore": null,
+  "corrente": 10,
+  "note_pagina": [
+   {
+    "numero": "67",
+    "testo": "La L. 26 novembre 1990, n. 353 come modificata dalla L. 4 dicembre 1992, n. 477 ha disposto: - (con l'art. 89, comma 1) la proroga dell'entrata in vigore dell'abrogazione del presente comma dal 1° gennaio 1993 al 2 gennaio 1994; - (con l'art. 92, comma 1) che \"Ai giudizi pendenti a tale data si applicano, fino al 2 gennaio 1994, le disposizioni anteriormente vigenti.\"",
+    "ordine": 1,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "72",
+    "testo": "La L. 26 novembre 1990, n. 353 come modificata dal D.L. 7 ottobre 1994, n. 571, convertito con modificazioni, dalla L. 6 dicembre 1994, n. 673 ha disposto (con l'art. 92, comma 1) che \"Ai giudizi pendenti a tale data si applicano, fino al 30 aprile 1995, le disposizioni anteriormente vigenti.\"",
+    "ordine": 2,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "171",
+    "testo": "Il D.Lgs. 10 ottobre 2022, n. 149 ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 30 giugno 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 30 giugno 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "ordine": 3,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "173",
+    "testo": "Il D.Lgs. 10 ottobre 2022, n. 149, come modificato dalla L. 29 dicembre 2022, n. 197, ha disposto (con l'art. 35, comma 1) che \"Le disposizioni del presente decreto, salvo che non sia diversamente disposto, hanno effetto a decorrere dal 28 febbraio 2023 e si applicano ai procedimenti instaurati successivamente a tale data. Ai procedimenti pendenti alla data del 28 febbraio 2023 si applicano le disposizioni anteriormente vigenti\".",
+    "ordine": 4,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "155",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116 ha disposto (con l'art. 27, comma 1, lettera b)) che \"Al codice di procedura civile sono apportate le seguenti modificazioni: a) al libro primo sono apportate le seguenti modificazioni: 1) all'articolo 7, sono apportate le seguenti modificazioni: a) al primo comma, la parola: «cinquemila» è sostituita dalla seguente: «trentamila»; b) al secondo comma, la parola: «ventimila» è sostituita dalla seguente: «cinquantamila»\". Ha inoltre disposto (con l'art. 32, comma 5) che \"A decorrere dal 31 ottobre 2021 ai procedimenti civili contenziosi, di volontaria giurisdizione e di espropriazione forzata introdotti dinanzi al giudice di pace a norma dell'articolo 27 si applicano le disposizioni, anche regolamentari, in materia di processo civile telematico per i procedimenti di competenza del tribunale vigenti alla medesima data. Per i procedimenti di cui all'articolo 27, comma 1, lettera a), numero 1, lettera c), numero 2), e comma 3, lettera d), capoverso «Art. 60-bis», e lettera e), la disposizione del primo periodo si applica a decorrere dal 31 ottobre 2025\".",
+    "ordine": 5,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "179",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 8 agosto 2025, n. 117, convertito con modificazioni dalla L. 3 ottobre 2025, n. 148, ha disposto (con l'art. 32, comma 3) che \"Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2026\".",
+    "ordine": 6,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "183",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 12 giugno 2026, n. 100, ha disposto (con l'art. 32, comma 3) che \"Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2027\".",
+    "ordine": 7,
+    "corte_costituzionale": false
+   }
+  ]
+ },
+ "15-bis": {
+  "esito": "trovato",
+  "versioni": {
+   "1": [
+    "2021-10-31",
+    null
+   ]
+  },
+  "righe": {
+   "1": [
+    {
+     "progressivo": 1,
+     "data_gu": "2017-07-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 27, comma 1, lettera a)",
+         "tipo": "inserimento",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 27, comma 1, lettera a)) l'introduzione dell'art. 15-bis"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "mancanti": [],
+  "oltre_tetto": [],
+  "vuote": [],
+  "storia_certa": true,
+  "nota_v1": null,
+  "errore": null,
+  "corrente": 1,
+  "note_pagina": [
+   {
+    "numero": "155",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116 ha disposto (con l'art. 32, comma 5) che \"A decorrere dal 31 ottobre 2021 ai procedimenti civili contenziosi, di volontaria giurisdizione e di espropriazione forzata introdotti dinanzi al giudice di pace a norma dell'articolo 27 si applicano le disposizioni, anche regolamentari, in materia di processo civile telematico per i procedimenti di competenza del tribunale vigenti alla medesima data. Per i procedimenti di cui all'articolo 27, comma 1, lettera a), numero 1, lettera c), numero 2), e comma 3, lettera d), capoverso «Art. 60-bis», e lettera e), la disposizione del primo periodo si applica a decorrere dal 31 ottobre 2025\".",
+    "ordine": 1,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "160",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 30 dicembre 2019, n. 162, convertito con modificazioni dalla L. 28 febbraio 2020, n. 8, ha disposto (con l'art. 32, comma 3) che le disposizioni di cui al presente articolo entrano in vigore il 31 ottobre 2025.",
+    "ordine": 2,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "179",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 8 agosto 2025, n. 117, convertito con modificazioni dalla L. 3 ottobre 2025, n. 148, ha disposto (con l'art. 32, comma 3) che le disposizioni di cui al presente articolo entrano in vigore il 31 ottobre 2026.",
+    "ordine": 3,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "183",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 12 giugno 2026, n. 100, ha disposto (con l'art. 32, comma 3) che \"Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2027\".",
+    "ordine": 4,
+    "corte_costituzionale": false
+   }
+  ]
+ },
+ "543": {
+  "esito": "trovato",
+  "versioni": {
+   "9": [
+    "2024-11-26",
+    null
+   ],
+   "8": [
+    "2021-12-24",
+    "2024-11-25"
+   ],
+   "7": [
+    "2021-10-31",
+    "2021-12-23"
+   ],
+   "6": [
+    "2014-11-11",
+    "2021-10-30"
+   ],
+   "5": null,
+   "4": null,
+   "3": null,
+   "2": null,
+   "1": null
+  },
+  "righe": {
+   "9": [
+    {
+     "progressivo": 1,
+     "data_gu": "2024-11-11",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2024-10-31",
+        "numero_atto": "164",
+        "gazzetta": "G.U. 11/11/2024, n.264",
+        "data_gu": "2024-11-11",
+        "descrizione": "Il DECRETO LEGISLATIVO 31 ottobre 2024, n. 164 (in G.U. 11/11/2024, n.264)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 3, comma 7, lettera n)",
+         "tipo": "modifica",
+         "parti": "commi 2, numero 3) 4, 5 e 6",
+         "testo": "ha disposto (con l'art. 3, comma 7, lettera n)) la modifica dell'art. 543, commi 2, numero 3) 4, 5 e 6"
+        }
+       ]
+      },
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2024-10-31",
+        "numero_atto": "164",
+        "gazzetta": "G.U. 11/11/2024, n.264",
+        "data_gu": "2024-11-11",
+        "descrizione": "Il DECRETO LEGISLATIVO 31 ottobre 2024, n. 164 (in G.U. 11/11/2024, n.264)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 7, comma 1",
+         "tipo": "modifica",
+         "parti": "commi 2, numero 3) e 4, 5 e 6",
+         "testo": "ha disposto (con l'art. 7, comma 1) la modifica dell'art. 543, commi 2, numero 3) e 4, 5 e 6"
+        }
+       ],
+       "continua": true
+      }
+     ]
+    },
+    {
+     "progressivo": 2,
+     "data_gu": "2026-06-12",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2026-06-12",
+        "numero_atto": "100",
+        "gazzetta": "G.U. 12/06/2026, n.134",
+        "data_gu": "2026-06-12",
+        "descrizione": "Il DECRETO-LEGGE 12 giugno 2026, n. 100 (in G.U. 12/06/2026, n.134) nel modificare l'art. 49, comma 1 del D.Lgs. 10 ottobre 2022, n. 149 (in S.O. n. 38 relativo alla G.U. 17/10/2022, n. 243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 5, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": "commi 2 e 4",
+         "testo": "ha conseguentemente disposto (con l'art. 5, comma 1, lettera b)) la modifica dell'art. 543, commi 2 e 4"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "8": [
+    {
+     "progressivo": 1,
+     "data_gu": "2021-12-09",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2021-11-26",
+        "numero_atto": "206",
+        "gazzetta": "G.U. 09/12/2021, n.292",
+        "data_gu": "2021-12-09",
+        "descrizione": "La LEGGE 26 novembre 2021, n. 206 (in G.U. 09/12/2021, n.292)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 32",
+         "tipo": "inserimento",
+         "parti": "due commi dopo il quarto",
+         "testo": "ha disposto (con l'art. 1, comma 32) l'introduzione di due commi dopo il quarto all'art. 543"
+        },
+        {
+         "disposizione": "art. 1, comma 37",
+         "tipo": "modifica",
+         "parti": "commi 5 e 6",
+         "testo": "ha disposto (con l'art. 1, comma 37) la modifica dell'art. 543, commi 5 e 6"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "7": [
+    {
+     "progressivo": 1,
+     "data_gu": "2017-07-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 27, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": "commi 2, numero 3) e 4",
+         "testo": "ha disposto (con l'art. 27, comma 1, lettera b)) la modifica dell'art. 543, commi 2, numero 3) e 4"
+        }
+       ]
+      },
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 32, comma 5",
+         "tipo": "modifica",
+         "parti": "commi 2, numero 3) e 4",
+         "testo": "ha disposto (con l'art. 32, comma 5) la modifica dell'art. 543, commi 2, numero 3) e 4"
+        }
+       ],
+       "continua": true
+      }
+     ]
+    },
+    {
+     "progressivo": 2,
+     "data_gu": "2019-12-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2019-12-30",
+        "numero_atto": "162",
+        "gazzetta": "G.U. 31/12/2019, n.305",
+        "data_gu": "2019-12-31",
+        "descrizione": "Il DECRETO-LEGGE 30 dicembre 2019, n. 162 (in G.U. 31/12/2019, n.305) convertito con modificazioni dalla L. 28 febbraio 2020, n. 8 (in S.O. n. 10, relativo alla G.U. 29/02/2020, n. 51) nel modificare l'art. 32, comma 3 del D.Lgs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 8-bis, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": "commi 2, numero 3) e 4",
+         "testo": "ha conseguentemente disposto (con l'art. 8-bis, comma 1, lettera b)) la modifica dell'art. 543, commi 2, numero 3) e 4"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 3,
+     "data_gu": "2020-02-29",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2020-02-28",
+        "numero_atto": "8",
+        "gazzetta": "SO n.10, relativo alla G.U. 29/02/2020, n.51",
+        "data_gu": "2020-02-29",
+        "descrizione": "La LEGGE 28 febbraio 2020, n. 8 (in SO n.10, relativo alla G.U. 29/02/2020, n.51)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 1",
+         "tipo": "conversione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 1, comma 1) la conversione, con modificazioni, del D.L. 30 dicembre 2019, n. 162 (in G.U. 31/12/2019, n. 305)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 4,
+     "data_gu": "2025-08-08",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2025-08-08",
+        "numero_atto": "117",
+        "gazzetta": "G.U. 08/08/2025, n.183",
+        "data_gu": "2025-08-08",
+        "descrizione": "Il DECRETO-LEGGE 8 agosto 2025, n. 117 (in G.U. 08/08/2025, n.183) convertito con modificazioni dalla L. 3 ottobre 2025, n. 148 (in G.U. 07/10/2025, n. 233) nel modificare l'art. 32, comma 3 del D.Lgs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 6, comma 2, lettera b)",
+         "tipo": "modifica",
+         "parti": "commi 2, numero 3) e 4",
+         "testo": "ha conseguentemente disposto (con l'art. 6, comma 2, lettera b)) la modifica dell'art. 543, commi 2, numero 3) e 4"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 5,
+     "data_gu": "2025-10-07",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2025-10-03",
+        "numero_atto": "148",
+        "gazzetta": "G.U. 07/10/2025, n.233",
+        "data_gu": "2025-10-07",
+        "descrizione": "La LEGGE 3 ottobre 2025, n. 148 (in G.U. 07/10/2025, n.233)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 1",
+         "tipo": "conversione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 1, comma 1) la conversione, con modificazioni, del D.L. 8 agosto 2025, n. 117 (in G.U. 08/08/2025, n. 183)"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "mancanti": [],
+  "oltre_tetto": [],
+  "vuote": [],
+  "storia_certa": true,
+  "nota_v1": null,
+  "errore": null,
+  "corrente": 9,
+  "note_pagina": [
+   {
+    "numero": "88",
+    "testo": "Il D.Lgs. 19 febbraio 1998, n. 51, ha disposto (con l'art. 247, comma 1) che \" Il presente decreto legislativo entra in vigore il giorno successivo alla sua pubblicazione nella Gazzetta Ufficiale della Repubblica italiana e diventa efficace decorso il termine stabilito dall'articolo 1, comma 1, lettera r), della legge 16 luglio 1997, n. 254, fatta eccezione per le disposizioni previste dagli articoli 17, 33, comma 1, 38, comma 1 e 40, commi 1 e 3.\"",
+    "ordine": 1,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "90",
+    "testo": "Il D.Lgs. 19 febbraio 1998,n . 51, come modificato dalla L. 16 giugno 1998, n.188, ha disposto (con l'art. 247, comma 1) che \"Il presente decreto legislativo entra in vigore il giorno successivo alla sua pubblicazione nella Gazzetta Ufficiale della Repubblica italiana e diventa efficace a decorrere dal 2 giugno 1999, fatta eccezione per le disposizioni previste dagli articoli 17, 33, comma 1, 38, comma 1 e 40, commi 1 e 3.\"",
+    "ordine": 2,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "144",
+    "testo": "Il D.L. 12 settembre 2014, n. 132 convertito con modificazioni dalla L. 10 novembre 2014, n. 162 ha disposto (con l'art. 18, comma 3) che la modifica di cui al quarto comma del presente articolo si applica ai procedimenti esecutivi iniziati a decorrere dal trentesimo giorno successivo all'entrata in vigore della legge di conversione del decreto-legge medesimo. Ha inoltre disposto (con l'art. 19, comma 6-bis) che le modifiche di cui ai commi primo, secondo, numero 4) e quinto del presente articolo si applicano ai procedimenti iniziati a decorrere dal trentesimo giorno successivo alla data di entrata in vigore della legge di conversione del D.L. medesimo.",
+    "ordine": 3,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "155",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116 ha disposto (con l'art. 32, comma 5) che \"A decorrere dal 31 ottobre 2021 ai procedimenti civili contenziosi, di volontaria giurisdizione e di espropriazione forzata introdotti dinanzi al giudice di pace a norma dell'articolo 27 si applicano le disposizioni, anche regolamentari, in materia di processo civile telematico per i procedimenti di competenza del tribunale vigenti alla medesima data. Per i procedimenti di cui all'articolo 27, comma 1, lettera a), numero 1, lettera c), numero 2), e comma 3, lettera d), capoverso «Art. 60-bis», e lettera e), la disposizione del primo periodo si applica a decorrere dal 31 ottobre 2025\".",
+    "ordine": 4,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "160",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 30 dicembre 2019, n. 162, convertito con modificazioni dalla L. 28 febbraio 2020, n. 8, ha disposto (con l'art. 32, comma 3) che le modifiche di cui ai commi 2, numero 3) e 4 del presente articolo entrano in vigore il 31 ottobre 2025.",
+    "ordine": 5,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "179",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 8 agosto 2025, n. 117, convertito con modificazioni dalla L. 3 ottobre 2025, n. 148, ha disposto (con l'art. 32, comma 3) che le modifiche di cui ai commi 2, numero 3) e 4 del presente articolo entrano in vigore il 31 ottobre 2026.",
+    "ordine": 6,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "183",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 12 giugno 2026, n. 100, ha disposto (con l'art. 32, comma 3) che \"Le disposizioni dell'articolo 27 entrano in vigore il 31 ottobre 2027\".",
+    "ordine": 7,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "166",
+    "testo": "La L. 26 novembre 2021, n. 206, ha disposto (con l'art. 1, comma 37) che \"Le disposizioni dei commi da 27 a 36 del presente articolo si applicano ai procedimenti instaurati a decorrere dal centottantesimo giorno successivo alla data di entrata in vigore della presente legge\".",
+    "ordine": 8,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "178",
+    "testo": "Il D.Lgs. 31 ottobre 2024, n. 164 ha disposto con l'art. 3, comma 7, lettera n)) che \"1) al secondo comma, numero 3), le parole «o l'elezione di domicilio nel comune in cui ha sede il tribunale competente» sono soppresse\". (con l'art. 7, comma 1) che \"Ove non diversamente previsto, le disposizioni del presente decreto si applicano ai procedimenti introdotti successivamente al 28 febbraio 2023\".",
+    "ordine": 9,
+    "corte_costituzionale": false
+   }
+  ]
+ }
+}

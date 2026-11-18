@@ -1,0 +1,554 @@
+{
+ "_nota": "aggiornamenti.leggi_aggiornamenti on 2026-11-16: art. 765 c.p.c. and art. 73-bis disp. att. c.c. with dal=2017-07-13, max_versioni=20; art. 32 d.lgs. 116/2017 with dal=2026-06-12, max_versioni=1 (its latest version only). See README.md.",
+ "765": {
+  "esito": "trovato",
+  "versioni": {
+   "5": [
+    "2025-10-31",
+    null
+   ],
+   "4": [
+    "2021-10-31",
+    "2025-10-30"
+   ],
+   "3": [
+    "1998-07-04",
+    "2021-10-30"
+   ],
+   "2": null,
+   "1": null
+  },
+  "righe": {
+   "5": [
+    {
+     "progressivo": 1,
+     "data_gu": "2019-12-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2019-12-30",
+        "numero_atto": "162",
+        "gazzetta": "G.U. 31/12/2019, n.305",
+        "data_gu": "2019-12-31",
+        "descrizione": "Il DECRETO-LEGGE 30 dicembre 2019, n. 162 (in G.U. 31/12/2019, n.305) convertito con modificazioni dalla L. 28 febbraio 2020, n. 8 (in S.O. n. 10, relativo alla G.U. 29/02/2020, n. 51) nel modificare l'art. 32, comma 3 del D.Lgs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 8-bis, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": "comma 2",
+         "testo": "ha conseguentemente disposto (con l'art. 8-bis, comma 1, lettera b)) la modifica dell'art. 765, comma 2"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 2,
+     "data_gu": "2020-02-29",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2020-02-28",
+        "numero_atto": "8",
+        "gazzetta": "SO n.10, relativo alla G.U. 29/02/2020, n.51",
+        "data_gu": "2020-02-29",
+        "descrizione": "La LEGGE 28 febbraio 2020, n. 8 (in SO n.10, relativo alla G.U. 29/02/2020, n.51)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 1",
+         "tipo": "conversione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 1, comma 1) la conversione, con modificazioni, del D.L. 30 dicembre 2019, n. 162 (in G.U. 31/12/2019, n. 305)"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "4": [
+    {
+     "progressivo": 1,
+     "data_gu": "2017-07-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 27, comma 1, lettera c)",
+         "tipo": "modifica",
+         "parti": "comma 2",
+         "testo": "ha disposto (con l'art. 27, comma 1, lettera c)) la modifica dell'art. 765, comma 2"
+        }
+       ]
+      },
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 32, comma 5",
+         "tipo": "modifica",
+         "parti": "comma 2",
+         "testo": "ha disposto (con l'art. 32, comma 5) la modifica dell'art. 765, comma 2"
+        }
+       ],
+       "continua": true
+      }
+     ]
+    },
+    {
+     "progressivo": 2,
+     "data_gu": "2019-12-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2019-12-30",
+        "numero_atto": "162",
+        "gazzetta": "G.U. 31/12/2019, n.305",
+        "data_gu": "2019-12-31",
+        "descrizione": "Il DECRETO-LEGGE 30 dicembre 2019, n. 162 (in G.U. 31/12/2019, n.305) convertito con modificazioni dalla L. 28 febbraio 2020, n. 8 (in S.O. n. 10, relativo alla G.U. 29/02/2020, n. 51) nel modificare l'art. 32, comma 3 del D.Lgs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 8-bis, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": "comma 2",
+         "testo": "ha conseguentemente disposto (con l'art. 8-bis, comma 1, lettera b)) la modifica dell'art. 765, comma 2"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 3,
+     "data_gu": "2020-02-29",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2020-02-28",
+        "numero_atto": "8",
+        "gazzetta": "SO n.10, relativo alla G.U. 29/02/2020, n.51",
+        "data_gu": "2020-02-29",
+        "descrizione": "La LEGGE 28 febbraio 2020, n. 8 (in SO n.10, relativo alla G.U. 29/02/2020, n.51)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 1",
+         "tipo": "conversione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 1, comma 1) la conversione, con modificazioni, del D.L. 30 dicembre 2019, n. 162 (in G.U. 31/12/2019, n. 305)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 4,
+     "data_gu": "2025-08-08",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2025-08-08",
+        "numero_atto": "117",
+        "gazzetta": "G.U. 08/08/2025, n.183",
+        "data_gu": "2025-08-08",
+        "descrizione": "Il DECRETO-LEGGE 8 agosto 2025, n. 117 (in G.U. 08/08/2025, n.183) convertito con modificazioni dalla L. 3 ottobre 2025, n. 148 (in G.U. 07/10/2025, n. 233) nel modificare l'art. 32, comma 3 del D.Lgs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 6, comma 2, lettera b)",
+         "tipo": "modifica",
+         "parti": "comma 2",
+         "testo": "ha conseguentemente disposto (con l'art. 6, comma 2, lettera b)) la modifica dell'art. 765, comma 2"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 5,
+     "data_gu": "2025-10-07",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2025-10-03",
+        "numero_atto": "148",
+        "gazzetta": "G.U. 07/10/2025, n.233",
+        "data_gu": "2025-10-07",
+        "descrizione": "La LEGGE 3 ottobre 2025, n. 148 (in G.U. 07/10/2025, n.233)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 1",
+         "tipo": "conversione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 1, comma 1) la conversione, con modificazioni, del D.L. 8 agosto 2025, n. 117 (in G.U. 08/08/2025, n. 183)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 6,
+     "data_gu": "2026-06-12",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2026-06-12",
+        "numero_atto": "100",
+        "gazzetta": "G.U. 12/06/2026, n.134",
+        "data_gu": "2026-06-12",
+        "descrizione": "Il DECRETO-LEGGE 12 giugno 2026, n. 100 (in G.U. 12/06/2026, n.134) nel modificare l'art. 49, comma 1 del D.Lgs. 10 ottobre 2022, n. 149 (in S.O. n. 38 relativo alla G.U. 17/10/2022, n. 243)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 5, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": "comma 2",
+         "testo": "ha conseguentemente disposto (con l'art. 5, comma 1, lettera b)) la modifica dell'art. 765, comma 2"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "mancanti": [],
+  "oltre_tetto": [],
+  "vuote": [],
+  "storia_certa": true,
+  "nota_v1": null,
+  "errore": null,
+  "corrente": 5,
+  "note_pagina": [
+   {
+    "numero": "88",
+    "testo": "Il D.Lgs. 19 febbraio 1998, n. 51 ha disposto (con l'art. 247, comma 1) che \"Il presente decreto legislativo entra in vigore il giorno successivo alla sua pubblicazione nella Gazzetta Ufficiale della Repubblica italiana e diventa efficace decorso il termine stabilito dall'articolo 1, comma 1, lettera r), della legge 16 luglio 1997, n. 254, fatta eccezione per le disposizioni previste dagli articoli 17, 33, comma 1, 38, comma 1 e 40, commi 1 e 3.\"",
+    "ordine": 1,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "90",
+    "testo": "Il D.Lgs. 19 febbraio 1998, n. 51 come modificato dalla L. 16 giugno 1998, n. 188 ha disposto (con l'art. 247, comma 1) che \"Il presente decreto legislativo entra in vigore il giorno successivo alla sua pubblicazione nella Gazzetta Ufficiale della Repubblica italiana e diventa efficace a decorrere dal 2 giugno 1999, fatta eccezione per le disposizioni previste dagli articoli 17, 33, comma 1, 38, comma 1 e 40, commi 1 e 3.\"",
+    "ordine": 2,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "155",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116 ha disposto (con l'art. 32, comma 5) che \"A decorrere dal 31 ottobre 2021 ai procedimenti civili contenziosi, di volontaria giurisdizione e di espropriazione forzata introdotti dinanzi al giudice di pace a norma dell'articolo 27 si applicano le disposizioni, anche regolamentari, in materia di processo civile telematico per i procedimenti di competenza del tribunale vigenti alla medesima data. Per i procedimenti di cui all'articolo 27, comma 1, lettera a), numero 1, lettera c), numero 2), e comma 3, lettera d), capoverso «Art. 60-bis», e lettera e), la disposizione del primo periodo si applica a decorrere dal 31 ottobre 2025\".",
+    "ordine": 3,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "160",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 30 dicembre 2019, n. 162, convertito con modificazioni dalla L. 28 febbraio 2020, n. 8, ha disposto (con l'art. 32, comma 3) che la modifica di cui al secondo comma del presente articolo entra in vigore il 31 ottobre 2025.",
+    "ordine": 4,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "179",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 8 agosto 2025, n. 117, convertito con modificazioni dalla L. 3 ottobre 2025, n. 148, ha disposto (con l'art. 32, comma 3) che la modifica di cui al secondo comma del presente articolo entra in vigore il 31 ottobre 2026.",
+    "ordine": 5,
+    "corte_costituzionale": false
+   }
+  ]
+ },
+ "73-bis": {
+  "esito": "trovato",
+  "versioni": {
+   "3": [
+    "2021-10-31",
+    null
+   ],
+   "2": [
+    "1998-07-04",
+    "2021-10-30"
+   ],
+   "1": null
+  },
+  "righe": {
+   "3": [
+    {
+     "progressivo": 1,
+     "data_gu": "2017-07-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 27, comma 3, lettera f)",
+         "tipo": "abrogazione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 27, comma 3, lettera f)) l'abrogazione dell'art. 73-bis"
+        }
+       ]
+      },
+      {
+       "atto": {
+        "tipo_atto": "decreto legislativo",
+        "data": "2017-07-13",
+        "numero_atto": "116",
+        "gazzetta": "G.U. 31/07/2017, n.177",
+        "data_gu": "2017-07-31",
+        "descrizione": "Il DECRETO LEGISLATIVO 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n.177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 32, comma 5",
+         "tipo": "modifica",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 32, comma 5) la modifica dell'art. 73-bis"
+        }
+       ],
+       "continua": true
+      }
+     ]
+    },
+    {
+     "progressivo": 2,
+     "data_gu": "2019-12-31",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2019-12-30",
+        "numero_atto": "162",
+        "gazzetta": "G.U. 31/12/2019, n.305",
+        "data_gu": "2019-12-31",
+        "descrizione": "Il DECRETO-LEGGE 30 dicembre 2019, n. 162 (in G.U. 31/12/2019, n.305) convertito con modificazioni dalla L. 28 febbraio 2020, n. 8 (in S.O. n. 10, relativo alla G.U. 29/02/2020, n. 51) nel modificare l'art. 32, comma 3 del D.Lgs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 8-bis, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": null,
+         "testo": "ha conseguentemente disposto (con l'art. 8-bis, comma 1, lettera b)) la modifica dell'art. 73-bis"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 3,
+     "data_gu": "2020-02-29",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2020-02-28",
+        "numero_atto": "8",
+        "gazzetta": "SO n.10, relativo alla G.U. 29/02/2020, n.51",
+        "data_gu": "2020-02-29",
+        "descrizione": "La LEGGE 28 febbraio 2020, n. 8 (in SO n.10, relativo alla G.U. 29/02/2020, n.51)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 1",
+         "tipo": "conversione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 1, comma 1) la conversione, con modificazioni, del D.L. 30 dicembre 2019, n. 162 (in G.U. 31/12/2019, n. 305)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 4,
+     "data_gu": "2025-08-08",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2025-08-08",
+        "numero_atto": "117",
+        "gazzetta": "G.U. 08/08/2025, n.183",
+        "data_gu": "2025-08-08",
+        "descrizione": "Il DECRETO-LEGGE 8 agosto 2025, n. 117 (in G.U. 08/08/2025, n.183) convertito con modificazioni dalla L. 3 ottobre 2025, n. 148 (in G.U. 07/10/2025, n. 233) nel modificare l'art. 32, comma 3 del D.Lgs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 6, comma 2, lettera b)",
+         "tipo": "modifica",
+         "parti": null,
+         "testo": "ha conseguentemente disposto (con l'art. 6, comma 2, lettera b)) la modifica dell'art. 73-bis"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 5,
+     "data_gu": "2025-10-07",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "legge",
+        "data": "2025-10-03",
+        "numero_atto": "148",
+        "gazzetta": "G.U. 07/10/2025, n.233",
+        "data_gu": "2025-10-07",
+        "descrizione": "La LEGGE 3 ottobre 2025, n. 148 (in G.U. 07/10/2025, n.233)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 1, comma 1",
+         "tipo": "conversione",
+         "parti": null,
+         "testo": "ha disposto (con l'art. 1, comma 1) la conversione, con modificazioni, del D.L. 8 agosto 2025, n. 117 (in G.U. 08/08/2025, n. 183)"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "progressivo": 6,
+     "data_gu": "2026-06-12",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2026-06-12",
+        "numero_atto": "100",
+        "gazzetta": "G.U. 12/06/2026, n.134",
+        "data_gu": "2026-06-12",
+        "descrizione": "Il DECRETO-LEGGE 12 giugno 2026, n. 100 (in G.U. 12/06/2026, n.134) nel modificare l'art. 32, comma 3 del D.L.gs. 13 luglio 2017, n. 116 (in G.U. 31/07/2017, n. 177)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 5, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": null,
+         "testo": "ha conseguentemente disposto (con l'art. 5, comma 1, lettera b)) la modifica dell'art. 73-bis"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "mancanti": [],
+  "oltre_tetto": [],
+  "vuote": [],
+  "storia_certa": true,
+  "nota_v1": null,
+  "errore": null,
+  "corrente": 3,
+  "note_pagina": [
+   {
+    "numero": "34",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116 ha disposto (con l'art. 32, comma 5) che \"A decorrere dal 31 ottobre 2021 ai procedimenti civili contenziosi, di volontaria giurisdizione e di espropriazione forzata introdotti dinanzi al giudice di pace a norma dell'articolo 27 si applicano le disposizioni, anche regolamentari, in materia di processo civile telematico per i procedimenti di competenza del tribunale vigenti alla medesima data. Per i procedimenti di cui all'articolo 27, comma 1, lettera a), numero 1, lettera c), numero 2), e comma 3, lettera d), capoverso «Art. 60-bis», e lettera e), la disposizione del primo periodo si applica a decorrere dal 31 ottobre 2025\".",
+    "ordine": 1,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "37",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 30 dicembre 2019, n. 162, convertito con modificazioni dalla L. 28 febbraio 2020, n. 8, ha disposto (con l'art. 32, comma 3) la proroga al 31 ottobre 2025 dell'entrata in vigore della presente abrogazione.",
+    "ordine": 2,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "55",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 8 agosto 2025, n. 117, convertito con modificazioni dalla L. 3 ottobre 2025, n. 148, ha disposto (con l'art. 32, comma 3) la proroga al 31 ottobre 2026 dell'entrata in vigore della presente abrogazione.",
+    "ordine": 3,
+    "corte_costituzionale": false
+   },
+   {
+    "numero": "58",
+    "testo": "Il D.Lgs. 13 luglio 2017, n. 116, come modificato dal D.L. 12 giugno 2026, n. 100, ha disposto (con l'art. 32, comma 3) che la proroga al 31 ottobre 2027 dell'entrata in vigore della presente abrogazione.",
+    "ordine": 4,
+    "corte_costituzionale": false
+   }
+  ]
+ },
+ "32": {
+  "esito": "trovato",
+  "versioni": {
+   "9": [
+    "2026-06-12",
+    null
+   ],
+   "8": null,
+   "7": null,
+   "6": null,
+   "5": null,
+   "4": null,
+   "3": null,
+   "2": null,
+   "1": null
+  },
+  "righe": {
+   "9": [
+    {
+     "progressivo": 1,
+     "data_gu": "2026-06-12",
+     "atti": [
+      {
+       "atto": {
+        "tipo_atto": "decreto legge",
+        "data": "2026-06-12",
+        "numero_atto": "100",
+        "gazzetta": "G.U. 12/06/2026, n.134",
+        "data_gu": "2026-06-12",
+        "descrizione": "Il DECRETO-LEGGE 12 giugno 2026, n. 100 (in G.U. 12/06/2026, n.134)"
+       },
+       "disposizioni": [
+        {
+         "disposizione": "art. 5, comma 1, lettera b)",
+         "tipo": "modifica",
+         "parti": "comma 3",
+         "testo": "ha disposto (con l'art. 5, comma 1, lettera b)) la modifica dell'art. 32, comma 3"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "mancanti": [],
+  "oltre_tetto": [
+   8,
+   7,
+   6,
+   5,
+   4,
+   3,
+   2,
+   1
+  ],
+  "vuote": [],
+  "storia_certa": true,
+  "nota_v1": null,
+  "errore": null,
+  "corrente": 9,
+  "note_pagina": []
+ }
+}

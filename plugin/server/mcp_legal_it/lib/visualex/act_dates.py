@@ -49,13 +49,21 @@ _TITLES = {
     "legge.costituzionale": "LEGGE COSTITUZIONALE",
     "decreto": "DECRETO",
 }
+# Other titles that still name the kind cited: a decreto legislativo of the Capo provvisorio dello
+# Stato is cited as a «d.lgs.» (legge Basevi, d.lgs. 1577/1947), titled «DECRETO LEGISLATIVO DEL CAPO
+# PROVVISORIO DELLO STATO 14 dicembre 1947, n. 1577» (review of the 2.17.2 port, G-493).
+# 1946 has two numbering series, the Luogotenenza's and the Capo provvisorio's, so a «d.lgs.
+# N/1946» may meet a decreto luogotenenziale with the same number. The rule stays safe: that
+# heading («DECRETO LUOGOTENENZIALE», «DECRETO LEGISLATIVO LUOGOTENENZIALE») is never a d.lgs.'s,
+# so it stays another act, and with a full date the heading's day must be the one cited.
+_TITLES_ANCHE = {"decreto.legislativo": ("DECRETO LEGISLATIVO DEL CAPO PROVVISORIO DELLO STATO",)}
 # Bounded on both sides, so a hostile page costs a constant per "<title", not a rescan of the rest.
 _TITLE_TAG = re.compile(r"<title[^>]{0,200}>([^<]{0,400})</title>", re.IGNORECASE)
 # The type is followed by a space and the day's digit: "DECRETO" never matches
 # "DECRETO LEGISLATIVO ..." and "LEGGE" never matches "LEGGE COSTITUZIONALE ...".
 _TITLE_DATE = {
     kind: re.compile(
-        re.escape(title_type)
+        "(?:" + "|".join(re.escape(t) for t in (title_type, *_TITLES_ANCHE.get(kind, ()))) + ")"
         + r" ([0-9]{1,2})[º°]? ((?i:" + "|".join(_MESI) + r")) ([0-9]{4}), n\. ([0-9]{1,6})\b"
     )
     for kind, title_type in _TITLES.items()

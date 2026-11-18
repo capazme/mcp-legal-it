@@ -161,7 +161,11 @@ class TestIsAllowed:
     def test_is_allowed(self, url, expected):
         assert _egress.is_allowed(url) is expected
 
-    def test_brocardi_follows_its_switch(self):
+    def test_brocardi_follows_its_switch(self, monkeypatch):
+        # Off by default (LI-079), on with LEGAL_BROCARDI=on, off again in a disabled() block.
+        monkeypatch.delenv("LEGAL_BROCARDI", raising=False)
+        assert not _egress.is_allowed("https://www.brocardi.it/codice-civile/")
+        monkeypatch.setenv("LEGAL_BROCARDI", "on")
         assert _egress.is_allowed("https://www.brocardi.it/codice-civile/")
         with _brocardi_switch.disabled():
             assert not _egress.is_allowed("https://www.brocardi.it/codice-civile/")

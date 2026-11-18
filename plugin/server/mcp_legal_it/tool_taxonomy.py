@@ -2,7 +2,7 @@
 
 Tags are what a host filters on: ``LEGAL_PROFILE`` narrows the stock server with
 them, ``crea_server(include_tags=..., exclude_tags=...)`` builds a server from them,
-and ``LEGAL_BROCARDI=off`` hides a group by them. A filter is only as good as the
+and the Brocardi switch (off by default) hides a group by them. A filter is only as good as the
 tags under it, so the vocabulary lives here as data and
 ``tests/unit/test_tool_taxonomy.py`` fails the suite when a tool breaks a rule
 (a new tool without a kind, a calculator tagged ``normativa``, a court decision

@@ -122,8 +122,13 @@ def _format_result(article_result: dict, annotations_result: dict | None = None)
         elif source.startswith("normattiva") and (futura := versione_futura(url)):
             # The undated page showed tomorrow's text: today's is below, and the reader is told.
             parts.append(f"**Attenzione**: {avviso_versione_futura(futura)}.\n")
+        if article_result.get("rinvio"):
+            # Amendments whose entry into force a later act deferred (#172): said before the text.
+            from mcp_legal_it.lib.visualex.vigenza_differita import avviso as avviso_rinvio
+
+            parts.append(f"**Attenzione**: {avviso_rinvio(article_result['rinvio'])}.\n")
         if article_result.get("allegato"):
-            parts.append(f"**Testo tratto dall'{article_result['allegato']}** dell'atto, non dal suo articolato.\n")
+            parts.append(f"**Testo tratto da: {article_result['allegato']}** dell'atto, non dal suo articolato.\n")
         from mcp_legal_it.core.norme import AVVISO_NOTE_NON_LETTE, note_della_pagina
 
         note, note_non_lette, note_nel_testo = note_della_pagina(source, text, url,
@@ -282,9 +287,10 @@ async def cite_law(
     """Recupera il testo ufficiale di una norma di legge. USARE SEMPRE prima di citare qualsiasi norma.
 
     Fonti: Normattiva (leggi italiane), EUR-Lex (regolamenti/direttive UE), CNF (codice deontologico
-    forense), Brocardi (annotazioni).
+    forense); annotazioni Brocardi solo se attive in questa installazione.
 
-    Dopo questo tool: cerca_brocardi() per approfondimenti dottrinali, cerca_giurisprudenza() per precedenti.
+    Dopo questo tool: giurisprudenza_su_norma() o cerca_giurisprudenza() per precedenti.
+    Approfondimenti dottrinali con cerca_brocardi(), se disponibile.
     Restituisce: testo ufficiale dell'articolo da Normattiva/EUR-Lex con URL fonte.
 
     Esempi di riferimenti validi:
@@ -306,7 +312,7 @@ async def cite_law(
     l'errore dice "verifica non disponibile" e il testo non viene presentato.
 
     Senza "allegato" si ottiene sempre l'articolo del corpo dell'atto. Se il testo
-    proviene da un allegato, l'output lo dichiara ("Testo tratto dall'Allegato ...").
+    proviene da un allegato, l'output lo dichiara ("Testo tratto da: Allegato ...").
 
     I numeri di paragrafo (n. N, co. N, comma N) vengono automaticamente
     ignorati: "art. 4 n. 11 GDPR" equivale a "art. 4 GDPR". Eccezione: un articolo
@@ -326,7 +332,8 @@ async def cite_law(
                    "art. 6 D.Lgs. 231/2001", "art. 117 Costituzione",
                    "considerando 42 GDPR", "art. 4 n. 11 GDPR"
         include_annotations: Includi anche le annotazioni Brocardi (ratio legis, spiegazione,
-                             massime giurisprudenziali). Default False.
+                             massime giurisprudenziali), se attive in questa installazione;
+                             altrimenti una riga lo dice. Default False.
         formato: "markdown" (default) oppure "json": oggetto con riferimento, articolo,
                  atto{tipo_atto, data, numero_atto, descrizione}, url, urn, fonte, allegato,
                  testo, errore, data_consultazione, avvisi, upcoming. "avvisi" (lista, vuota se
@@ -1122,6 +1129,12 @@ async def _verifica_norma(reference: str) -> tuple[str, str]:
         return "metadati discordanti", nota
 
     nota = f"Fonte: {fonte}" if fonte else "Testo ufficiale reperito."
+    if r := data.get("rinvio"):
+        # An entry into force the notes defer past today (#172): said in every case, also when
+        # the table of updates could not be read to tell which text is in force.
+        from mcp_legal_it.lib.visualex.vigenza_differita import nota_verifica
+
+        nota += f" Attenzione: {nota_verifica(r)}."
     if (prossima := data.get("upcoming")) and prossima.get("valid_from"):
         # In force today, with a later version already published: still verified, and said.
         cambio = "abrogato" if prossima.get("change") == "abrogated" else "modificato"

@@ -207,10 +207,12 @@ _INTESTAZIONI_ELI = {
 #: D.Lgt. 30 marzo 1946, n. 512 served for a «r.d.lgs. 512/1946», G-440). A heading type in no
 #: table says nothing: measure it on a real page before adding it.
 _TIPI_INTESTAZIONE_NOTI = frozenset(act_dates._TITLES.values()).union(*_INTESTAZIONI_ELI.values())
-#: The heading each type's page opens with: the titles VisuaLex verifies (``act_dates._TITLES``)
-#: and the measured ones above. A titled type is dated by its title; its heading only says
-#: when the page is another act's (L. 241/1990 served for a d.lgs. n. 241 of 1990, #146).
-_INTESTAZIONI = {**{kind: frozenset({tipo}) for kind, tipo in act_dates._TITLES.items()}, **_INTESTAZIONI_ELI}
+#: The heading each type's page opens with: the titles VisuaLex verifies (``act_dates._TITLES``,
+#: with ``_TITLES_ANCHE``: a D.Lgs.C.P.S. is the act a «d.lgs.» cites, the legge Basevi) and the
+#: measured ones above. A titled type is dated by its title; its heading only says when the page
+#: is another act's (L. 241/1990 served for a d.lgs. n. 241 of 1990, #146).
+_INTESTAZIONI = {**{kind: frozenset({tipo, *act_dates._TITLES_ANCHE.get(kind, ())})
+                    for kind, tipo in act_dates._TITLES.items()}, **_INTESTAZIONI_ELI}
 
 
 class AttoNonVerificato(LookupError):
@@ -667,7 +669,7 @@ async def _fetch_article(nv: NormaVisitata, *, canale: str = "html") -> dict:
 
         part = _akn_part_hint(nv.norma)
         if canale == "html":
-            return await _html_article(nv, url, part)
+            return await _rinvio_differito(nv, await _html_article(nv, url, part))
 
         # AKN channel: the official Akoma Ntoso XML export first, then the page.
         act = None
@@ -1492,6 +1494,116 @@ def _testo_intero(corpo: Tag) -> str:
 
 def _extract_normattiva_article(html: str) -> str:
     return _normattiva_article_page(html)[0]
+
+
+async def rinvio_dalla_disposizione(s: "dict | None", oggi: str) -> "dict | None":
+    """A deferral the notes may have stopped telling, read in the provision that sets the date (#177).
+
+    *s* is ``vigenza_differita.rinvio_scaduto``: a chain whose date was moved later and has
+    passed (art. 765 c.p.c.: notes up to 31/10/2026). The provision the chain names (art. 32,
+    comma 3 of d.lgs. 116/2017) is read live, as in force today (the page is kept a day,
+    ``pagine_normattiva``), by ``vigenza_differita.stato_disposizione``. Its dates all passed,
+    or the comma spent: None, the amendments are in force. One date still to come: the
+    deferral, its chain widened with the acts that gave the provision its current wording (its
+    latest table of updates: d.l. 100/2026). The provision not readable, or its date not
+    known: the deferral with ``data`` None, so the notice is still given. Never a date written
+    in the code.
+    """
+    from . import aggiornamenti, vigenza_differita
+
+    if s is None:
+        return None
+    articolo, comma = vigenza_differita.articolo_e_comma(s["disposizione"])
+    stato, data, atti = "ignoto", None, set()
+    if articolo:
+        tipo, giorno, numero = s["atto"]
+        url = Norma(tipo_atto=tipo, data=giorno, numero_atto=numero).url(articolo)
+        try:
+            testo, servito = await _normattiva_page(f"{url}!vig={oggi}", articolo)
+        except (httpx.HTTPError, AttoNonVerificato):
+            testo, servito = "", None
+        voluto = _article_identity(normalize_article_key(articolo))
+        if testo and servito is not None and _article_identity(servito) == voluto:
+            stato, data = vigenza_differita.stato_disposizione(testo, comma, oggi, s.get("articolo"))
+        if stato == "in_vigore":
+            return None  # its dates have passed, or the comma is spent: the amendments are in force
+        dal = ((pagine_normattiva.leggi(f"{url}!vig={oggi}") or {}).get("validita") or {}).get("valid_from")
+        if stato == "rinvio" and dal:
+            try:
+                letta = await aggiornamenti.leggi_aggiornamenti(url, articolo, dal=dal, al=None, max_versioni=1,
+                                                                oggi=oggi)
+            except (httpx.HTTPError, AttoNonVerificato):
+                letta = {}
+            if letta.get("esito") == "trovato" and letta.get("corrente") is not None:
+                atti = vigenza_differita.atti_del_comma((letta.get("righe") or {}).get(letta["corrente"]), comma)
+    return vigenza_differita.riaperto(s, data, atti)
+
+
+async def _rinvio_differito(nv: NormaVisitata, result: dict) -> dict:
+    """*result*, read against an entry into force its notes defer past today (#172, #177).
+
+    The text in force today only (no date, no original, no coming version asked for), and a
+    page Normattiva served. When the page's notes put a provision's entry into force after
+    today (``vigenza_differita.rinvio``), or the notes stopped at a date already past that the
+    provision has moved again (:func:`rinvio_dalla_disposizione`), the article's table of
+    updates says whether the text already carries those amendments (``vigenza_differita.caso``):
+    ``rinvio`` says so, and in case A the text becomes that of the version before the deferred
+    ones, read from its own page. A deferred repeal (art. 73-bis disp. att. c.c.) is a case A
+    too: the article in force, never «abrogato». The table not readable, or the provision's
+    date not readable: ``rinvio`` with ``caso`` None, so the notice is still given.
+    """
+    from . import aggiornamenti, vigenza_differita
+
+    if (not result.get("text") or result.get("source") != "normattiva" or result.get("error")
+            or nv.suffisso_versione() or not nv.numero_articolo):
+        return result
+    pagina = pagine_normattiva.leggi(result.get("url") or "")
+    note = ((pagina or {}).get("note") or {}).get("note")
+    note = note if isinstance(note, list) else None
+    oggi = _clock.today().isoformat()
+    r = vigenza_differita.rinvio(note, oggi)
+    if r is None:
+        r = await rinvio_dalla_disposizione(vigenza_differita.rinvio_scaduto(note, oggi), oggi)
+        if r is None:
+            return result
+    url = re.sub(r"!vig=[^~!@?&]*$", "", result["url"])
+    try:
+        letta = await aggiornamenti.leggi_aggiornamenti(url, nv.numero_articolo, dal=r["atto"][1], al=None,
+                                                        max_versioni=20, oggi=oggi)
+    except (httpx.HTTPError, AttoNonVerificato):
+        letta = {"esito": "errore_fonte"}
+    if letta.get("esito") != "trovato" or letta.get("mancanti") or letta.get("oltre_tetto"):
+        # Not read, or read only in part (a walk that stopped, a ceiling): a missing table of the
+        # latest version would hide the deferral, a missing previous one would fake a case B.
+        return {**result, "rinvio": {**r, "caso": None}}
+    versioni, righe = letta.get("versioni") or {}, letta.get("righe") or {}
+    if r.get("data") is None:
+        # The provision's date not known: said whenever a version carries the deferred act.
+        if not vigenza_differita.porta_atto_rinviato(r, righe):
+            return result
+        return {**result, "rinvio": {**r, "caso": None}}
+    caso, info = vigenza_differita.caso(r, versioni, righe)
+    if caso is None:
+        return result
+    abrogante = abrogato_da(result["text"]) if r.get("abrogazione") else None
+    cambio = "inserted" if caso == "non_in_vigore" else "abrogated" if r.get("abrogazione") else "amended"
+    upcoming = {"change": cambio, "valid_from": r["data"], "version_number": None}
+    if caso == "A":
+        vig = f"{url}!vig={info['precedente'][2]}"
+        try:
+            testo, servito = await _normattiva_page(vig, nv.numero_articolo)
+        except (httpx.HTTPError, AttoNonVerificato):
+            testo, servito = "", None  # case B below: never the whole article refused for it
+        requested = _article_identity(normalize_article_key(nv.numero_articolo))
+        if testo and servito is not None and _article_identity(servito) == requested:
+            result = {**result, "text": testo, "url": vig}
+        else:
+            # The previous version could not be read as this article: never assumed.
+            caso, info = "B", {**info, "precedente_non_letta": True}
+    if caso == "non_in_vigore":
+        result = {**result, "not_in_force": True}
+    extra = {"abrogato_da": abrogante} if abrogante else {}
+    return {**result, "upcoming": upcoming, "rinvio": {**r, **info, **extra, "caso": caso}}
 
 
 async def _html_article(nv: NormaVisitata, url: str, part: "str | None") -> dict:

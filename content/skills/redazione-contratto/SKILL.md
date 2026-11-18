@@ -1,7 +1,7 @@
 ---
 name: redazione-contratto
 description: Usa quando l'utente chiede di redigere, revisionare o analizzare un contratto, verificare clausole o predisporre un accordo — supporto con verifica normativa, clausole tipo e compliance GDPR.
-tools: [analisi_base_giuridica, cerca_brocardi, cite_law, genera_dpa]
+tools: [analisi_base_giuridica, cerca_brocardi, cerca_giurisprudenza, cite_law, genera_dpa, leggi_sentenza]
 ---
 
 # Redazione Contratto
@@ -17,7 +17,7 @@ Chiama `cite_law` per le norme del tipo contrattuale:
 - Norme specifiche del tipo (es. locazione artt. 1571 ss.)
 - Legislazione speciale (Cod. Consumo per B2C)
 
-Per orientamenti: `cerca_brocardi` (se disponibile) sulle norme chiave.
+Per orientamenti: `cerca_giurisprudenza` sulle norme chiave, poi `leggi_sentenza`; `cerca_brocardi` solo se disponibile in questa installazione.
 
 ### 2. Clausole essenziali
 

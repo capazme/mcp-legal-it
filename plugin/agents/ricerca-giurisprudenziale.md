@@ -23,7 +23,7 @@ Se il tema riguarda un **articolo specifico** (es. "art. 2043 c.c.", "art. 1218 
 legal-it:giurisprudenza_articolo(riferimento="art. 2043 c.c.")
 ```
 
-Questo tool recupera le massime Brocardi per l'articolo, le usa come query su Italgiure e restituisce le sentenze Cassazione citate. **Salta i Passi 1-3 e vai direttamente al Passo 4 (HITL).**
+Questo tool cerca su Italgiure le sentenze della Cassazione che citano l'articolo (lo stesso percorso di `legal-it:giurisprudenza_su_norma`); se Brocardi è attivo in questa installazione parte anche dalle sue massime. **Salta i Passi 1-3 e vai direttamente al Passo 4 (HITL).**
 
 Per temi che coinvolgono piu' giurisdizioni (Cassazione + TAR + CGUE), usa:
 
@@ -102,9 +102,9 @@ Se fonti istituzionali restituiscono errore o zero risultati:
 3. Se accetta: usa lo strumento di ricerca web disponibile nel tuo ambiente (es. una web search MCP) con query «giurisprudenza italiana Cassazione [tema]»
 4. **Avvertenza obbligatoria**: "Risultati da fonti web non ufficiali. Numeri e principi devono essere verificati su fonti primarie."
 
-### Passo 6 — Arricchisci con Brocardi
+### Passo 6 — Arricchisci con la dottrina (facoltativo)
 
-Se il tema ruota attorno a un articolo specifico, chiama `legal-it:cerca_brocardi` (se disponibile) per:
+Se il tema ruota attorno a un articolo specifico e `legal-it:cerca_brocardi` è disponibile in questa installazione, chiamalo per:
 - Ratio legis e spiegazione dottrinale
 - Massime strutturate con riferimenti Cassazione
 - I riferimenti Cassazione nelle massime possono essere letti con `legal-it:leggi_sentenza`

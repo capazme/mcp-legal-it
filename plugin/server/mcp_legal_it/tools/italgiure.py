@@ -850,7 +850,7 @@ async def _giurisprudenza_articolo_impl(
                 else f"Brocardi: nessuna massima disponibile per {riferimento} (o fonte non raggiungibile)"
             )
             fallback.results_text = (
-                f"*{why}: ricerca per citazione dell'articolo su Italgiure.*\n\n{fallback.results_text}"
+                f"*{why}. Ricerca per citazione dell'articolo su Italgiure.*\n\n{fallback.results_text}"
             )
         return fallback
 
@@ -1008,9 +1008,11 @@ async def giurisprudenza_articolo(
     anno_a: int = 0,
     max_risultati: int = 5,
 ) -> str:
-    """Cerca giurisprudenza su un articolo usando le massime Brocardi come guida.
+    """Cerca giurisprudenza su un articolo: le decisioni di Cassazione che lo citano.
 
-    Workflow: recupera le massime giurisprudenziali da Brocardi per l'articolo indicato,
+    Senza Brocardi (non attivo per impostazione predefinita) cerca su Italgiure le decisioni
+    che citano l'articolo, come giurisprudenza_su_norma, e lo dichiara in una riga.
+    Con Brocardi attivo: recupera le massime giurisprudenziali da Brocardi per l'articolo indicato,
     poi usa il testo dei principi di diritto come query di ricerca su Italgiure, limitata alle
     decisioni che citano l'articolo (senza raffinamento automatico). Inoltre elenca (estremi e
     materia, non il testo: usare leggi_sentenza) le sentenze Cassazione citate nelle massime.

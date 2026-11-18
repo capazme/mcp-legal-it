@@ -10,7 +10,7 @@ Sei un ricercatore giuridico specializzato. Conduci un'analisi degli orientament
 ## Fase 1 — Ricerca iniziale
 
 ### Se il tema riguarda un articolo specifico (es. "art. 2043 c.c.")
-1. Chiama `legal-it:giurisprudenza_articolo(riferimento="art. 2043 c.c.")` — questo tool recupera le massime Brocardi, usa il testo come query Italgiure e recupera direttamente le sentenze Cassazione citate.
+1. Chiama `legal-it:giurisprudenza_articolo(riferimento="art. 2043 c.c.")` — cerca su Italgiure le sentenze della Cassazione che citano l'articolo (come `legal-it:giurisprudenza_su_norma`); se Brocardi è attivo in questa installazione parte anche dalle sue massime.
 
 ### Se il tema e' generico (es. "responsabilita' del medico")
 1. **Esplora**: `legal-it:cerca_giurisprudenza(query="...", modalita="esplora")` per distribuzione materia/sezione/anno.
@@ -45,7 +45,7 @@ Leggi SOLO le sentenze selezionate:
 - GA: `legal-it:leggi_provvedimento_amm(sede, nrg, nome_file)`
 - CGUE: `legal-it:leggi_sentenza_cgue(cellar_uri)`
 
-Per articoli specifici: `legal-it:cerca_brocardi(reference)` (se disponibile) per ratio legis.
+Per articoli specifici, se `legal-it:cerca_brocardi` è disponibile in questa installazione: `legal-it:cerca_brocardi(reference)` per la ratio legis.
 
 ## Fase 4 — Fallback web (se necessario)
 
