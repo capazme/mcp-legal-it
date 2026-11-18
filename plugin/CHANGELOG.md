@@ -5,6 +5,154 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.2] - 2026-11-18
+
+### Security
+- **The plugin and the extension no longer read the Python environment or the uv
+  configuration of the folder they are launched from.** The citation hook and the
+  `.mcpb` server started uv in the user's folder, where it could use a Python
+  environment found there or above it, and its configuration. They now start uv in
+  their own folder, in a throwaway environment (`--isolated --no-config --directory`).
+  The plugin's server, started from its own locked project, was not affected. A test
+  runs both launchers next to such an environment.
+- **The FastMCP floor excludes the vulnerable releases.** The plugin's lock has
+  FastMCP 3.4.11 (it was 3.4.9: GHSA-7xgj-8392-5q4r, component authorization after a
+  transform was skipped on direct calls). The `.mcpb` asks for `fastmcp>=3.4.11,<4`
+  (it was `>=2.0,<4`), library installs for `fastmcp>=3.4.11,!=4.0.*,!=4.1.0,!=4.1.1,<5`
+  (it was `>=3.4,<5`, which admitted the releases affected by GHSA-7xgj-8392-5q4r and,
+  on 4.x, GHSA-vqqp-x5qm-5qp4). The `.mcpb` launcher changes, so Claude Desktop
+  rebuilds its `uv` environment once, on the first start of 2.17.2.
+- Legal references are parsed in linear time. A comma's suffix ("comma 1bis") could
+  be matched in many ways, and some long references held the server for seconds or
+  minutes. Well-formed references read as before; a malformed suffix is refused
+  instead of being folded into the act's name.
+- **Three vulnerable libraries in the plugin's lock** (published 16/11/2026), all pulled in
+  indirectly: dnspython 2.9.0 → 2.9.2 (CVE-2026-128089), opentelemetry-api 1.45.1 → 1.45.2
+  (CVE-2026-126360), soupsieve 3.0.3 → 4.0.1 (CVE-2026-126190). No declared requirement
+  changes; the lock keeps its format (revision 3). pip-audit on the lock finds none.
+
+### Fixed
+- **Act models whose warnings cost the act or the right (G-493).** Each was reread on the text
+  in force on Normattiva. Only the models below were reread; the others are unchanged in this
+  release (the istanza di esecutorietà model, for one, still counts «40 giorni + 10»).
+  - `opposizione_decreto_ingiuntivo` and `relata_pec_opposizione_di` gave «40 giorni dalla
+    notifica». The term is the one the decree fixes (art. 641 co. 1-2 c.p.c.): 40 days, down to
+    10 or up to 60 for giusti motivi; 50 days, down to 20, for a debtor in another EU State; 60,
+    between 30 and 120, elsewhere. A late opposition is admitted only under art. 650: no timely
+    knowledge of the decree (irregular notification, caso fortuito, forza maggiore) or, after C.
+    Cost. 120/1976, knowledge of it but no way to oppose in time for caso fortuito or forza
+    maggiore; never past ten days from the first act of execution. The opposition model is now the
+    atto introduttivo (before the giudice di pace, ricorso semplificato, art. 316 co. 1; before the
+    tribunale, citazione, or ricorso in the rito semplificato, art. 281-decies co. 3), with the art.
+    645 co. 3 hearing and a field for the term in the decree.
+    The `decreto_ingiuntivo` tool's `termini.opposizione` says the same, and so do the
+    `legal://riferimenti/termini-processuali` table and the
+    `legal://riferimenti/checklist-decreto-ingiuntivo` checklist, whose istanza di
+    esecutorietà no longer waits «40 giorni» but the term fixed in the decree.
+  - `avviso_543_5_cpc` was addressed to the debtor. It is notified to the third party, with the
+    numero di ruolo, and, notified, deposited in the file, both by the hearing date; otherwise the
+    pignoramento is inefficace (towards the third parties whose notice is not notified or
+    deposited, art. 543 co. 5 c.p.c.). Fields for the numero di ruolo and the hearing date.
+  - `vendita_immobili` asked to attach an expert valuation (art. 568) and pointed to the catasto
+    calculator. The judge sets the market value on the parties' elements and the art. 569
+    expert's; what the creditor deposits, within the art. 497 term, is the catasto extract and
+    the twenty-year certificates, or a notarial certificate, on pain of inefficacia, with the
+    transcription cancelled and, without other goods, the process extinguished (art. 567 co. 2-3).
+    The art. 501 ten-day wait is stated too.
+  - The live test that certified «40 giorni» as correct now checks the decree's term, with rows
+    for the other three models.
+- **Citations read as another act, or refused although right (G-493, found in G-440).**
+  - **A decree whose main text is an annex, cited by its own number.** «art. 1 d.lgs.
+    175/2024» answered the testo unico's art. 1 (its annex) under the decree's URN, unlabelled;
+    the decree has an art. 1 of its own («È approvato l'allegato testo unico …»). The same for
+    the R.D. 262/1942 (artt. 1-2 are the decree's, not the codice civile's) and the d.lgs.
+    104/2010. The decree's own article now comes from its page; one the decree lacks comes from
+    the annex, labelled with it (`allegato`; `cite_law` says «Testo tratto da: …»). An act cited
+    without an article, and codes cited by name, are unchanged («art. 2043 c.c.», «art. 30
+    c.p.a.», «legge fallimentare»).
+  - **«legge sulle locazioni abitative»** was typed as a decreto legislativo, so it was refused as
+    another act: it is the L. 9 dicembre 1998, n. 431.
+  - **Historical headings.** Asked a «legge» or «r.d.» n. 512 of 1946, Normattiva serves the
+    D.Lgt. 30 marzo 1946, n. 512, whose art. 1 was answered as the act cited. «DECRETO
+    LUOGOTENENZIALE», «DECRETO DEL CAPO PROVVISORIO DELLO STATO» and «DECRETO LEGISLATIVO DEL CAPO
+    PROVVISORIO DELLO STATO» head real pages (measured on 1923-1950) and now mark another act:
+    refused, with the year or the full date. A D.Lgs.C.P.S. cited as a «d.lgs.» is the act cited
+    (the legge Basevi, «art. 26 d.lgs. 1577/1947»).
+  - **Cached export addresses.** The export's address index never expires, and an entry written
+    before the historical headings were known may hold the D.Lgt.'s export for a «legge
+    512/1946». Its entries carry a new mark («intestazione-2»), so those older ones are no longer
+    read.
+- **An act cited by its year is never read as another act Normattiva serves in its place**
+  (#136, #146). Normattiva's resolver does not check an act's type: asked for a D.M. n. 241
+  of 1990 by its year it serves L. 7 agosto 1990, n. 241, and `cite_law("art. 3 d.m.
+  241/1990")` answered with the law's art. 3 under a decree's URN (a d.lgs. or a DPCM the
+  same: DPCM n. 158 of 2014 got L. 17 ottobre 2014, n. 158).
+  - **Another act's heading is refused, for every type.** When the page's heading names a
+    known type that is not the one cited, or another year or number, every reader of the
+    act (article, annex, full text, index, `cite_law`) answers «nessun atto … la pagina
+    restituita è «LEGGE 7 agosto 1990, n. 241»» and asks nothing more.
+  - **Ministerial decrees, DPCM, d.lgs.lgt.** These are dated by their page alone, so they
+    are taken only when the heading names them (headings measured on real pages:
+    «DECRETO», «DECRETO DEL PRESIDENTE DEL CONSIGLIO DEI MINISTRI», «DECRETO LEGISLATIVO
+    LUOGOTENENZIALE», «DECRETO-LEGGE LUOGOTENENZIALE»), with the heading's day. When the
+    page cannot be read or verified now, the answer says to retry later or to cite the
+    act with its full date, rather than read the year-only address, which would serve the
+    law.
+  - **With a full date too.** The address of a D.M. 7 agosto 1990, n. 241 serves the same
+    law: every page read (the article, the act's page before the Akoma Ntoso export, the
+    full text, the index) is checked against the act its address asks for, and another
+    type, number, year or day is refused, naming the page. The export's address index
+    keeps only entries written after that check. Ported from the 3.0 line.
+- **The plugin says why its server stopped at start.** When the server exited before the
+  plugin's first-start relay had handed it the session (an import error, a bad Python), the
+  relay's write failed and the client was told «BrokenPipeError» instead of the server's
+  exit code; Python 3.14's timing made it common. It now waits briefly and reports
+  «server exit N».
+- **The server starts on Python 3.14** (#49, by @HeDo88TH). Python 3.14 no longer copies
+  a function's annotations in `functools.wraps` (PEP 649), so `termini_183_190_cpc`, the
+  one tool flagged both previgente and with its tables declared, lost the type hints of
+  its parameters and the server stopped at import with `KeyError: 'data_udienza'`. The
+  wrapper now carries them. The packaged launchers run Python 3.12: this mattered to
+  installs from pip or uvx on 3.14. From the same contribution, the annotation audit and
+  two isolated tests also run on Windows.
+- **The server starts on Windows** (#133). Thirty reads of the bundled tables, the
+  `legal://` resources and the Brocardi cache named no encoding, so Python used the
+  locale's, cp1252 on Windows: the server stopped at start with a `UnicodeDecodeError`,
+  and a table it could decode would have been read garbled. The installer read and wrote
+  the Claude configuration files the same way. All of them say UTF-8 now (the installer
+  also accepts a configuration saved with a BOM, and reads the output of the commands it
+  runs as UTF-8). The citation hook read its input in the locale encoding too: on a Windows
+  account with an accented name it could not open the session and stopped checking in
+  silence; it now reads the input as UTF-8, and so does the PDF export script of the
+  `esporta-documento` skill when the markdown is piped into it. A test scans the shipped code for text I/O
+  without an encoding, and another imports the server with `-X warn_default_encoding`.
+  Reported, with the cause and the fix, by @Liguria360.
+- **`leggi_provvedimento_amm` reads the full text again.** Since October 2026 the
+  portal's document address (`mdp.giustizia-amministrativa.it/visualizza/`) serves the
+  provvedimento as an HTML page instead of the `<GA>` XML, and every reading answered
+  «non recuperabile: pagina di errore». The reader now recognises the page by its own
+  markup before testing for the error page, which is still reported as an error. It
+  reads every block in order: paragraphs, list items, quotations, headings, table rows,
+  loose text. It takes the court, the type, the number («Sentenza n. 17/2021, pubblicata
+  il 09/11/2021»; a parere: «Parere n. 1918/2026», whose dispatch date is not reported as
+  a publication date). The 15,000-character cut still keeps the dispositivo, from the
+  last block opening with «P.Q.M.» or «PER QUESTI MOTIVI», and says when none is found.
+  The XML is still read when served. Ported from the 3.0 line.
+- The plugin's end-of-turn citation hook no longer opens the server's Python
+  environment. It ran `uv run --project <plugin>/server`, so whenever uv found
+  that environment linked to an interpreter it could not reach, it deleted and
+  rebuilt it under the running server. It now runs on uv's Python 3.12 with
+  `--no-project` (see Security): the gate needs only the standard library.
+- `art. N legge fallimentare` (R.D. 267/1942) reads the law, which sits in
+  annex 1 of the approving decree. When the AKN export failed, the fallback
+  read the decree's own art. 1 as the law's art. 1 and answered «inesistente»
+  from art. 3 on.
+
+### Changed
+- A relative `MCP_CACHE_DIR` is ignored, with one line on stderr, and the cache stays
+  in `~/.cache/mcp-legal-it`: the launchers start the server in its own folder, where a
+  relative path would have put it. `~` in `MCP_CACHE_DIR` is expanded.
+
 ## [2.17.1] - 2026-10-21
 
 ### Security

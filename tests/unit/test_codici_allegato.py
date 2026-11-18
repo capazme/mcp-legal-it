@@ -28,6 +28,7 @@ def test_code_urn_names_the_annex(nome, urn):
     ("decreto del presidente della repubblica", "1988", "448", ";448:1~art3"),  # year only
     ("regio decreto", "1931-06-18", "773", ";773:1~art3"),
     ("decreto legislativo", "1990-10-31", "346", ";346:1~art3"),
+    ("regio decreto", "1942-03-16", "267", ";267:1~art3"),  # legge fallimentare
 ])
 def test_article_of_an_act_whose_text_is_annexed(tipo, data, numero, atteso):
     url = NormaVisitata(norma=Norma(tipo_atto=tipo, data=data, numero_atto=numero), numero_articolo="3").url()
@@ -41,3 +42,11 @@ def test_other_acts_and_annex_references_are_untouched():
     assert Norma(tipo_atto="regio decreto", data="1931-06-18", numero_atto="773").url().endswith(";773")
     assert ":1~" not in Norma(tipo_atto="decreto legislativo", data="1990-10-31", numero_atto="346").url(
         article="allegato A")
+
+
+def test_legge_fallimentare_reads_the_annexed_law_not_the_approving_decree():
+    # Without the annex the AKN fallback read ;267~art1, the decree's own art. 1,
+    # and answered «inesistente» from art. 3 on.
+    norma = Norma(tipo_atto="regio decreto", data="1942-03-16", numero_atto="267")
+    assert norma.url(article="1").endswith("regio.decreto:1942-03-16;267:1~art1")
+    assert m.articolato_in_allegato("regio.decreto", "1942-03-16", "267") == "1"

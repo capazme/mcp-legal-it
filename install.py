@@ -237,7 +237,7 @@ def detect_existing_install() -> dict[str, bool]:
     config_path = _CLAUDE_DESKTOP_PATHS.get(platform.system())
     if config_path and config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding="utf-8-sig"))
             result["desktop"] = any(
                 k.startswith("legal-it") for k in config.get("mcpServers", {})
             )
@@ -255,7 +255,7 @@ def _is_plugin_installed() -> bool:
     try:
         result = subprocess.run(
             ["claude", "plugin", "list"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
         )
         return "legal-it" in result.stdout
     except (subprocess.SubprocessError, FileNotFoundError):
@@ -290,7 +290,7 @@ def install_deps() -> None:
         result = subprocess.run(
             [str(VENV_PYTHON), "-m", "pip", "install", "-e", str(PROJECT_DIR), "-q"],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             cwd=str(PROJECT_DIR),
         )
         if result.returncode != 0:
@@ -298,7 +298,7 @@ def install_deps() -> None:
             result = subprocess.run(
                 [str(VENV_PYTHON), "-m", "pip", "install", str(PROJECT_DIR), "-q"],
                 capture_output=True,
-                text=True,
+                text=True, encoding="utf-8", errors="replace",
                 cwd=str(PROJECT_DIR),
             )
         if result.returncode != 0:
@@ -327,7 +327,7 @@ def verify_server() -> int:
     result = subprocess.run(
         [str(VENV_PYTHON), "-c", "import asyncio; from src.server import mcp; print(len(asyncio.run(mcp.list_tools())))"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(PROJECT_DIR),
     )
     if result.returncode != 0:
@@ -419,7 +419,8 @@ def _is_claude_desktop_running() -> bool:
         elif system == "Linux":
             return subprocess.run(["pgrep", "-f", "claude-desktop"], capture_output=True).returncode == 0
         elif system == "Windows":
-            r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq Claude.exe"], capture_output=True, text=True)
+            r = subprocess.run(["tasklist", "/FI", "IMAGENAME eq Claude.exe"], capture_output=True,
+                               text=True, encoding="utf-8", errors="replace")
             return "Claude.exe" in r.stdout
     except (subprocess.SubprocessError, FileNotFoundError):
         pass
@@ -501,7 +502,7 @@ def install_claude_desktop(profiles: list[str], *, non_interactive: bool = False
     config: dict = {}
     if config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding="utf-8-sig"))
         except (json.JSONDecodeError, OSError):
             warn("Configurazione esistente non valida, ne creo una nuova")
 
@@ -531,7 +532,7 @@ def install_claude_desktop(profiles: list[str], *, non_interactive: bool = False
             backup = config_path.with_suffix(".json.bak")
             shutil.copy2(config_path, backup)
 
-        config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+        config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         success(f"Configurazione Claude Desktop aggiornata: {config_path}")
         for name in added:
             profile = name.replace("legal-it-", "") if name != "legal-it" else "full"
@@ -548,7 +549,7 @@ def install_claude_code(profiles: list[str]) -> bool:
     config: dict = {}
     if _CLAUDE_CODE_MCP.exists():
         try:
-            config = json.loads(_CLAUDE_CODE_MCP.read_text())
+            config = json.loads(_CLAUDE_CODE_MCP.read_text(encoding="utf-8-sig"))
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -568,7 +569,7 @@ def install_claude_code(profiles: list[str]) -> bool:
         added.append(name)
 
     try:
-        _CLAUDE_CODE_MCP.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+        _CLAUDE_CODE_MCP.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         success(f"Configurazione Claude Code aggiornata: {_CLAUDE_CODE_MCP.name}")
         for name in added:
             profile = name.replace("legal-it-", "") if name != "legal-it" else "full"
@@ -599,7 +600,8 @@ def install_plugin(*, non_interactive: bool = False, local: bool = False) -> boo
     # Write appropriate .mcp.json for the plugin
     plugin_mcp = PLUGIN_DIR / ".mcp.json"
     plugin_mcp.write_text(
-        json.dumps(_build_plugin_mcp_config(local=local), indent=2, ensure_ascii=False) + "\n"
+        json.dumps(_build_plugin_mcp_config(local=local), indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
     )
     mode_label = "locale (stdio)" if local else "remoto (SSE)"
     info(f"Modalità server: {c(BOLD, mode_label)}")
@@ -618,14 +620,14 @@ def install_plugin(*, non_interactive: bool = False, local: bool = False) -> boo
             info("Rimuovo il plugin esistente...")
             subprocess.run(
                 ["claude", "plugin", "remove", "legal-it"],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
             )
 
     # Register as marketplace source (marketplace.json is in repo root)
     info("Registro il marketplace locale...")
     result = subprocess.run(
         ["claude", "plugin", "marketplace", "add", str(PROJECT_DIR)],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     if result.returncode != 0 and "already" not in result.stderr.lower():
         warn(f"Marketplace add: {result.stderr.strip()[:200]}")
@@ -636,7 +638,7 @@ def install_plugin(*, non_interactive: bool = False, local: bool = False) -> boo
     cmd = "install" if not already_installed else "install"
     result = subprocess.run(
         ["claude", "plugin", cmd, "legal-it@mcp-legal-it"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     if result.returncode != 0:
         error(f"Installazione plugin fallita: {result.stderr.strip()[:300]}")
@@ -719,13 +721,13 @@ def uninstall() -> None:
     config_path = _CLAUDE_DESKTOP_PATHS.get(platform.system())
     if config_path and config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding="utf-8-sig"))
             servers = config.get("mcpServers", {})
             legal_keys = [k for k in servers if k.startswith("legal-it")]
             if legal_keys:
                 for k in legal_keys:
                     del servers[k]
-                config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n")
+                config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
                 success(f"Rimossi da Claude Desktop: {', '.join(legal_keys)}")
                 removed_any = True
             else:
@@ -736,7 +738,7 @@ def uninstall() -> None:
     # 2. Claude Code .mcp.json
     if _CLAUDE_CODE_MCP.exists():
         try:
-            config = json.loads(_CLAUDE_CODE_MCP.read_text())
+            config = json.loads(_CLAUDE_CODE_MCP.read_text(encoding="utf-8-sig"))
             servers = config.get("mcpServers", {})
             legal_keys = [k for k in servers if k.startswith("legal-it")]
             if legal_keys:
@@ -747,7 +749,8 @@ def uninstall() -> None:
                     success("Rimosso .mcp.json (conteneva solo legal-it)")
                 else:
                     _CLAUDE_CODE_MCP.write_text(
-                        json.dumps(config, indent=2, ensure_ascii=False) + "\n"
+                        json.dumps(config, indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8",
                     )
                     success(f"Rimossi da .mcp.json: {', '.join(legal_keys)}")
                 removed_any = True
@@ -762,7 +765,7 @@ def uninstall() -> None:
             info("Rimuovo il plugin Claude Code...")
             result = subprocess.run(
                 ["claude", "plugin", "remove", "legal-it"],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
             )
             if result.returncode == 0:
                 success("Plugin legal-it rimosso")
@@ -776,7 +779,7 @@ def uninstall() -> None:
         info("Rimuovo la registrazione marketplace...")
         result = subprocess.run(
             ["claude", "plugin", "marketplace", "remove", str(PROJECT_DIR)],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
         )
         if result.returncode == 0:
             success("Marketplace locale rimosso")

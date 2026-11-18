@@ -56,7 +56,7 @@ SECRET = re.compile(
 #: Holds the directory raises by design and that this plugin cannot avoid.
 ACCEPTED_HOLDS = {
     "uv-run-frozen": (
-        "the local MCP server and the hook start through `uv run --frozen`: "
+        "the local MCP server starts through `uv run --frozen`: "
         "the directory always holds a launcher that installs packages, even "
         "pinned ones (\"Runs a pinned npx or uvx package\"). A Python server "
         "with compiled dependencies cannot ship without one (LI-011, B-23)"
@@ -202,6 +202,53 @@ def check_files(rev: str, files: dict[str, tuple[str, int]], report: Report) -> 
             report.hold(f"{path}: inline `!` command in a skill or command")
 
 
+# `uv run` options that take a value (uv 0.11 `uv help run`). The executed command is the
+# first word that is neither an option nor such a value: anything after it is the command's
+# own arguments, so a "--no-project" there says nothing about uv. An option missing here
+# makes its value read as the command, which only hides later options: stricter, not looser.
+UV_RUN_VALUE_OPTIONS = {
+    "--extra", "--no-extra", "--group", "--no-group", "--only-group", "--env-file",
+    "-w", "--with", "--with-editable", "--with-requirements", "--package",
+    "--python-platform", "--index", "--default-index", "-i", "--index-url",
+    "--extra-index-url", "-f", "--find-links", "--index-strategy", "--keyring-provider",
+    "-P", "--upgrade-package", "--upgrade-group", "--resolution", "--prerelease",
+    "--fork-strategy", "--exclude-newer", "--exclude-newer-package", "--no-sources-package",
+    "--reinstall-package", "--link-mode", "-C", "--config-setting",
+    "--config-settings-package", "--no-build-isolation-package", "--no-build-package",
+    "--no-binary-package", "--cache-dir", "--refresh-package", "-p", "--python", "--color",
+    "--allow-insecure-host", "--directory", "--project", "--config-file",
+}
+
+
+def uv_run_options(args: list[str]) -> list[str]:
+    """The options of `uv run` (``args[0]`` is "run") before the command it executes."""
+    options: list[str] = []
+    rest = iter(args[1:])
+    for arg in rest:
+        if not arg.startswith("-"):
+            break
+        options.append(arg)
+        if arg in UV_RUN_VALUE_OPTIONS:
+            options.append(next(rest, ""))
+    return options
+
+
+def uv_run_installs(options: list[str]) -> bool:
+    """`--with*`, `-w`, `--script` and `-s` (inline script metadata) install packages,
+    also inside a group of short flags (`-qw six`)."""
+    return any(
+        o.startswith("--with") or o == "--script"
+        or (o.startswith("-") and not o.startswith("--") and any(c in "ws" for c in o[1:]))
+        for o in options
+    )
+
+
+def uv_run_command(args: list[str]) -> str:
+    """The command `uv run` executes, or "" when there is none."""
+    rest = args[1 + len(uv_run_options(args)):]
+    return rest[0] if rest else ""
+
+
 def check_command(where: str, command: str, args: list[str], report: Report,
                   files: dict[str, tuple[str, int]] | None = None) -> None:
     line = " ".join([command, *args])
@@ -213,15 +260,20 @@ def check_command(where: str, command: str, args: list[str], report: Report,
     if command in ("bash", "sh", "zsh", "cmd", "powershell", "pwsh"):
         report.hold(f"{where}: starts through a shell")
     if command == "uv" and args[:1] == ["run"]:
-        if "--frozen" not in args and "--locked" not in args:
+        options = uv_run_options(args)
+        if ("--no-project" in options and not uv_run_installs(options)
+                and uv_run_command(args) == "python"):
+            pass  # a bare interpreter: nothing is resolved or installed
+            # (a script run directly may carry inline `# /// script` dependencies)
+        elif "--frozen" not in options and "--locked" not in options:
             report.block(f"{where}: `uv run` without --frozen or --locked")
         else:
             report.accept("uv-run-frozen")
         report.accept("subfolder-program")
-        if "--project" in args and files is not None:
-            project = args[args.index("--project") + 1]
+        if "--project" in options and files is not None:
+            project = options[options.index("--project") + 1]
             lock = project.replace("${CLAUDE_PLUGIN_ROOT}", PLUGIN) + "/uv.lock"
-            if ("--frozen" in args or "--locked" in args) and lock not in files:
+            if ("--frozen" in options or "--locked" in options) and lock not in files:
                 report.block(f"{where}: `uv run --frozen/--locked` needs {lock}, "
                              "which is not tracked (check .gitignore)")
     if command in LAUNCHERS:

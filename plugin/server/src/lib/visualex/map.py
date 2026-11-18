@@ -61,6 +61,7 @@ ARTICOLATO_IN_ALLEGATO: dict[str, str] = {
     "decreto.del.presidente.della.repubblica:1988-09-22;448": "1",  # c.p.p. minorile
     "regio.decreto:1931-06-18;773": "1",  # TULPS
     "decreto.legislativo:1990-10-31;346": "1",  # TU imposta successioni e donazioni
+    "regio.decreto:1942-03-16;267": "1",  # legge fallimentare
 }
 _ALLEGATO_PER_ATTO = {
     (u.split(":")[0], u.split(":")[1][:4], u.split(";")[1]): a for u, a in ARTICOLATO_IN_ALLEGATO.items()
@@ -293,7 +294,9 @@ _ATTI_DENOMINATI_SPEC: list[tuple[str, str, str, list[str]]] = [
     ("legge", "1941-04-22", "633", [
         "legge sulla protezione del diritto d'autore", "legge sul diritto d'autore",
         "legge diritto d'autore", "lda"]),
-    ("decreto legislativo", "1998-12-09", "431", [
+    # A legge, not a decreto legislativo: the type was wrong and every lookup by name was
+    # refused as another act (Normattiva titles it «LEGGE 9 dicembre 1998, n. 431», G-440).
+    ("legge", "1998-12-09", "431", [
         "legge sulle locazioni abitative", "locazioni abitative"]),
     ("legge", "1978-07-27", "392", ["legge equo canone", "equo canone"]),
     ("legge", "1982-05-03", "203", ["norme sui contratti agrari", "legge sui contratti agrari"]),

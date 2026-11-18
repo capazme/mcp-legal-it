@@ -126,3 +126,32 @@ def test_cache_writers_are_declared_in_the_audit():
     from src.tool_annotations import CACHE_WRITES
 
     assert cache_tools == set(CACHE_WRITES)
+
+
+def test_a_relative_cache_dir_is_ignored(monkeypatch, capsys):
+    """The launchers start the server in its own folder: a relative MCP_CACHE_DIR would
+    land there. It is ignored for the default, said once on stderr."""
+    from src.lib import _cache
+
+    monkeypatch.setattr(_cache, "_warned_relative", False)
+    monkeypatch.setenv("MCP_CACHE_DIR", "relative/cache")
+    assert _cache.cache_root() == _cache.DEFAULT_DIR
+    assert _cache.cache_root() == _cache.DEFAULT_DIR
+    assert capsys.readouterr().err.count("is not an absolute path") == 1
+
+
+def test_a_home_cache_dir_is_expanded(monkeypatch):
+    from src.lib import _cache
+
+    monkeypatch.setenv("MCP_CACHE_DIR", "~/legal-cache")
+    assert _cache.cache_root() == pathlib.Path.home() / "legal-cache"
+
+
+def test_an_unknown_home_in_the_cache_dir_falls_back(monkeypatch, capsys):
+    """`~nosuchuser/x` cannot be expanded: the server still starts, on the default."""
+    from src.lib import _cache
+
+    monkeypatch.setattr(_cache, "_warned_relative", False)
+    monkeypatch.setenv("MCP_CACHE_DIR", "~utente-che-non-esiste-mcp/x")
+    assert _cache.cache_root() == _cache.DEFAULT_DIR
+    assert "is not an absolute path" in capsys.readouterr().err

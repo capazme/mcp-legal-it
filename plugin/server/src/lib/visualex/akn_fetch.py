@@ -84,6 +84,13 @@ def _url_params_path() -> Path:
     return _cache_root() / "akn_url_params.json"
 
 
+# The marker names the check: «intestazione-2» is the one that knows the historical heading
+# types (``scraper._INTESTAZIONI_ALTRE``, G-440). An entry marked «intestazione» was written by
+# a check blind to them (a «legge 512/1946» got the D.Lgt. n. 512's export) and is not read.
+# The entries have no expiry: without the new marker such an entry would serve for ever.
+_VERIFICATA = "intestazione-2"
+
+
 def _load_url_params() -> None:
     global _url_params_loaded
     if _url_params_loaded:
@@ -95,8 +102,10 @@ def _load_url_params() -> None:
         path = _url_params_path()
         if path.exists():
             raw = json.loads(path.read_text(encoding="utf-8"))
+            # An entry carries the mark of the heading check (scraper.controlla_intestazione):
+            # one kept before it (two elements) may be another act's, and is never read.
             for url, val in raw.items():
-                if isinstance(val, list) and len(val) == 2:
+                if isinstance(val, list) and len(val) == 3 and val[2] == _VERIFICATA:
                     _url_params[url] = (val[0], val[1])
     except (ValueError, OSError) as exc:
         print(f"[akn_fetch] url-params read failed: {exc}", file=sys.stderr)
@@ -118,7 +127,7 @@ def _set_url_params(url: str, codice: str, data_gu: str) -> None:
         path = _url_params_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            json.dumps({u: list(v) for u, v in _url_params.items()}, ensure_ascii=False),
+            json.dumps({u: [*v, _VERIFICATA] for u, v in _url_params.items()}, ensure_ascii=False),
             encoding="utf-8",
         )
     except OSError as exc:
@@ -360,6 +369,11 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
             landing_resp = await client.get(landing_url)
             landing_resp.raise_for_status()
             note_source("normattiva", str(landing_resp.url) if hasattr(landing_resp, "url") else "")
+            # Another act's landing page (the resolver does not check what it is asked): the
+            # caller refuses, never that act's export nor a kept URL entry.
+            from .scraper import controlla_intestazione
+
+            controlla_intestazione(landing_url, landing_resp.text)
             params = _extract_params(landing_resp.text)
             if not params:
                 return None
@@ -402,5 +416,9 @@ async def fetch_act_akn(norma, data_vigenza: "str | None" = None) -> "ParsedAct 
         _bump_hits(key)
         return act
     except Exception as exc:  # noqa: BLE001 — fail closed, never raise
+        from .scraper import AttoNonVerificato
+
+        if isinstance(exc, AttoNonVerificato):
+            raise  # the one exception: the page is another act's, the caller refuses
         print(f"[akn_fetch] fetch failed for {landing_url}: {exc}", file=sys.stderr)
         return None

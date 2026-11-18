@@ -130,6 +130,11 @@ diffidenza, sempre. Ecco cosa contiene questo:
 - **`plugin/.mcp.json`** usa solo `${CLAUDE_PLUGIN_ROOT}`, nessun percorso assoluto, e avvia
   il server con `uv run --frozen`: le versioni esatte di `plugin/server/uv.lock`, in un
   ambiente del plugin, senza toccare il progetto dell'utente.
+- **L'hook di fine turno e l'estensione `.mcpb`** avviano uv dalla propria cartella, in un
+  ambiente usa e getta: non leggono l'ambiente Python né la configurazione uv della cartella
+  che hai aperto. Usano invece, perché li controlli tu, un ambiente virtuale attivo nella
+  shell (`VIRTUAL_ENV`) e un `.venv` in una cartella che contiene quella del plugin o
+  dell'estensione.
 - Le 23 skill, i 9 comandi e i 6 agenti sono file markdown di istruzioni. Non eseguono nulla
   da soli.
 

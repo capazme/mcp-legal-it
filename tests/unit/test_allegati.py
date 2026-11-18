@@ -20,6 +20,7 @@ Allegati II and III).
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 
 import src.server  # noqa: F401  (registers every tool module first: avoids a circular import)
@@ -30,6 +31,9 @@ from src.lib.visualex.scraper import _extract_eurlex_article, fetch_article
 from src.tools import legal_citations as lc
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+
+
+_CLIENT_REALE = httpx.AsyncClient  # taken once, before any test replaces it
 
 
 @pytest.fixture(scope="module")
@@ -229,14 +233,30 @@ class TestNormattivaAnnexes:
 
     @pytest.mark.asyncio
     async def test_code_in_an_annex_is_labelled(self, monkeypatch):
+        """Cited by the decree's number, an article the decree lacks is the annex's, labelled.
+        The decree's page says it lacks it: for ``;104~art3`` Normattiva serves the decree's
+        art. 1 (real page, 17 Nov 2026). The decree's own articles come from its page (G-493,
+        ``test_articolo_di_un_altro_atto.py``)."""
         _serve_akn(monkeypatch, parse_akn(_CODE_IN_ANNEX))
+        pagina = (FIXTURES / "normattiva" / "dlgs104_2010_decreto_art3_serve_art1.html").read_text(encoding="utf-8")
+        chieste = []
+
+        async def handler(request):
+            chieste.append(str(request.url))
+            assert str(request.url).endswith("decreto.legislativo:2010-07-02;104~art3"), request.url
+            return httpx.Response(200, text=pagina)
+
+        reale = _CLIENT_REALE
+        monkeypatch.setattr(scraper.httpx, "AsyncClient",
+                            lambda *a, **k: reale(*a, **{**k, "transport": httpx.MockTransport(handler)}))
         nv = NormaVisitata(
             norma=Norma(tipo_atto="decreto legislativo", data="2010-07-02", numero_atto="104"),
-            numero_articolo="2",
+            numero_articolo="3",
         )
         result = await fetch_article(nv)
-        assert "Giusto processo" in result["text"]
+        assert "Dovere di motivazione" in result["text"]
         assert result["allegato"] == "Allegato 1"
+        assert len(chieste) == 1
 
     @pytest.mark.asyncio
     async def test_cite_law_markdown_says_where_the_text_comes_from(self, monkeypatch, codice_appalti):
@@ -244,7 +264,7 @@ class TestNormattivaAnnexes:
         out = await lc._cite_law_impl("art. 30 dell'allegato I.7 al D.Lgs. 36/2023")
         assert "Cronoprogramma" in out
         header = out.split("###")[0]
-        assert "Testo tratto dall'Allegato I.7" in header
+        assert "Testo tratto da: Allegato I.7" in header
 
     @pytest.mark.asyncio
     async def test_cite_law_json_carries_the_annex(self, monkeypatch, codice_appalti):

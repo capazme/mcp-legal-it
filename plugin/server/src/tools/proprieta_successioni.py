@@ -11,13 +11,13 @@ from src.lib._data import sourced
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
-with open(_DATA / "imposte_successione.json") as f:
+with open(_DATA / "imposte_successione.json", encoding="utf-8") as f:
     _SUCCESSIONE = json.load(f)
 
-with open(_DATA / "usufrutto_coefficienti.json") as f:
+with open(_DATA / "usufrutto_coefficienti.json", encoding="utf-8") as f:
     _USUFRUTTO = json.load(f)
 
-with open(_DATA / "tassi_legali.json") as f:
+with open(_DATA / "tassi_legali.json", encoding="utf-8") as f:
     _TASSI_LEGALI_REGISTRO: list[dict] = json.load(f)["tassi"]
 
 

@@ -30,6 +30,7 @@ find the switch by looking at one function.
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 #: Directory holding every cache file, if the caller does not relocate it.
@@ -45,9 +46,32 @@ def cache_enabled() -> bool:
     return os.environ.get(DISABLE_ENV, "").strip().lower() not in DISABLED_VALUES
 
 
+_warned_relative = False
+
+
 def cache_root() -> Path:
-    """Base cache directory; each client appends its own subdirectory."""
-    return Path(os.environ.get(DIR_ENV) or DEFAULT_DIR)
+    """Base cache directory; each client appends its own subdirectory.
+
+    A relative `MCP_CACHE_DIR` would be read against the server's working directory,
+    which the launchers set to the extension's or plugin's own folder: it is ignored,
+    with one line on stderr, and the default is used. `~` is expanded; a `~user` that
+    cannot be expanded counts as relative.
+    """
+    global _warned_relative
+    value = os.environ.get(DIR_ENV)
+    if not value:
+        return DEFAULT_DIR
+    try:
+        path = Path(value).expanduser()
+    except RuntimeError:  # "~user" for a user that does not exist
+        path = Path(value)
+    if path.is_absolute():
+        return path
+    if not _warned_relative:
+        _warned_relative = True
+        print(f"mcp-legal-it: {DIR_ENV}={value!r} is not an absolute path; "
+              f"the cache stays in {DEFAULT_DIR}", file=sys.stderr)
+    return DEFAULT_DIR
 
 
 def cache_root_display() -> str:

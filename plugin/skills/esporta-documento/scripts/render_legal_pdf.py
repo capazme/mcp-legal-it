@@ -179,7 +179,8 @@ def _read_input(input_path: str | None) -> str:
     if input_path:
         with open(input_path, "r", encoding="utf-8") as fh:
             return fh.read()
-    return sys.stdin.read()
+    # Bytes, not sys.stdin: on Windows a pipe decodes in the locale encoding (cp1252).
+    return sys.stdin.buffer.read().decode("utf-8-sig")
 
 
 def _derive_title(markdown: str) -> str:

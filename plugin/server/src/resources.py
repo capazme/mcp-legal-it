@@ -14,7 +14,7 @@ _DATA = Path(__file__).parent / "data"
 
 
 def _load(name: str) -> dict:
-    return json.loads((_DATA / name).read_text())
+    return json.loads((_DATA / name).read_text(encoding="utf-8"))
 
 
 def _eur(value: float) -> str:
@@ -171,7 +171,7 @@ PROCEDIMENTI SPECIALI
 
 | Procedimento | Termine | Norma |
 |--------------|---------|-------|
-| Opposizione a decreto ingiuntivo | 40 gg dalla notifica | art. 641 |
+| Opposizione a decreto ingiuntivo | quello fissato nel decreto, dalla notifica: di regola 40 gg (10-60 per giusti motivi; UE 50, riducibile fino a 20; altri Stati 60, tra 30 e 120); dopo la scadenza solo art. 650 | art. 641 |
 | Reclamo cautelare | 15 gg dalla pronuncia/comunic. | art. 669-terdecies |
 | Opposizione all'esecuzione | prima del compimento | art. 615 |
 | Opposizione agli atti esecutivi | 20 gg dal compimento | art. 617 |
@@ -587,14 +587,16 @@ POST-EMISSIONE
 ☐ Notifica del decreto all'intimato
 ☐ Termine per la notifica: 60 giorni dall'emissione (art. 644 c.p.c.)
   — decorso il termine il decreto perde efficacia
-☐ Termine per opposizione: 40 giorni dalla notifica (art. 641 c.p.c.)
+☐ Termine per opposizione: quello fissato nel decreto, dalla notifica: di regola
+  40 giorni (10-60 per giusti motivi; UE 50, riducibile fino a 20; altri Stati 60,
+  tra 30 e 120), art. 641 c.p.c.; dopo la scadenza solo nei casi dell'art. 650 c.p.c.
 
 ═══════════════════════════════════════════════════════════
 FORMULA ESECUTIVA
 ═══════════════════════════════════════════════════════════
 
 ☐ Se non opposto: dichiarazione di esecutività (art. 647 c.p.c.)
-  — Istanza alla cancelleria dopo i 40 giorni
+  — Istanza dopo la scadenza del termine fissato nel decreto
 ☐ Se provvisoriamente esecutivo: procedere direttamente
 ☐ Apposizione formula esecutiva (art. 475 c.p.c.)
 ☐ Notifica titolo esecutivo + precetto (art. 479-480 c.p.c.)
@@ -1521,7 +1523,7 @@ NOTE TECNICHE
 ═══════════════════════════════════════════════════════════
 
 - Il portale usa Liferay Portal — ricerca pubblica, nessuna autenticazione
-- Testi integrali sul sottodominio mdp in formato XML <GA> (epigrafe + motivazione + dispositivo)
+- Testi integrali sul sottodominio mdp: pagina HTML del provvedimento (dal 2026-10; prima XML <GA>), con intestazione, motivazione e dispositivo
 - Certificato SSL valido su entrambi i domini → verifica TLS attiva
 - Il testo è letto a blocchi di 15000 caratteri (il dispositivo è sempre incluso nella prima risposta): la nota indica il `da_carattere` con cui leggere la parte omessa
 - I parametri sede, nrg e nome_file per leggi_provvedimento_amm vengono dai risultati di ricerca

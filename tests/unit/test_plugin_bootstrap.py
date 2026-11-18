@@ -141,6 +141,29 @@ def test_a_server_that_dies_at_start_is_reported_not_left_preparing(tmp_path):
     session.close()
 
 
+
+def test_a_server_dead_before_the_replay_reports_its_exit_not_the_pipe(tmp_path, monkeypatch):
+    """The race that Python 3.14 made common: the server exits before the relay writes the
+    replayed `initialize`, the write fails with BrokenPipeError, and the client was told
+    «BrokenPipeError» instead of the server's exit. Here the server is always dead first."""
+    import subprocess
+
+    class DeadOnArrival(subprocess.Popen):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.wait()
+
+    monkeypatch.setattr(bootstrap.subprocess, "Popen", DeadOnArrival)
+    session = Session(tmp_path, sync=lambda: None, server_source="import sys; sys.exit(3)")
+    handshake(session)
+    for _ in range(100):
+        if session.relay.failure:
+            break
+        threading.Event().wait(0.05)
+    call = session.request(2, "tools/call", {"name": "cite_law", "arguments": {}})
+    assert "server exit 3" in call["result"]["content"][0]["text"]
+    session.close()
+
 def test_an_unknown_protocol_version_gets_the_newest_supported(tmp_path):
     session = Session(tmp_path, sync=lambda: "stub")
     reply = session.request(1, "initialize", {"protocolVersion": "2099-01-01"})
